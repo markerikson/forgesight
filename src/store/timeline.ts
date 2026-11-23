@@ -1,0 +1,61 @@
+import type { Database } from "bun:sqlite";
+import type {
+  ReviewThreadRecord,
+  StickyCommentVersion,
+  TimelineItemRecord,
+} from "../core/types.ts";
+import {
+  jsonList,
+  type ReviewThreadRow,
+  reviewThreadFromRow,
+  stickyFromRow,
+  type StickyVersionRow,
+  type TimelineItemRow,
+  timelineItemFromRow,
+} from "./rows.ts";
+
+export function timelineFor(db: Database, key: string): TimelineItemRecord[] {
+  return db
+    .query<TimelineItemRow, [string]>(
+      "SELECT * FROM timeline_items WHERE subject_key = ? ORDER BY created_at, node_id",
+    )
+    .all(key)
+    .map(timelineItemFromRow);
+}
+
+export function reviewThreadsFor(db: Database, key: string): ReviewThreadRecord[] {
+  return db
+    .query<ReviewThreadRow, [string]>(
+      "SELECT * FROM review_threads WHERE subject_key = ? ORDER BY node_id",
+    )
+    .all(key)
+    .map(reviewThreadFromRow);
+}
+
+/** Every stored version of every sticky comment on the subject, oldest first. */
+export function stickiesFor(db: Database, key: string): StickyCommentVersion[] {
+  return db
+    .query<StickyVersionRow, [string]>(
+      "SELECT * FROM sticky_versions WHERE subject_key = ? ORDER BY seen_at, comment_node_id, body_hash",
+    )
+    .all(key)
+    .map(stickyFromRow);
+}
+
+/** Distinct sticky comment node ids per subject. Subjects without stickies are absent. */
+export function stickyNodeIds(db: Database, keys: string[]): Map<string, string[]> {
+  const rows = db
+    .query<{ subject_key: string; comment_node_id: string }, [string]>(
+      `SELECT DISTINCT subject_key, comment_node_id FROM sticky_versions
+       WHERE subject_key IN (SELECT value FROM json_each(?))
+       ORDER BY subject_key, comment_node_id`,
+    )
+    .all(jsonList(keys));
+  const out = new Map<string, string[]>();
+  for (const r of rows) {
+    const list = out.get(r.subject_key);
+    if (list) list.push(r.comment_node_id);
+    else out.set(r.subject_key, [r.comment_node_id]);
+  }
+  return out;
+}
