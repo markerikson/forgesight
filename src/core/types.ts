@@ -81,7 +81,10 @@ export interface StickyCommentVersion {
   subjectKey: SubjectKey;
   author: Login;
   lastEditedAt: string | null;
+  /** When this body was first stored. */
   seenAt: string;
+  /** The latest enrichment that saw this body; a comment's current body has the newest value. */
+  lastSeenAt: string;
   body: string;
 }
 

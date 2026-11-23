@@ -80,10 +80,11 @@ CREATE TABLE sticky_versions (
   author          TEXT NOT NULL,
   last_edited_at  TEXT,
   seen_at         TEXT NOT NULL,
+  last_seen_at    TEXT NOT NULL,
   body            TEXT NOT NULL,
   PRIMARY KEY (comment_node_id, body_hash)
 );
-CREATE INDEX sticky_versions_subject ON sticky_versions(subject_key, seen_at);
+CREATE INDEX sticky_versions_subject ON sticky_versions(subject_key, last_seen_at);
 
 -- user state (web writes; the poller seeds dismissed_at during backfill)
 CREATE TABLE item_state (

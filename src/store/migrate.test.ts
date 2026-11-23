@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "./db.ts";
 import { getMeta, setMeta } from "./meta.ts";
@@ -58,7 +59,7 @@ describe("migrations", () => {
 });
 
 describe("two connections on one file", () => {
-  const dir = mkdtempSync(join("/tmp/opencode", "forgesight-store-"));
+  const dir = mkdtempSync(join(tmpdir(), "forgesight-store-"));
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
   test("a reader sees committed writes in WAL mode", () => {

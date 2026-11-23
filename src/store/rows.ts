@@ -78,6 +78,7 @@ export interface StickyVersionRow {
   author: string;
   last_edited_at: string | null;
   seen_at: string;
+  last_seen_at: string;
   body: string;
 }
 
@@ -197,6 +198,7 @@ export function stickyFromRow(r: StickyVersionRow): StickyCommentVersion {
     author: r.author,
     lastEditedAt: r.last_edited_at,
     seenAt: r.seen_at,
+    lastSeenAt: r.last_seen_at,
     body: r.body,
   };
 }

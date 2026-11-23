@@ -32,11 +32,16 @@ export function reviewThreadsFor(db: Database, key: string): ReviewThreadRecord[
     .map(reviewThreadFromRow);
 }
 
-/** Every stored version of every sticky comment on the subject, oldest first. */
+/**
+ * Every stored version of every sticky comment on the subject, ordered by when each body
+ * was last seen, so a comment's current body is its last entry even after it reverts to
+ * an earlier body.
+ */
 export function stickiesFor(db: Database, key: string): StickyCommentVersion[] {
   return db
     .query<StickyVersionRow, [string]>(
-      "SELECT * FROM sticky_versions WHERE subject_key = ? ORDER BY seen_at, comment_node_id, body_hash",
+      `SELECT * FROM sticky_versions WHERE subject_key = ?
+       ORDER BY last_seen_at, seen_at, comment_node_id, body_hash`,
     )
     .all(key)
     .map(stickyFromRow);

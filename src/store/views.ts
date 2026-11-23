@@ -38,14 +38,16 @@ export function pruneChanges(db: Database, before: string): number {
   return db.query("DELETE FROM changes WHERE at < ?").run(before).changes;
 }
 
+type ListedColumns = Pick<SubjectViewRow, "section" | "sort_at" | "stack_id" | "row_json">;
+
 /**
- * Upserts view rows. A `view` change is appended only for subjects whose `row_json`
- * differs from the stored one (or that had no row), since the list only shows `row_json`.
- * Returns the keys whose row changed.
+ * Upserts view rows. A `view` change is appended only for subjects whose list-visible
+ * columns (`section`, `sort_at`, `stack_id`, `row_json`) differ from the stored row, or
+ * that had no row. Returns the keys that changed.
  */
 export function putViews(db: Database, views: SubjectViewRecord[], now: string): string[] {
-  const current = db.query<{ row_json: string }, [string]>(
-    "SELECT row_json FROM subject_views WHERE subject_key = ?",
+  const current = db.query<ListedColumns, [string]>(
+    "SELECT section, sort_at, stack_id, row_json FROM subject_views WHERE subject_key = ?",
   );
   const upsert = db.query(
     `INSERT INTO subject_views (subject_key, pipeline_version, config_hash, section, sort_at,
@@ -61,7 +63,13 @@ export function putViews(db: Database, views: SubjectViewRecord[], now: string):
   db.transaction(() => {
     for (const v of views) {
       const rowJson = toJson(v.row);
-      const before = current.get(v.subjectKey)?.row_json;
+      const before = current.get(v.subjectKey);
+      const listChanged =
+        !before ||
+        before.row_json !== rowJson ||
+        before.section !== v.section ||
+        before.sort_at !== v.sortAt ||
+        before.stack_id !== v.stackId;
       upsert.run(
         v.subjectKey,
         v.pipelineVersion,
@@ -75,7 +83,7 @@ export function putViews(db: Database, views: SubjectViewRecord[], now: string):
         toJson(v.detail),
         v.computedAt,
       );
-      if (before !== rowJson) {
+      if (listChanged) {
         appendChange(db, "view", v.subjectKey, now);
         changed.push(v.subjectKey);
       }

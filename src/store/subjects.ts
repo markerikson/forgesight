@@ -21,14 +21,15 @@ export function ensureSubjects(db: Database, subjects: NewSubject[]): void {
 
 /**
  * Queues stored subjects for enrichment. An already-dirty subject keeps its older `dirty_at`
- * and the higher priority. Resets the error count so the subject gets fresh attempts.
+ * and the higher priority, and keeps its error count so retries still stop at
+ * MAX_ENRICH_ATTEMPTS. A subject that was not dirty starts with a fresh count.
  */
 export function markDirty(db: Database, keys: string[], now: string, priority = 0): void {
   db.query(
     `UPDATE subjects SET
        priority = CASE WHEN dirty_at IS NULL THEN ?1 ELSE MAX(priority, ?1) END,
-       dirty_at = COALESCE(dirty_at, ?2),
-       enrich_attempts = 0
+       enrich_attempts = CASE WHEN dirty_at IS NULL THEN 0 ELSE enrich_attempts END,
+       dirty_at = COALESCE(dirty_at, ?2)
      WHERE subject_key IN (SELECT value FROM json_each(?3))`,
   ).run(priority, now, jsonList(keys));
 }
@@ -128,8 +129,10 @@ export function saveEnrichment(db: Database, result: EnrichmentResult, now: stri
 
     const insertSticky = db.query(
       `INSERT INTO sticky_versions
-         (comment_node_id, body_hash, subject_key, author, last_edited_at, seen_at, body)
-       VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+         (comment_node_id, body_hash, subject_key, author, last_edited_at, seen_at, last_seen_at, body)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?6, ?7)
+       ON CONFLICT (comment_node_id, body_hash) DO UPDATE SET
+         last_seen_at = excluded.last_seen_at, last_edited_at = excluded.last_edited_at`,
     );
     for (const c of result.stickies) {
       insertSticky.run(c.commentNodeId, bodyHash(c.body), key, c.author, c.lastEditedAt, now, c.body);

@@ -224,6 +224,12 @@ describe("subjects", () => {
     saveEnrichment(db, enrichment("o/r#1", { stickies: [sticky("v2")] }), T2);
     expect(stickiesFor(db, "o/r#1").map((s) => s.body)).toEqual(["v1", "v2"]);
     expect(stickyNodeIds(db, ["o/r#1", "o/r#2"])).toEqual(new Map([["o/r#1", ["IC_1"]]]));
+
+    saveEnrichment(db, enrichment("o/r#1", { stickies: [sticky("v1")] }), T3);
+    expect(stickiesFor(db, "o/r#1").map((s) => [s.body, s.seenAt, s.lastSeenAt])).toEqual([
+      ["v2", T2, T2],
+      ["v1", T0, T3],
+    ]);
   });
 
   test("recordEnrichError drops the subject from the queue at the attempt limit", () => {
@@ -238,6 +244,20 @@ describe("subjects", () => {
     expect(s?.enrichAttempts).toBe(MAX_ENRICH_ATTEMPTS);
     expect(s?.enrichError).toBe("boom");
     expect(nextDirtyBatch(db, { limit: 10 })).toEqual([]);
+  });
+
+  test("markDirty keeps the attempt count of a dirty subject and resets a clean one", () => {
+    const db = memoryDb();
+    ensureSubjects(db, [pr("o/r#1")]);
+    markDirty(db, ["o/r#1"], T0);
+    recordEnrichError(db, "o/r#1", "boom", T1);
+    markDirty(db, ["o/r#1"], T1);
+    expect(getSubject(db, "o/r#1")?.enrichAttempts).toBe(1);
+
+    for (let i = 1; i < MAX_ENRICH_ATTEMPTS; i++) recordEnrichError(db, "o/r#1", "boom", T2);
+    expect(getSubject(db, "o/r#1")?.dirtyAt).toBeNull();
+    markDirty(db, ["o/r#1"], T3);
+    expect(getSubject(db, "o/r#1")).toMatchObject({ dirtyAt: T3, enrichAttempts: 0 });
   });
 });
 
@@ -278,13 +298,18 @@ describe("item state", () => {
 });
 
 describe("views", () => {
-  test("putViews appends a view change only when row_json changes", () => {
+  test("putViews appends a view change only when a list-visible column changes", () => {
     const db = memoryDb();
     expect(putViews(db, [view("o/r#1", { title: "a" })], T0)).toEqual(["o/r#1"]);
     expect(putViews(db, [view("o/r#1", { title: "a" }, { detail: { rounds: [1] }, score: 9 })], T1)).toEqual([]);
     expect(putViews(db, [view("o/r#1", { title: "b" })], T2)).toEqual(["o/r#1"]);
+    expect(putViews(db, [view("o/r#1", { title: "b" }, { section: "hidden" })], T2)).toEqual(["o/r#1"]);
+    expect(putViews(db, [view("o/r#1", { title: "b" }, { section: "hidden", sortAt: T3 })], T3)).toEqual(["o/r#1"]);
+    expect(
+      putViews(db, [view("o/r#1", { title: "b" }, { section: "hidden", sortAt: T3, stackId: "s1" })], T3),
+    ).toEqual(["o/r#1"]);
 
-    expect(changesAfter(db, 0).map((c) => c.kind)).toEqual(["view", "view"]);
+    expect(changesAfter(db, 0).map((c) => c.kind)).toEqual(["view", "view", "view", "view", "view"]);
     expect(getView(db, "o/r#1")?.row).toEqual({ title: "b" });
   });
 
