@@ -1,0 +1,10 @@
+{
+  // Typechecks src/core without Bun, Node, or DOM types, so any runtime global used here fails.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": [],
+    "lib": ["ES2023"]
+  },
+  "include": ["./**/*"],
+  "exclude": ["./**/*.test.ts"]
+}

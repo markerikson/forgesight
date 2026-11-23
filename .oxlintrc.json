@@ -1,0 +1,78 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off",
+    "perf": "warn",
+    "style": "off",
+    "restriction": "off"
+  },
+  "rules": {
+    "no-unused-vars": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "warn",
+    "oxc/no-optional-chaining": "off"
+  },
+  "ignorePatterns": ["node_modules/**", "spikes/**", ".data/**"],
+  // src/core imports only relative modules inside src/core. A path rule cannot see the
+  // importing file's depth, so each nesting level gets its own limit on "../".
+  "overrides": [
+    {
+      "files": ["**/*.test.ts"],
+      "rules": {
+        "typescript/no-non-null-assertion": "off"
+      }
+    },
+    {
+      "files": ["src/core/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "regex": "^[^.]", "message": "src/core imports only relative modules inside src/core (no packages or runtime modules)" },
+              { "regex": "^\\.\\./", "message": "src/core must not import from outside src/core" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/core/*/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "regex": "^[^.]", "message": "src/core imports only relative modules inside src/core (no packages or runtime modules)" },
+              { "regex": "^\\.\\./\\.\\./", "message": "src/core must not import from outside src/core" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/core/*/*/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "regex": "^[^.]", "message": "src/core imports only relative modules inside src/core (no packages or runtime modules)" },
+              { "regex": "^\\.\\./\\.\\./\\.\\./", "message": "src/core must not import from outside src/core" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // Tests use bun:test and read fixture files; the core tsconfig skips them too.
+      "files": ["src/core/**/*.test.ts"],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ]
+}
