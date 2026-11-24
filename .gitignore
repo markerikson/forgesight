@@ -2,5 +2,7 @@ node_modules/
 .env
 .data/
 .timber/
+timber-env.d.ts
+build-info.json
 .codenomad/
 spikes/*/out
