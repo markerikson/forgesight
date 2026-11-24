@@ -15,6 +15,7 @@ import { initDismissedAt } from "../store/item-state.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
 import { ensureSubjects, markDirty } from "../store/subjects.ts";
 import { threadsByIds, upsertThreads } from "../store/threads.ts";
+import { appendChange } from "../store/views.ts";
 import type { Job, JobContext } from "./scheduler.ts";
 
 /** `meta` keys the poller reads and writes. */
@@ -222,6 +223,8 @@ export function ingest(
       dirtied++;
     }
     for (const [priority, keys] of byPriority) markDirty(db, keys, nowIso, priority);
+    // Thread fields (unread, reason, updatedAt) feed the view, so every touched subject is re-derived.
+    for (const key of new Set(plans.map((p) => p.subject.subjectKey))) appendChange(db, "raw", key, nowIso);
   })();
   return { written: changed.length, dirtied };
 }

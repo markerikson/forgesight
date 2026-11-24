@@ -83,14 +83,17 @@ function classifyOne(e: Event, ctx: ClassifyContext): Omit<ViewEvent, keyof Even
 /**
  * Gives each event a display level from the bot catalog, content rules and kind defaults.
  * In simple-mode repos only human comments with text and mentions of me stay shown; everything else
- * is hidden. Events by me are never new.
+ * is hidden. Events by me are never new, except mentions of me.
  */
 export function classify(events: Event[], ctx: ClassifyContext): ViewEvent[] {
   return events.map((e) => {
     const v: ViewEvent = {
       ...e,
       ...classifyOne(e, ctx),
-      isNew: (ctx.dismissedAt === null || isAfter(e.at, ctx.dismissedAt)) && !isMe(e.actor?.login, ctx.me),
+      // A MentionedEvent's actor is the mentioned user, so it is exempt from the "by me" rule.
+      isNew:
+        (ctx.dismissedAt === null || isAfter(e.at, ctx.dismissedAt)) &&
+        (e.kind === "mentioned" || !isMe(e.actor?.login, ctx.me)),
     };
     if (ctx.mode === "simple") {
       const keep =

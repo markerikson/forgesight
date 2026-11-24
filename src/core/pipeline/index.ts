@@ -9,7 +9,7 @@ import type {
 } from "../types.ts";
 import { classify } from "./classify.ts";
 import { normalize } from "./normalize.ts";
-import { type Rank, rank } from "./rank.ts";
+import { applyOverrides, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
 import { buildHeader, buildLinks } from "./row.ts";
 import { isAfter } from "./time.ts";
@@ -76,13 +76,6 @@ function rankFromThreads(input: DeriveInput): Rank {
   };
 }
 
-function applyOverrides(r: Rank, state: ItemState, now: Date): Rank {
-  if (state.snoozeUntil !== null && isAfter(state.snoozeUntil, now.toISOString()) && r.section !== "snoozed") {
-    return { ...r, section: "snoozed", reasons: ["snoozed", ...r.reasons] };
-  }
-  return r;
-}
-
 /**
  * Pure derivation from stored GitHub data and local state to one subject's view. Same input,
  * same output: `now`, `config` and `me` are passed in.
@@ -98,9 +91,11 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
   });
   const rounds = buildRounds(events);
   const enriched = subject.timelineSyncedUntil !== null || events.length > 0;
-  const r = enriched
-    ? rank({ subject, threads, events, rounds, state, me, now })
-    : applyOverrides(rankFromThreads(input), state, now);
+  const r = applyOverrides(
+    enriched ? rank({ subject, threads, events, rounds, state, me }) : rankFromThreads(input),
+    state,
+    now,
+  );
 
   return {
     key: subject.subjectKey,

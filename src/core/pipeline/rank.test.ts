@@ -46,6 +46,8 @@ interface Opts {
   reason?: string;
   mode?: RepoMode;
   itemState?: Partial<ItemState>;
+  enriched?: boolean;
+  bots?: Parameters<typeof resolveConfig>[0]["bots"];
 }
 
 function derive(opts: Opts) {
@@ -63,7 +65,7 @@ function derive(opts: Opts) {
     headSha: null,
     baseSha: null,
     updatedAt: "2026-11-21T00:00:00Z",
-    timelineSyncedUntil: "2026-11-21T00:00:00Z",
+    timelineSyncedUntil: opts.enriched === false ? null : "2026-11-21T00:00:00Z",
     dirtyAt: null,
     priority: 0,
     enrichError: null,
@@ -98,13 +100,37 @@ function derive(opts: Opts) {
       muted: false,
       ...opts.itemState,
     },
-    config: resolveConfig({ me: ME, repos: { [REPO]: { mode: opts.mode ?? "full" } } }),
+    config: resolveConfig({
+      me: ME,
+      repos: { [REPO]: { mode: opts.mode ?? "full" } },
+      ...(opts.bots ? { bots: opts.bots } : {}),
+    }),
     me: ME,
     now: NOW,
   });
 }
 
 describe("rank", () => {
+  test("a mention in the description (MentionedEvent with me as actor) is waiting", () => {
+    const view = derive({ items: [item("MentionedEvent", "2026-11-21T01:00:00Z", { actor: user(ME) })] });
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("mentioned");
+  });
+
+  test("a bot rule written with a [bot] suffix matches the bare login", () => {
+    const view = derive({
+      bots: [{ id: "foo", match: { author: "foo[bot]" }, level: "hidden" }],
+      items: [comment("foo", "2026-11-21T01:00:00Z", "status", true)],
+    });
+    expect(view.rounds[0]?.hiddenCount).toBe(1);
+  });
+
+  test("mute applies to subjects that were never enriched", () => {
+    const view = derive({ enriched: false, itemState: { muted: true } });
+    expect(view.section).toBe("hidden");
+    expect(view.reasons).toContain("muted");
+  });
+
   test("open review request for me is waiting until I review", () => {
     const raw = { reviewRequests: { nodes: [{ requestedReviewer: user(ME) }] } };
     const request = item("ReviewRequestedEvent", "2026-11-21T01:00:00Z", {

@@ -1,5 +1,5 @@
 import type { ContentLevel, ContentRule } from "../config.ts";
-import { withoutCode } from "./text.ts";
+import { bareLogin, withoutCode } from "./text.ts";
 import type { Actor, BotKind, Extracted } from "./types.ts";
 
 const BOT_KINDS: ReadonlySet<string> = new Set<BotKind>(["review", "ci", "preview", "status", "dependency", "discussion"]);
@@ -18,7 +18,8 @@ function firstMatch(re: RegExp, text: string): string | undefined {
 export function ruleMatches(rule: ContentRule, actor: Actor | null, body: string): boolean {
   const { author, htmlMarker, bodyRegex } = rule.match;
   if (author === undefined && htmlMarker === undefined && bodyRegex === undefined) return false;
-  if (author !== undefined && actor?.login.toLowerCase() !== author.toLowerCase()) return false;
+  // Actor logins have `[bot]` stripped; accept either form in config.
+  if (author !== undefined && actor?.login.toLowerCase() !== bareLogin(author).toLowerCase()) return false;
   if (htmlMarker !== undefined && !withoutCode(body).includes(htmlMarker)) return false;
   if (bodyRegex !== undefined && !test(bodyRegex, body)) return false;
   return true;

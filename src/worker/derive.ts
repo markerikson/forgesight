@@ -40,18 +40,30 @@ function pendingKeys(
   for (const key of snoozesEndedBetween(db, getMeta(db, META.deriveAt) ?? null, now)) {
     keys.add(key);
   }
+  for (const key of failedKeys(db)) keys.add(key);
   return { keys: [...keys].sort(), maxSeq };
+}
+
+function failedKeys(db: Database): string[] {
+  const raw = getMeta(db, META.deriveFailed);
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((k) => typeof k === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 function deriveBatch(
   db: Database,
   keys: string[],
   ctx: { config: Config; hash: string; now: Date; log: Logger },
-): { views: SubjectViewRecord[]; failed: number } {
+): { views: SubjectViewRecord[]; failed: string[] } {
   const states = getItemStates(db, keys);
   const computedAt = ctx.now.toISOString();
   const views: SubjectViewRecord[] = [];
-  let failed = 0;
+  const failed: string[] = [];
   for (const key of keys) {
     const subject = getSubject(db, key);
     if (!subject) continue;
@@ -71,7 +83,7 @@ function deriveBatch(
         toViewRecord(view, { pipelineVersion: PIPELINE_VERSION, configHash: ctx.hash, computedAt }),
       );
     } catch (e) {
-      failed++;
+      failed.push(key);
       ctx.log.warn(`derive ${key} failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
@@ -90,26 +102,29 @@ export function deriveViews(
   const nowIso = now.toISOString();
   const { keys, maxSeq } = pendingKeys(db, hash, nowIso);
   let changed = 0;
-  let failed = 0;
+  const failed: string[] = [];
   for (let i = 0; i < keys.length; i += DERIVE_BATCH) {
     const batch = deriveBatch(db, keys.slice(i, i + DERIVE_BATCH), { config, hash, now, log });
-    failed += batch.failed;
+    failed.push(...batch.failed);
     changed += putViews(db, batch.views, nowIso).length;
   }
   if (maxSeq !== null) setMeta(db, META.deriveSeq, String(maxSeq), nowIso);
   setMeta(db, META.deriveAt, nowIso, nowIso);
+  // Failed keys are kept so the next run retries them even when their stored view is current.
+  setMeta(db, META.deriveFailed, JSON.stringify(failed), nowIso);
   const ms = Math.round(performance.now() - started);
   if (keys.length > 0) {
-    log.info(`derive: ${keys.length} subjects, ${changed} list changes, ${failed} failed, ${ms}ms`);
+    log.info(`derive: ${keys.length} subjects, ${changed} list changes, ${failed.length} failed, ${ms}ms`);
   }
-  return { derived: keys.length - failed, changed, failed, ms };
+  return { derived: keys.length - failed.length, changed, failed: failed.length, ms };
 }
 
 export const deriveJob: Job = {
   name: "derive",
+  local: true,
   async run(ctx) {
     const summary = deriveViews(ctx.db, ctx.config, ctx.clock(), ctx.log);
-    // Failures stay stale and are retried next tick; counting them as work would spin drain().
+    // Failures are retried next tick; counting them as work would spin drain().
     return summary.derived > 0 ? "worked" : "idle";
   },
 };

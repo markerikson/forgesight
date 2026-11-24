@@ -97,7 +97,7 @@ function finish(b: RoundBuilder): Round {
 /**
  * Splits events (oldest first) into review rounds, returned newest first. A round starts at
  * each force-push and at each batch of commits; commits within 10 minutes of the previous
- * commit join its batch. Inside a round, runs of collapsed events between shown events
+ * commit join its batch unless a visible event came in between. Inside a round, runs of collapsed events between shown events
  * become one group; hidden events are only counted. Every force-push counts as real until
  * push verdicts exist.
  */
@@ -120,7 +120,8 @@ export function buildRounds(events: ViewEvent[]): Round[] {
         current !== null &&
         current.startedBy?.kind === "commit" &&
         current.lastCommitAt !== null &&
-        at - current.lastCommitAt <= COMMIT_BATCH_MS;
+        at - current.lastCommitAt <= COMMIT_BATCH_MS &&
+        current.events.every((x) => x.level === "hidden");
       if (current && inBatch) {
         current.commits.push(e);
         current.lastCommitAt = at;

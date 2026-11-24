@@ -18,6 +18,8 @@ export const META = {
   deriveSeq: "derive.seq",
   /** Time of the last derive run; snoozes that ended since then are re-derived. */
   deriveAt: "derive.at",
+  /** JSON list of subject keys whose last derive threw; retried on the next run. */
+  deriveFailed: "derive.failed",
 } as const;
 
 /** Adaptive SubjectBatch state for one repo, stored as JSON `BatchState`. */

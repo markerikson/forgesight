@@ -70,8 +70,8 @@ log.info(`Signed in as ${viewer}`);
 
 const stopHeartbeat = startHeartbeat(db, clock);
 const poller = createPoller();
-// A tick runs jobs in this order until one does work, so enrichment waits for poll and
-// backfill, and derive runs once fetching is idle.
+// A tick runs the GitHub jobs in this order until one does work, so enrichment waits for
+// poll and backfill. Derive is local and runs at the end of every tick.
 const scheduler = new Scheduler(
   { db, gh, governor, config: effectiveConfig, clock, log },
   [poller.pollJob, poller.backfillJob, openPullsJob, enrichJob, deriveJob],

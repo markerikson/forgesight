@@ -8,8 +8,9 @@ import { getMeta, setMeta } from "../store/meta.ts";
 import { getSubject } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { listThreads, threadsForSubject } from "../store/threads.ts";
+import { changesAfter } from "../store/views.ts";
 import { createPoller, POLL_META } from "./poller.ts";
-import { type JobContext, type Logger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
+import { type Job, type JobContext, type Logger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
 
 const START = new Date("2026-11-23T12:00:00Z");
 const HOUR = 60 * 60 * 1000;
@@ -181,6 +182,19 @@ describe("poll", () => {
     expect(getSubject(db, "octo/repo#1")?.dirtyAt).toBeNull();
   });
 
+  test("a stored thread change records a raw change so its view re-derives", async () => {
+    const { db, gh, poller, ctx, advance } = setup();
+    gh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR) }));
+    await poller.pollJob.run(ctx);
+    const seq = changesAfter(db, 0).at(-1)?.seq ?? 0;
+
+    advance(60_000);
+    gh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR), unread: false, lastReadAt: ago(0) }));
+    poller.request();
+    await poller.pollJob.run(ctx);
+    expect(changesAfter(db, seq)).toContainEqual(expect.objectContaining({ kind: "raw", subjectKey: "octo/repo#1" }));
+  });
+
   test("a thread whose updated_at moves comes back from GitHub done", async () => {
     const { db, gh, poller, ctx, advance } = setup();
     gh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR) }));
@@ -286,6 +300,29 @@ describe("scheduler errors", () => {
     advance(5_000);
     await scheduler.tick();
     expect(scheduler.failingJobs().size).toBe(0);
+  });
+
+  test("local jobs run every tick, after GitHub work and during a rate-limit pause", async () => {
+    const { gh, ctx, poller } = setup();
+    let localRuns = 0;
+    const local: Job = {
+      name: "local",
+      local: true,
+      run: async () => {
+        localRuns++;
+        return "idle";
+      },
+    };
+    const scheduler = new Scheduler(ctx, [poller.pollJob, local]);
+    gh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR) }));
+    expect(await scheduler.tick()).toBe("worked");
+    expect(localRuns).toBe(1);
+
+    gh.nextError = new RateLimitedError("slow down", null, true);
+    poller.request();
+    expect(await scheduler.tick()).toBe("paused");
+    expect(await scheduler.tick()).toBe("paused");
+    expect(localRuns).toBe(3);
   });
 
   test("overlapping ticks share one run", async () => {

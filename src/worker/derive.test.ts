@@ -3,7 +3,7 @@ import { resolveConfig } from "../config/load.ts";
 import { META } from "../core/meta-keys.ts";
 import type { EnrichmentResult } from "../core/types.ts";
 import { DEFAULT_ITEM_STATE, putItemState } from "../store/item-state.ts";
-import { getMeta } from "../store/meta.ts";
+import { getMeta, setMeta } from "../store/meta.ts";
 import { ensureSubjects, saveEnrichment } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { getView } from "../store/views.ts";
@@ -85,6 +85,15 @@ describe("deriveViews", () => {
     expect(deriveViews(db, config, new Date("2026-11-23T12:00:00Z"), quietLog).derived).toBe(0);
     expect(deriveViews(db, config, new Date("2026-11-23T13:30:00Z"), quietLog).derived).toBe(1);
     expect(getView(db, KEY)?.section).toBe("waiting");
+  });
+
+  test("subjects whose derivation failed are retried on the next run", () => {
+    const { db, config } = setup();
+    deriveViews(db, config, new Date("2026-11-23T11:00:00Z"), quietLog);
+    setMeta(db, META.deriveFailed, JSON.stringify([KEY]), "2026-11-23T11:00:00Z");
+    expect(deriveViews(db, config, new Date("2026-11-23T11:01:00Z"), quietLog).derived).toBe(1);
+    expect(getMeta(db, META.deriveFailed)).toBe("[]");
+    expect(deriveViews(db, config, new Date("2026-11-23T11:02:00Z"), quietLog).derived).toBe(0);
   });
 
   test("a config change re-derives every view", () => {

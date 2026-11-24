@@ -35,20 +35,27 @@ export function markDirty(db: Database, keys: string[], now: string, priority = 
 }
 
 /**
- * Dirty subjects by highest priority, then oldest `dirty_at`, all from one repo:
- * `opts.repo` when given, otherwise the repo of the first subject in that order.
+ * Repos with dirty subjects, ordered by each repo's first subject in `nextDirtyBatch` order
+ * (highest priority, then oldest `dirty_at`).
  */
-/** Repos with dirty subjects, ordered by their highest-priority, oldest dirty subject. */
 export function dirtyRepos(db: Database): string[] {
   return db
     .query<{ repo: string }, []>(
-      `SELECT repo FROM subjects WHERE dirty_at IS NOT NULL
-       GROUP BY repo ORDER BY MAX(priority) DESC, MIN(dirty_at), repo`,
+      `SELECT repo FROM (
+         SELECT repo, priority, dirty_at, subject_key,
+                ROW_NUMBER() OVER (PARTITION BY repo ORDER BY priority DESC, dirty_at, subject_key) AS rn
+         FROM subjects WHERE dirty_at IS NOT NULL
+       ) WHERE rn = 1
+       ORDER BY priority DESC, dirty_at, subject_key`,
     )
     .all()
     .map((r) => r.repo);
 }
 
+/**
+ * Dirty subjects by highest priority, then oldest `dirty_at`, all from one repo:
+ * `opts.repo` when given, otherwise the repo of the first subject in that order.
+ */
 export function nextDirtyBatch(
   db: Database,
   opts: { limit: number; repo?: string },

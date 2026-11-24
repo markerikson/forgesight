@@ -12,7 +12,6 @@ export interface RankInput {
   rounds: Round[];
   state: ItemState;
   me: string | null;
-  now: Date;
 }
 
 export interface Rank {
@@ -165,10 +164,10 @@ const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
  * Picks the inbox section. Waiting: an open review request for me, a new mention of me, or
  * new human comments on something I authored, reviewed, was assigned or am participating in.
  * Updates: anything else new and shown. Hidden: nothing new and shown, or a PR someone else
- * merged or closed with no new human comment. Snoozed and muted override all three.
+ * merged or closed with no new human comment. Snooze and mute are applied by `applyOverrides`.
  */
 export function rank(input: RankInput): Rank {
-  const { subject, threads, events, rounds, state, me, now } = input;
+  const { subject, threads, events, rounds, state, me } = input;
   const isPr = subject.kind === "pr";
   const fresh = events.filter((e) => e.isNew);
   const shown = fresh.filter((e) => e.level === "show");
@@ -207,15 +206,6 @@ export function rank(input: RankInput): Rank {
     }
   }
 
-  if (state.muted && !reasons.includes("reviewRequested") && !reasons.includes("mentioned")) {
-    section = "hidden";
-    add("muted");
-  }
-  if (state.snoozeUntil !== null && isAfter(state.snoozeUntil, now.toISOString())) {
-    section = "snoozed";
-    reasons.unshift("snoozed");
-  }
-
   const newest = last(shown);
   const lastRequest = last(events.filter((e) => e.kind === "reviewRequested" && isMe(e.data.target, me)));
   let summaryLine = "";
@@ -245,4 +235,21 @@ export function rank(input: RankInput): Rank {
     hiddenStats: hiddenStats(events, rounds),
     sortAt,
   };
+}
+
+/**
+ * Local state that overrides any rank: mute hides the subject unless I am asked for review
+ * or mentioned, and an active snooze moves it to Snoozed.
+ */
+export function applyOverrides(r: Rank, state: ItemState, now: Date): Rank {
+  let { section, reasons } = r;
+  if (state.muted && !reasons.includes("reviewRequested") && !reasons.includes("mentioned")) {
+    section = "hidden";
+    if (!reasons.includes("muted")) reasons = [...reasons, "muted"];
+  }
+  if (state.snoozeUntil !== null && isAfter(state.snoozeUntil, now.toISOString())) {
+    section = "snoozed";
+    if (!reasons.includes("snoozed")) reasons = ["snoozed", ...reasons];
+  }
+  return { ...r, section, reasons };
 }

@@ -36,6 +36,11 @@ export interface Job {
    * without rate-limit headers means a token that cannot read notifications.
    */
   stopOn403?: boolean;
+  /**
+   * The job only touches the local database. It runs at the end of every tick, after the
+   * GitHub jobs, even when one of them worked or GitHub calls are paused for a rate limit.
+   */
+  local?: boolean;
   run(ctx: JobContext): Promise<JobResult>;
 }
 
@@ -56,9 +61,10 @@ export interface SchedulerOptions {
 }
 
 /**
- * Runs jobs in priority order, one at a time. Each tick runs jobs until one reports
- * "worked", so higher-priority work goes first on the next tick. A job that throws is
- * retried with backoff; a 401 stops the scheduler; a rate limit pauses everything.
+ * Runs jobs in priority order, one at a time. Each tick runs GitHub jobs until one reports
+ * "worked", so higher-priority work goes first on the next tick, then runs every local job.
+ * A job that throws is retried with backoff; a 401 stops the scheduler; a rate limit pauses
+ * the GitHub jobs.
  */
 export class Scheduler {
   private stopped = false;
@@ -95,11 +101,24 @@ export class Scheduler {
 
   private async runTick(): Promise<TickResult> {
     if (this.stopped) return "stopped";
+    const remote = await this.runFirstWorking(this.jobs.filter((j) => !j.local));
+    if (remote === "stopped") return "stopped";
+    let localWorked = false;
+    for (const job of this.jobs.filter((j) => j.local)) {
+      if (this.retryPending(job)) continue;
+      // oxlint-disable-next-line no-await-in-loop
+      const result = await this.runJob(job);
+      if (this.stopped) return "stopped";
+      if (result === "worked") localWorked = true;
+    }
+    if (remote === "idle" && localWorked) return "worked";
+    return remote;
+  }
+
+  private async runFirstWorking(jobs: Job[]): Promise<TickResult> {
     if (this.ctx.governor.pausedUntil()) return "paused";
-    const now = this.ctx.clock().getTime();
-    for (const job of this.jobs) {
-      const failure = this.failures.get(job.name);
-      if (failure && now < failure.retryAt) continue;
+    for (const job of jobs) {
+      if (this.retryPending(job)) continue;
       // Jobs run strictly one after another; the loop must not overlap them.
       // oxlint-disable-next-line no-await-in-loop
       const result = await this.runJob(job);
@@ -111,6 +130,11 @@ export class Scheduler {
       if (result === "worked") return "worked";
     }
     return "idle";
+  }
+
+  private retryPending(job: Job): boolean {
+    const failure = this.failures.get(job.name);
+    return failure !== undefined && this.ctx.clock().getTime() < failure.retryAt;
   }
 
   private async runJob(job: Job): Promise<JobResult | "failed"> {
