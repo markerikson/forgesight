@@ -10,10 +10,10 @@ cp .env.example .env          # sets FORGESIGHT_DATA_DIR=./.data
 bun run db:migrate
 bun run worker                # flags: --once, --no-github
 bun run fixture:record replayio/backend#14148 [--name case-name]
-bun run dev                   # web UI on http://127.0.0.1:4630
+bun run dev                   # web UI on http://127.0.0.1:<server.port> (default 4630)
 
 bun run build                 # production web build into .timber/dist
-bun run start                 # serve the production build on 127.0.0.1:4630
+bun run start                 # serve the production build on the same address
 
 bun test src
 bun run typecheck

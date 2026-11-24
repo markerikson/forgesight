@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --bun vite dev --host 127.0.0.1 --port 4630",
+    "dev": "bun --bun vite dev",
     "build": "vite build",
-    "start": "HOST=127.0.0.1 PORT=4630 bun .timber/dist/nitro/.output/server/index.mjs",
+    "start": "bun scripts/start-web.ts",
     "worker": "bun run src/worker/main.ts",
     "db:migrate": "bun run src/store/migrate-cli.ts",
     "inspect": "bun run src/worker/inspect.ts",
