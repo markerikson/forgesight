@@ -1,0 +1,30 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 24px;
+  padding: 0 12px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-sidebar);
+  color: var(--fg-mute);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.ok {
+  color: var(--success);
+}
+
+.bad {
+  color: var(--error);
+}
+
+.help {
+  margin-left: auto;
+  color: var(--fg-fade);
+}
+
+.help:hover {
+  color: var(--fg);
+}

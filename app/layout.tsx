@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "../src/web/styles/global.css";
 
 export const metadata = { title: "Forgesight" };
 

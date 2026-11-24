@@ -1,0 +1,70 @@
+.state {
+  display: inline-block;
+  width: 1em;
+  text-align: center;
+  flex: none;
+}
+
+.tone-open {
+  color: var(--success);
+}
+
+.tone-draft {
+  color: var(--fg-fade);
+}
+
+.tone-merged {
+  color: var(--merged);
+}
+
+.tone-closed {
+  color: var(--error);
+}
+
+.tone-unknown {
+  color: var(--fg-fade);
+}
+
+.ci {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--fg-fade);
+}
+
+.ci-success {
+  background: var(--success);
+}
+
+.ci-failure,
+.ci-error {
+  background: var(--error);
+}
+
+.ci-pending,
+.ci-expected {
+  background: var(--warning);
+}
+
+.review,
+.draft {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 5px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--fg-mute);
+}
+
+.review-APPROVED {
+  color: var(--success);
+  border-color: currentColor;
+}
+
+.review-CHANGES_REQUESTED {
+  color: var(--error);
+  border-color: currentColor;
+}

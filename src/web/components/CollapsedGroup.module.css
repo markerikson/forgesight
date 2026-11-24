@@ -1,0 +1,30 @@
+.group {
+  padding: 2px 0 2px 8px;
+  margin-left: -10px;
+  border-left: 2px solid transparent;
+}
+
+.new {
+  border-left-color: var(--new);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-fade);
+  font-size: 12px;
+}
+
+.toggle:hover {
+  color: var(--fg-mute);
+}
+
+.chevron {
+  width: 10px;
+}
+
+.items {
+  padding-left: 14px;
+  font-size: 12px;
+}

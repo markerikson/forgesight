@@ -3,30 +3,42 @@
 import { useEffect, useState } from "react";
 import { Provider } from "react-redux";
 import type { StatusPayload } from "../server/handlers/status.ts";
-import { POLL_MS, useGetStatusQuery } from "./store/api.ts";
+import { HelpOverlay } from "./components/HelpOverlay.tsx";
+import { Preview } from "./components/Preview.tsx";
+import { Sidebar } from "./components/Sidebar.tsx";
+import { StatusBar } from "./components/StatusBar.tsx";
+import { ThreadList } from "./components/ThreadList.tsx";
+import { useKeyboardNav } from "./hooks/useKeyboardNav.ts";
+import { useUrlState } from "./hooks/useUrlState.ts";
 import { makeStore, setupListeners } from "./store/index.ts";
+import type { InboxPayload } from "./store/types.ts";
+import styles from "./InboxApp.module.css";
 
-export function InboxApp({ initialStatus }: { initialStatus: StatusPayload }) {
-  const [store] = useState(() => makeStore({ status: initialStatus }));
+interface Props {
+  initialStatus: StatusPayload;
+  initialInbox?: InboxPayload | undefined;
+}
+
+export function InboxApp({ initialStatus, initialInbox }: Props) {
+  const [store] = useState(() => makeStore({ status: initialStatus, inbox: initialInbox }));
   useEffect(() => setupListeners(store.dispatch), [store]);
   return (
     <Provider store={store}>
-      <StatusLine />
+      <Inbox />
     </Provider>
   );
 }
 
-function StatusLine() {
-  const { data, isError } = useGetStatusQuery(undefined, { pollingInterval: POLL_MS });
-  if (isError) return <p id="status-line">Status unavailable: the last status check failed.</p>;
-  if (!data) return null;
-  const { worker, viewer, poll } = data;
-  const workerText =
-    worker.authFailed ? "auth failed" : worker.alive === null ? (worker.status ?? "unknown") : worker.alive ? "alive" : "stale";
+function Inbox() {
+  useKeyboardNav();
+  useUrlState();
   return (
-    <p id="status-line">
-      Worker: {workerText} · Viewer: {viewer.login ?? "unknown"} · Last poll: {poll.lastPollStartedAt ?? "never"} ·
-      GraphQL spend (1h): {data.spend.graphql}
-    </p>
+    <div className={styles.app}>
+      <Sidebar />
+      <ThreadList />
+      <Preview />
+      <StatusBar />
+      <HelpOverlay />
+    </div>
   );
 }

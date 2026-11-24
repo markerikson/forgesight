@@ -6,7 +6,6 @@ export default async function Page() {
   if (!shell.ready) return <main id="not-ready">{shell.message}</main>;
   return (
     <main>
-      <p id="view-count">{shell.viewCount} subjects in view</p>
       <InboxApp initialStatus={shell.status} />
     </main>
   );

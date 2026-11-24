@@ -1,0 +1,10 @@
+.app {
+  display: grid;
+  grid-template-columns: 200px minmax(360px, 2fr) minmax(400px, 3fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100vh;
+}
+
+.app > footer {
+  grid-column: 1 / -1;
+}

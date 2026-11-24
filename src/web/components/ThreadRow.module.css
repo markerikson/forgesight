@@ -1,0 +1,87 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3px 10px 3px 8px;
+  border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.selected,
+.selected:hover {
+  background: var(--bg-active);
+  border-left-color: var(--accent);
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 19px;
+}
+
+.sub {
+  padding-left: calc(1em + 6px);
+  color: var(--fg-mute);
+  font-size: 12px;
+}
+
+.repo {
+  flex: none;
+  color: var(--fg-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unread .title {
+  font-weight: 600;
+}
+
+.newCount {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--new);
+  color: #fff;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actor,
+.time {
+  flex: none;
+}
+
+.time {
+  color: var(--fg-fade);
+  font-variant-numeric: tabular-nums;
+}
+
+.stale {
+  flex: none;
+  color: var(--warning);
+}
