@@ -164,6 +164,15 @@ describe("buildInboxPayload", () => {
     );
     expect(countLines).toEqual(["app: 2 pushed", "lib: 2 closed by author", "app: 1 closed by author"]);
   });
+
+  test("caps the closed-by-author lines", () => {
+    const rows = Array.from({ length: 7 }, (_, i) =>
+      row(`acme/r${i}#1`, "hidden", { repo: `acme/r${i}`, reasons: ["closedByAuthor" as const] }),
+    );
+    const { countLines } = buildInboxPayload(rows, { includeHidden: false, now: NOW });
+    expect(countLines).toHaveLength(6);
+    expect(countLines.at(-1)).toBe("and 2 more repos");
+  });
 });
 
 describe("buildSubjectDetail", () => {

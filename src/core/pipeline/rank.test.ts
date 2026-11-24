@@ -427,6 +427,20 @@ describe("rank", () => {
     expect(view.rounds.map((r) => r.isNew)).toEqual([true, false, false]);
     expect(view.newMeaningfulCount).toBe(1);
   });
+
+  test("on a never-visited PR a mention in an older round still waits", () => {
+    const view = derive({
+      itemState: { dismissedAt: null },
+      items: [
+        comment("alice", "2026-11-19T00:00:00Z", "@markerikson thoughts?"),
+        forcePush("2026-11-20T00:00:00Z"),
+        comment("alice", "2026-11-20T01:00:00Z", "updated"),
+      ],
+    });
+    expect(view.rounds.map((r) => r.isNew)).toEqual([true, false]);
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("mentioned");
+  });
 });
 
 describe("rounds", () => {
