@@ -1,0 +1,105 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`buildSubjectBatchQuery mixed PR and issue batch with stickies 1`] = `
+"query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {
+  rateLimit { cost remaining resetAt }
+  repository(owner: $owner, name: $name) {
+    s0: pullRequest(number: 1) { ...PrCore timelineItems(since: "2026-11-20T00:00:00.000Z", first: 100) { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }
+    s1: pullRequest(number: 2) { ...PrCore timelineItems(first: 100) { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }
+    s2: pullRequest(number: 3) { ...PrCore timelineItems(first: 100) { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }
+    s3: issue(number: 4) { ...IssueCore timelineItems(since: "2026-11-21T00:00:00.000Z", first: 100) { pageInfo { hasNextPage endCursor } nodes { ...IssueItems } } }
+  }
+  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }
+}
+fragment PrCore on PullRequest {
+  id number title state isDraft author { login __typename }
+  baseRefName headRefName baseRefOid headRefOid mergedAt closedAt updatedAt reviewDecision
+  reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } } }
+  latestReviews(first: 20) { nodes { id state author { login } submittedAt } }
+  closingIssuesReferences(first: 5) { nodes { number } }
+  commits(last: 1) { nodes { commit { oid statusCheckRollup { state contexts(first: 50) { nodes {
+    __typename
+    ... on CheckRun { name status conclusion detailsUrl }
+    ... on StatusContext { context state targetUrl } } } } } } }
+  reviewThreads(last: 50) { nodes { id isResolved isOutdated path line
+    comments(first: 1) { nodes { id author { login } body createdAt } } } }
+}
+fragment PrItems on PullRequestTimelineItems {
+  __typename
+  ... on Node { id }
+  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }
+  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename
+  ... on PullRequest { number title state repository { nameWithOwner } }
+  ... on Issue { number title state repository { nameWithOwner } } } }
+  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }
+  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename
+  ... on PullRequest { number title state repository { nameWithOwner } }
+  ... on Issue { number title state repository { nameWithOwner } } } }
+  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename
+  ... on PullRequest { number title state repository { nameWithOwner } }
+  ... on Issue { number title state repository { nameWithOwner } } } }
+  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }
+  ... on ReopenedEvent { createdAt actor { login __typename } }
+  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
+  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
+  ... on LabeledEvent { createdAt actor { login __typename } label { name } }
+  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }
+  ... on MentionedEvent { createdAt actor { login __typename } }
+  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }
+  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }
+
+  ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }
+    comments(first: 10) { nodes { id path body author { login } } } }
+  ... on PullRequestCommit { commit { oid messageHeadline authoredDate committedDate author { user { login } } } }
+  ... on HeadRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }
+  ... on BaseRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }
+  ... on BaseRefChangedEvent { createdAt actor { login __typename } previousRefName currentRefName }
+  ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }
+  ... on ReviewRequestedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }
+  ... on ReviewRequestRemovedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }
+  ... on ReviewDismissedEvent { createdAt actor { login __typename } previousReviewState dismissalMessage }
+  ... on ReadyForReviewEvent { createdAt actor { login __typename } }
+  ... on ConvertToDraftEvent { createdAt actor { login __typename } }
+  ... on MergedEvent { createdAt actor { login __typename } commit { oid } }
+  ... on AddedToStackEvent { createdAt actor { login __typename } }
+  ... on RemovedFromStackEvent { createdAt actor { login __typename } }
+}
+fragment IssueCore on Issue {
+  id number title state stateReason author { login __typename } createdAt updatedAt closedAt
+  assignees(first: 10) { nodes { login } }
+  labels(first: 20) { nodes { name } }
+  issueType { name }
+  parent { number title }
+  subIssuesSummary { total completed }
+}
+fragment IssueItems on IssueTimelineItems {
+  __typename
+  ... on Node { id }
+  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }
+  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename
+  ... on PullRequest { number title state repository { nameWithOwner } }
+  ... on Issue { number title state repository { nameWithOwner } } } }
+  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }
+  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename
+  ... on PullRequest { number title state repository { nameWithOwner } }
+  ... on Issue { number title state repository { nameWithOwner } } } }
+  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename
+  ... on PullRequest { number title state repository { nameWithOwner } }
+  ... on Issue { number title state repository { nameWithOwner } } } }
+  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }
+  ... on ReopenedEvent { createdAt actor { login __typename } }
+  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
+  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
+  ... on LabeledEvent { createdAt actor { login __typename } label { name } }
+  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }
+  ... on MentionedEvent { createdAt actor { login __typename } }
+  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }
+  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }
+
+  ... on MarkedAsDuplicateEvent { createdAt actor { login __typename } canonical { __typename ... on Issue { number } ... on PullRequest { number } } }
+  ... on TransferredEvent { createdAt actor { login __typename } fromRepository { nameWithOwner } }
+  ... on SubIssueAddedEvent { createdAt actor { login __typename } subIssue { number title } }
+  ... on ParentIssueAddedEvent { createdAt actor { login __typename } parent { number title } }
+}
+"
+`;

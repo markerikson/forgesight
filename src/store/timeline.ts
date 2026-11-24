@@ -64,3 +64,21 @@ export function stickyNodeIds(db: Database, keys: string[]): Map<string, string[
   }
   return out;
 }
+
+/** Stored timeline item count per typename, per subject. Subjects without items are absent. */
+export function timelineCounts(db: Database, keys: string[]): Map<string, Map<string, number>> {
+  const rows = db
+    .query<{ subject_key: string; typename: string; n: number }, [string]>(
+      `SELECT subject_key, typename, COUNT(*) AS n FROM timeline_items
+       WHERE subject_key IN (SELECT value FROM json_each(?))
+       GROUP BY subject_key, typename ORDER BY subject_key, n DESC, typename`,
+    )
+    .all(jsonList(keys));
+  const out = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    const counts = out.get(r.subject_key) ?? new Map<string, number>();
+    counts.set(r.typename, r.n);
+    out.set(r.subject_key, counts);
+  }
+  return out;
+}

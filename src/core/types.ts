@@ -111,7 +111,10 @@ export interface EnrichmentResult {
   reviewThreads?: Array<Omit<ReviewThreadRecord, "subjectKey" | "fetchedAt">>;
   /** Current bodies of sticky comments; a body not stored yet becomes a new version. */
   stickies: Array<Pick<StickyCommentVersion, "commentNodeId" | "author" | "lastEditedAt" | "body">>;
-  /** Timeline cursor: `created_at` of the newest item fetched, or null to leave unchanged. */
+  /**
+   * Timeline cursor: when the query that fetched this result started, or null to leave unchanged.
+   * The next fetch asks for items since a few minutes before it (see `timelineSince`).
+   */
   timelineSyncedUntil: string | null;
 }
 

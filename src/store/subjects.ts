@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { EnrichmentResult, SubjectRecord } from "../core/types.ts";
+import type { EnrichmentResult, SubjectKind, SubjectRecord } from "../core/types.ts";
 import { bool, jsonList, subjectFromRow, type SubjectRow, toJson } from "./rows.ts";
 import { appendChange } from "./views.ts";
 
@@ -155,6 +155,37 @@ export function recordEnrichError(db: Database, key: string, error: string, now:
        dirty_at = CASE WHEN enrich_attempts + 1 >= ?2 THEN NULL ELSE ?3 END
      WHERE subject_key = ?4`,
   ).run(error, MAX_ENRICH_ATTEMPTS, now, key);
+}
+
+/** Records that GitHub no longer has the subject (deleted or no access) and takes it off the queue. */
+export function recordNotFound(db: Database, key: string): void {
+  db.query(
+    `UPDATE subjects SET enrich_error = 'not_found', enrich_attempts = enrich_attempts + 1, dirty_at = NULL, priority = 0
+     WHERE subject_key = ?`,
+  ).run(key);
+}
+
+/** Takes subjects off the queue without enriching them (kinds that are never enriched). */
+export function clearDirty(db: Database, keys: string[]): void {
+  db.query(
+    `UPDATE subjects SET dirty_at = NULL, priority = 0 WHERE subject_key IN (SELECT value FROM json_each(?))`,
+  ).run(jsonList(keys));
+}
+
+/** Keys of dirty subjects of the given kinds. */
+export function dirtyKeysOfKind(db: Database, kinds: SubjectKind[]): string[] {
+  return db
+    .query<{ subject_key: string }, [string]>(
+      `SELECT subject_key FROM subjects
+       WHERE dirty_at IS NOT NULL AND kind IN (SELECT value FROM json_each(?))`,
+    )
+    .all(jsonList(kinds))
+    .map((r) => r.subject_key);
+}
+
+/** Number of dirty subjects. */
+export function dirtyCount(db: Database): number {
+  return db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM subjects WHERE dirty_at IS NOT NULL").get()?.n ?? 0;
 }
 
 export function getSubject(db: Database, key: string): SubjectRecord | undefined {
