@@ -79,6 +79,9 @@ export async function loadFixture(name: string): Promise<DeriveInput> {
     keepUnread: false,
     snoozeUntil: null,
     snoozeUntilHumanEvent: false,
+    snoozeUntilReady: false,
+    snoozedAt: null,
+    doneAt: null,
     muted: false,
   };
   const config = resolveConfig({ me: ME, repos: { [repo]: { mode: meta.mode } } });

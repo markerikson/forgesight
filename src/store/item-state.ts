@@ -5,9 +5,12 @@ import { appendChange } from "./views.ts";
 
 export const DEFAULT_ITEM_STATE: Readonly<ItemState> = {
   dismissedAt: null,
+  doneAt: null,
   keepUnread: false,
   snoozeUntil: null,
   snoozeUntilHumanEvent: false,
+  snoozeUntilReady: false,
+  snoozedAt: null,
   muted: false,
 };
 
@@ -44,20 +47,24 @@ export function snoozesEndedBetween(db: Database, after: string | null, until: s
 export function putItemState(db: Database, key: string, state: ItemState, now: string): void {
   db.transaction(() => {
     db.query(
-      `INSERT INTO item_state (subject_key, dismissed_at, keep_unread, snooze_until,
-         snooze_until_human_event, muted, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO item_state (subject_key, dismissed_at, done_at, keep_unread, snooze_until,
+         snooze_until_human_event, snooze_until_ready, snoozed_at, muted, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (subject_key) DO UPDATE SET
-         dismissed_at = excluded.dismissed_at, keep_unread = excluded.keep_unread,
-         snooze_until = excluded.snooze_until,
+         dismissed_at = excluded.dismissed_at, done_at = excluded.done_at,
+         keep_unread = excluded.keep_unread, snooze_until = excluded.snooze_until,
          snooze_until_human_event = excluded.snooze_until_human_event,
+         snooze_until_ready = excluded.snooze_until_ready, snoozed_at = excluded.snoozed_at,
          muted = excluded.muted, updated_at = excluded.updated_at`,
     ).run(
       key,
       state.dismissedAt,
+      state.doneAt,
       bool(state.keepUnread),
       state.snoozeUntil,
       bool(state.snoozeUntilHumanEvent),
+      bool(state.snoozeUntilReady),
+      state.snoozedAt,
       bool(state.muted),
       now,
     );

@@ -90,6 +90,32 @@ export interface ItemStateRow {
   snooze_until_human_event: number;
   muted: number;
   updated_at: string;
+  done_at: string | null;
+  snoozed_at: string | null;
+  snooze_until_ready: number;
+}
+
+export interface StateOpRow {
+  id: number;
+  created_at: string;
+  op_json: string;
+  prev_json: string;
+  undone_at: string | null;
+}
+
+export interface OutboxTableRow {
+  id: number;
+  state_op_id: number;
+  op: string;
+  thread_id: string;
+  subject_key: string;
+  created_at: string;
+  run_after: string;
+  claimed_at: string | null;
+  attempts: number;
+  last_error: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
 }
 
 export interface SubjectViewRow {
@@ -206,9 +232,12 @@ export function stickyFromRow(r: StickyVersionRow): StickyCommentVersion {
 export function itemStateFromRow(r: ItemStateRow): ItemState {
   return {
     dismissedAt: r.dismissed_at,
+    doneAt: r.done_at,
     keepUnread: r.keep_unread !== 0,
     snoozeUntil: r.snooze_until,
     snoozeUntilHumanEvent: r.snooze_until_human_event !== 0,
+    snoozeUntilReady: r.snooze_until_ready !== 0,
+    snoozedAt: r.snoozed_at,
     muted: r.muted !== 0,
   };
 }

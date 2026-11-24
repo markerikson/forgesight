@@ -1,0 +1,213 @@
+import type { Database } from "bun:sqlite";
+import { describe, expect, test } from "bun:test";
+import type { ThreadUpsert } from "../core/types.ts";
+import { DEFAULT_ITEM_STATE, getItemState, putItemState } from "./item-state.ts";
+import {
+  applyStateOps,
+  claimOutbox,
+  completeOutbox,
+  dueOutbox,
+  failOutbox,
+  OUTBOX_DELAY_MS,
+  outboxSummary,
+  pruneStateOps,
+  retryOutbox,
+  STALE_CLAIM_MS,
+  undoStateOp,
+} from "./state-ops.ts";
+import { ensureSubjects } from "./subjects.ts";
+import { memoryDb } from "./test-db.ts";
+import { upsertThreads } from "./threads.ts";
+import { changesAfter } from "./views.ts";
+
+const T0 = "2026-01-01T00:00:00.000Z";
+const T1 = "2026-01-01T01:00:00.000Z";
+const T2 = "2026-01-01T02:00:00.000Z";
+const DUE = new Date(Date.parse(T0) + OUTBOX_DELAY_MS).toISOString();
+
+function thread(id: string, subjectKey: string, unread = true): ThreadUpsert {
+  return {
+    threadId: id,
+    subjectKey,
+    repo: subjectKey.split("#")[0] ?? "",
+    subjectType: "PullRequest",
+    reason: "review_requested",
+    unread,
+    updatedAt: T0,
+    lastReadAt: null,
+    subjectUrl: null,
+    raw: { id },
+  };
+}
+
+/** acme/app#1 has threads 10 (unread) and 11 (read); acme/app#2 has none. */
+function seeded(): Database {
+  const db = memoryDb();
+  ensureSubjects(db, [
+    { subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" },
+    { subjectKey: "acme/app#2", repo: "acme/app", number: 2, kind: "pr", origin: "stack" },
+  ]);
+  upsertThreads(db, [thread("10", "acme/app#1"), thread("11", "acme/app#1", false)], T0);
+  return db;
+}
+
+function outboxRows(db: Database) {
+  return db
+    .query<{ op: string; thread_id: string; subject_key: string; run_after: string }, []>(
+      "SELECT op, thread_id, subject_key, run_after FROM outbox ORDER BY id",
+    )
+    .all();
+}
+
+describe("applyStateOps", () => {
+  test("records the op, writes item state and changes, and queues writes for threads only", () => {
+    const db = seeded();
+    const before = changesAfter(db, 0).length;
+    const result = applyStateOps(db, ["acme/app#1", "acme/app#2", "acme/app#1"], { kind: "done" }, T0);
+
+    const op = db.query<{ op_json: string; prev_json: string }, []>("SELECT * FROM state_ops").get();
+    expect(JSON.parse(op?.op_json ?? "")).toEqual({ kind: "done" });
+    expect(Object.keys(JSON.parse(op?.prev_json ?? "{}"))).toEqual(["acme/app#1", "acme/app#2"]);
+
+    expect(getItemState(db, "acme/app#1")).toEqual({ ...DEFAULT_ITEM_STATE, dismissedAt: T0, doneAt: T0 });
+    expect(getItemState(db, "acme/app#2").doneAt).toBe(T0);
+    expect(
+      changesAfter(db, 0)
+        .slice(before)
+        .map((c) => [c.kind, c.subjectKey]),
+    ).toEqual([
+      ["state", "acme/app#1"],
+      ["state", "acme/app#2"],
+    ]);
+
+    expect(outboxRows(db)).toEqual([
+      { op: "done", thread_id: "10", subject_key: "acme/app#1", run_after: DUE },
+      { op: "done", thread_id: "11", subject_key: "acme/app#1", run_after: DUE },
+    ]);
+    expect(result.outboxIds).toHaveLength(2);
+  });
+
+  test("read queues writes for unread threads only", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "read" }, T0);
+    expect(outboxRows(db).map((r) => [r.op, r.thread_id])).toEqual([["read", "10"]]);
+  });
+
+  test("ops without a GitHub write queue nothing", () => {
+    const db = seeded();
+    const result = applyStateOps(
+      db,
+      ["acme/app#1"],
+      { kind: "snooze", until: T2, untilHumanEvent: false, untilReady: false },
+      T0,
+    );
+    expect(result.outboxIds).toEqual([]);
+    expect(getItemState(db, "acme/app#1")).toMatchObject({ snoozeUntil: T2, snoozedAt: T0 });
+  });
+
+  test("unread restores dismissedAt from before the newest read", () => {
+    const db = seeded();
+    putItemState(db, "acme/app#1", { ...DEFAULT_ITEM_STATE, dismissedAt: T0 }, T0);
+    applyStateOps(db, ["acme/app#1"], { kind: "read" }, T1);
+    expect(getItemState(db, "acme/app#1").dismissedAt).toBe(T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "unread" }, T2);
+    expect(getItemState(db, "acme/app#1")).toEqual({ ...DEFAULT_ITEM_STATE, dismissedAt: T0, keepUnread: true });
+  });
+
+  test("unmute resubscribes only the threads an unsubscribe reached", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    const [first, second] = dueOutbox(db, DUE, 10);
+    if (!first || !second) throw new Error("expected two outbox rows");
+    failOutbox(db, second.id, "boom", T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
+    expect(outboxRows(db).map((r) => [r.op, r.thread_id])).toEqual([
+      ["unsubscribe", "10"],
+      ["unsubscribe", "11"],
+      ["resubscribe", "10"],
+    ]);
+  });
+});
+
+describe("undoStateOp", () => {
+  test("before the drainer claims, deletes the outbox rows and restores state", () => {
+    const db = seeded();
+    const { opId } = applyStateOps(db, ["acme/app#1", "acme/app#2"], { kind: "done" }, T0);
+    expect(undoStateOp(db, opId, T1)).toEqual({ kind: "undone", githubApplied: 0 });
+    expect(outboxRows(db)).toEqual([]);
+    expect(getItemState(db, "acme/app#1")).toEqual(DEFAULT_ITEM_STATE);
+    expect(getItemState(db, "acme/app#2")).toEqual(DEFAULT_ITEM_STATE);
+    expect(undoStateOp(db, opId, T1)).toEqual({ kind: "alreadyUndone" });
+  });
+
+  test("after a claim, reports the writes that already went to GitHub", () => {
+    const db = seeded();
+    const { opId, outboxIds } = applyStateOps(db, ["acme/app#1"], { kind: "done" }, T0);
+    const [claimed = 0, unclaimed = 0] = outboxIds;
+    expect(claimOutbox(db, claimed, DUE)).toBe(true);
+    expect(undoStateOp(db, opId, T1)).toEqual({ kind: "undone", githubApplied: 1 });
+    expect(getItemState(db, "acme/app#1")).toEqual(DEFAULT_ITEM_STATE);
+    expect(claimOutbox(db, unclaimed, DUE)).toBe(false);
+  });
+
+  test("refuses when a newer op touched one of the keys", () => {
+    const db = seeded();
+    const first = applyStateOps(db, ["acme/app#1", "acme/app#2"], { kind: "read" }, T0);
+    const second = applyStateOps(db, ["acme/app#2"], { kind: "mute" }, T1);
+    expect(undoStateOp(db, first.opId, T2)).toEqual({ kind: "superseded" });
+    expect(undoStateOp(db, second.opId, T2)).toEqual({ kind: "undone", githubApplied: 0 });
+    expect(undoStateOp(db, first.opId, T2)).toEqual({ kind: "undone", githubApplied: 0 });
+  });
+
+  test("reports an unknown op", () => {
+    expect(undoStateOp(seeded(), 99, T0)).toEqual({ kind: "notFound" });
+  });
+});
+
+describe("outbox drain", () => {
+  test("rows are due after the undo delay, and a claimed row is not due again until stale", () => {
+    const db = seeded();
+    const { outboxIds } = applyStateOps(db, ["acme/app#1"], { kind: "done" }, T0);
+    expect(dueOutbox(db, T0, 10)).toEqual([]);
+    expect(dueOutbox(db, DUE, 10).map((r) => r.id)).toEqual(outboxIds);
+
+    const [id = 0] = outboxIds;
+    expect(claimOutbox(db, id, DUE)).toBe(true);
+    expect(claimOutbox(db, id, DUE)).toBe(false);
+    expect(dueOutbox(db, DUE, 10).map((r) => r.id)).not.toContain(id);
+    const stale = new Date(Date.parse(DUE) + STALE_CLAIM_MS).toISOString();
+    expect(dueOutbox(db, stale, 10).map((r) => r.id)).toContain(id);
+  });
+
+  test("retry, fail, and complete update the summary", () => {
+    const db = seeded();
+    const { outboxIds } = applyStateOps(db, ["acme/app#1"], { kind: "done" }, T0);
+    const [a = 0, b = 0] = outboxIds;
+    expect(outboxSummary(db)).toEqual({ pending: 2, failed: 0, lastError: null });
+
+    claimOutbox(db, a, DUE);
+    retryOutbox(db, a, "502", T2);
+    expect(dueOutbox(db, T1, 10).map((r) => r.id)).toEqual([b]);
+    expect(dueOutbox(db, T2, 10).find((r) => r.id === a)).toMatchObject({ attempts: 1, claimedAt: null });
+
+    failOutbox(db, b, "422 gone", T1);
+    expect(outboxSummary(db)).toEqual({ pending: 1, failed: 1, lastError: "422 gone" });
+
+    completeOutbox(db, a, T2, "not_found");
+    expect(outboxSummary(db)).toEqual({ pending: 0, failed: 1, lastError: "422 gone" });
+    expect(claimOutbox(db, a, T2)).toBe(false);
+  });
+
+  test("prune drops completed rows and ops with nothing left, keeping failed rows", () => {
+    const db = seeded();
+    const done = applyStateOps(db, ["acme/app#1"], { kind: "done" }, T0);
+    applyStateOps(db, ["acme/app#2"], { kind: "read" }, T0);
+    const [a = 0, b = 0] = done.outboxIds;
+    completeOutbox(db, a, T1);
+    failOutbox(db, b, "boom", T1);
+
+    expect(pruneStateOps(db, T2)).toEqual({ outbox: 1, stateOps: 1 });
+    expect(outboxRows(db).map((r) => r.thread_id)).toEqual(["11"]);
+    expect(db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM state_ops").get()?.n).toBe(1);
+  });
+});

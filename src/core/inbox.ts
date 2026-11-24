@@ -34,11 +34,32 @@ export interface SubjectDetail extends SubjectView {
 
 const SECTION_ORDER: Record<Section, number> = { waiting: 0, updates: 1, snoozed: 2, hidden: 3 };
 
-function compareRows(a: InboxRow, b: InboxRow): number {
+/** Inbox order: section, then `sortAt` newest first, then key. */
+export function compareRows(a: InboxRow, b: InboxRow): number {
   return (
     SECTION_ORDER[a.section] - SECTION_ORDER[b.section] ||
     (a.sortAt < b.sortAt ? 1 : a.sortAt > b.sortAt ? -1 : 0) ||
     (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
+  );
+}
+
+export function sectionCounts(rows: readonly InboxRow[]): SectionCounts {
+  const sections: SectionCounts = { waiting: 0, updates: 0, snoozed: 0, hidden: 0 };
+  for (const row of rows) sections[row.section] += 1;
+  return sections;
+}
+
+/** Waiting and Updates rows per repo, busiest repo first. Repos with neither are left out. */
+export function repoCounts(rows: readonly InboxRow[]): RepoCounts[] {
+  const repos = new Map<string, RepoCounts>();
+  for (const row of rows) {
+    if (row.section !== "waiting" && row.section !== "updates") continue;
+    const counts = repos.get(row.repo) ?? { repo: row.repo, waiting: 0, updates: 0 };
+    counts[row.section] += 1;
+    repos.set(row.repo, counts);
+  }
+  return [...repos.values()].sort(
+    (a, b) => b.waiting + b.updates - (a.waiting + a.updates) || (a.repo < b.repo ? -1 : 1),
   );
 }
 
@@ -65,22 +86,14 @@ export function buildInboxPayload(
   allRows: readonly InboxRow[],
   opts: { includeHidden: boolean; now: Date },
 ): InboxPayload {
-  const sections: SectionCounts = { waiting: 0, updates: 0, snoozed: 0, hidden: 0 };
-  const repos = new Map<string, RepoCounts>();
   const hidden = new Map<string, { pushes: number; merged: number; closed: number }>();
   for (const row of allRows) {
-    sections[row.section] += 1;
-    if (row.section === "waiting" || row.section === "updates") {
-      const counts = repos.get(row.repo) ?? { repo: row.repo, waiting: 0, updates: 0 };
-      counts[row.section] += 1;
-      repos.set(row.repo, counts);
-    } else if (row.section === "hidden") {
-      const stats = hidden.get(row.repo) ?? { pushes: 0, merged: 0, closed: 0 };
-      stats.pushes += row.hiddenStats.pushes;
-      stats.merged += row.hiddenStats.merged;
-      stats.closed += row.hiddenStats.closed;
-      hidden.set(row.repo, stats);
-    }
+    if (row.section !== "hidden") continue;
+    const stats = hidden.get(row.repo) ?? { pushes: 0, merged: 0, closed: 0 };
+    stats.pushes += row.hiddenStats.pushes;
+    stats.merged += row.hiddenStats.merged;
+    stats.closed += row.hiddenStats.closed;
+    hidden.set(row.repo, stats);
   }
   const total = (s: { pushes: number; merged: number; closed: number }) => s.pushes + s.merged + s.closed;
   const allLines = [...hidden]
@@ -93,12 +106,7 @@ export function buildInboxPayload(
   const rows = allRows.filter((row) => opts.includeHidden || row.section !== "hidden").toSorted(compareRows);
   return {
     rows,
-    sidebar: {
-      sections,
-      repos: [...repos.values()].sort(
-        (a, b) => b.waiting + b.updates - (a.waiting + a.updates) || (a.repo < b.repo ? -1 : 1),
-      ),
-    },
+    sidebar: { sections: sectionCounts(allRows), repos: repoCounts(allRows) },
     countLines,
     generatedAt: opts.now.toISOString(),
   };

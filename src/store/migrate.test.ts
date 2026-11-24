@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "./db.ts";
+import { getItemState } from "./item-state.ts";
 import { getMeta, setMeta } from "./meta.ts";
 import { latest, migrations, runMigrations } from "./migrate.ts";
 import { assertCurrent, SCHEMA_VERSION } from "./schema-version.ts";
@@ -19,13 +20,15 @@ function tableNames(db: ReturnType<typeof openDb>): string[] {
 describe("migrations", () => {
   test("apply from version 0", () => {
     const db = openDb(":memory:");
-    expect(runMigrations(db)).toEqual({ from: 0, to: 1 });
+    expect(runMigrations(db)).toEqual({ from: 0, to: 2 });
     expect(tableNames(db)).toEqual([
       "api_calls",
       "changes",
       "item_state",
       "meta",
+      "outbox",
       "review_threads",
+      "state_ops",
       "sticky_versions",
       "subject_views",
       "subjects",
@@ -39,7 +42,31 @@ describe("migrations", () => {
     const db = openDb(":memory:");
     runMigrations(db);
     setMeta(db, "k", "v", "2026-01-01T00:00:00Z");
-    expect(runMigrations(db)).toEqual({ from: 1, to: 1 });
+    expect(runMigrations(db)).toEqual({ from: 2, to: 2 });
+    expect(getMeta(db, "k")).toBe("v");
+  });
+
+  test("002 upgrades a version 1 database and keeps its item state", () => {
+    const db = openDb(":memory:");
+    expect(runMigrations(db, migrations.slice(0, 1))).toEqual({ from: 0, to: 1 });
+    db.run(
+      `INSERT INTO item_state (subject_key, dismissed_at, keep_unread, snooze_until, muted, updated_at)
+       VALUES ('acme/app#1', '2026-01-01T00:00:00Z', 1, '2026-02-01T00:00:00Z', 1, '2026-01-01T00:00:00Z')`,
+    );
+    setMeta(db, "k", "v", "2026-01-01T00:00:00Z");
+
+    expect(runMigrations(db)).toEqual({ from: 1, to: 2 });
+    assertCurrent(db);
+    expect(getItemState(db, "acme/app#1")).toEqual({
+      dismissedAt: "2026-01-01T00:00:00Z",
+      doneAt: null,
+      keepUnread: true,
+      snoozeUntil: "2026-02-01T00:00:00Z",
+      snoozeUntilHumanEvent: false,
+      snoozeUntilReady: false,
+      snoozedAt: null,
+      muted: true,
+    });
     expect(getMeta(db, "k")).toBe("v");
   });
 
@@ -47,7 +74,7 @@ describe("migrations", () => {
     const db = openDb(":memory:");
     expect(() => assertCurrent(db)).toThrow(/version 0/);
     runMigrations(db);
-    expect(() => assertCurrent(db, SCHEMA_VERSION + 1)).toThrow(/expects 2/);
+    expect(() => assertCurrent(db, SCHEMA_VERSION + 1)).toThrow(new RegExp(`expects ${SCHEMA_VERSION + 1}`));
   });
 
   test("SCHEMA_VERSION matches the newest migration", () => {

@@ -120,10 +120,16 @@ export interface EnrichmentResult {
 
 /** User state for a subject. Web writes; the poller only seeds `dismissedAt` during backfill. */
 export interface ItemState {
+  /** Nothing before this counts as new. Set by read and Done. */
   dismissedAt: string | null;
+  /** Set only by Done; an open review request older than this no longer counts. */
+  doneAt: string | null;
   keepUnread: boolean;
   snoozeUntil: string | null;
   snoozeUntilHumanEvent: boolean;
+  snoozeUntilReady: boolean;
+  /** When the current snooze started; wake events must come after it. */
+  snoozedAt: string | null;
   muted: boolean;
 }
 
