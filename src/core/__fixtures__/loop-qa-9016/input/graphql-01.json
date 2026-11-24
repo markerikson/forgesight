@@ -1,0 +1,248 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: pullRequest(number: 9016) { ...PrCore timelineItems(first: 100) { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment PrCore on PullRequest {\n  id number title state isDraft author { login __typename }\n  baseRefName headRefName baseRefOid headRefOid mergedAt closedAt updatedAt reviewDecision\n  reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } } }\n  latestReviews(first: 20) { nodes { id state author { login } submittedAt } }\n  closingIssuesReferences(first: 5) { nodes { number } }\n  commits(last: 1) { nodes { commit { oid statusCheckRollup { state contexts(first: 50) { nodes {\n    __typename\n    ... on CheckRun { name status conclusion detailsUrl }\n    ... on StatusContext { context state targetUrl } } } } } } }\n  reviewThreads(last: 50) { nodes { id isResolved isOutdated path line\n    comments(first: 1) { nodes { id author { login } body createdAt } } } }\n}\nfragment PrItems on PullRequestTimelineItems {\n  __typename\n  ... on Node { id }\n  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }\n  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }\n  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }\n  ... on ReopenedEvent { createdAt actor { login __typename } }\n  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on LabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on MentionedEvent { createdAt actor { login __typename } }\n  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }\n  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n\n  ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }\n    comments(first: 10) { nodes { id path body author { login } } } }\n  ... on PullRequestCommit { commit { oid messageHeadline authoredDate committedDate author { user { login } } } }\n  ... on HeadRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefChangedEvent { createdAt actor { login __typename } previousRefName currentRefName }\n  ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }\n  ... on ReviewRequestedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewRequestRemovedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewDismissedEvent { createdAt actor { login __typename } previousReviewState dismissalMessage }\n  ... on ReadyForReviewEvent { createdAt actor { login __typename } }\n  ... on ConvertToDraftEvent { createdAt actor { login __typename } }\n  ... on MergedEvent { createdAt actor { login __typename } commit { oid } }\n  ... on AddedToStackEvent { createdAt actor { login __typename } }\n  ... on RemovedFromStackEvent { createdAt actor { login __typename } }\n}\n",
+  "variables": {
+    "owner": "replayio",
+    "name": "loop-qa",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "replayio/loop-qa",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "id": "PR_kwDOSw4eCs8AAAABRWZgZQ",
+          "number": 9016,
+          "title": "Fix Eval failure: Owner passcode gate reported blocked but app never loaded, zero steps and no requests",
+          "state": "OPEN",
+          "isDraft": false,
+          "author": {
+            "login": "replay-evals",
+            "__typename": "Bot"
+          },
+          "baseRefName": "main",
+          "headRefName": "eval/eval-mtt6n87m-2yuf352w-1795460177045",
+          "baseRefOid": "a5e1ccb7b4537ecc87fb9b52bd51bd3e373f6e1e",
+          "headRefOid": "41eaf81b16c2b56f989fead7ca6843d05cb9a1ae",
+          "mergedAt": null,
+          "closedAt": null,
+          "updatedAt": "2026-11-23T19:06:55Z",
+          "reviewDecision": null,
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "closingIssuesReferences": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "oid": "41eaf81b16c2b56f989fead7ca6843d05cb9a1ae",
+                  "statusCheckRollup": {
+                    "state": "SUCCESS",
+                    "contexts": {
+                      "nodes": [
+                        {
+                          "__typename": "CheckRun",
+                          "name": "review",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400972/job/137940710665"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "check",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400414/job/137940708786"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "playwright",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400377/job/137940707781"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "unit-test-shards (1)",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400427/job/137940707940"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "unit-test-shards (2)",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400427/job/137940708537"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "tool-cache",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400972/job/137940714103"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "unit-tests",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400427/job/137944375307"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "post",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400972/job/137941024554"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "gate",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/45245400972/job/137941023066"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "Replay QA",
+                          "status": "COMPLETED",
+                          "conclusion": "SKIPPED",
+                          "detailsUrl": "https://qa.replay.io"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "Socket Security: Project Report",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://socket.dev/dashboard/org/replayio/sbom/06a96204-0781-4702-8919-7c4a8ea3d688"
+                        },
+                        {
+                          "__typename": "CheckRun",
+                          "name": "Socket Security: Pull Request Alerts",
+                          "status": "COMPLETED",
+                          "conclusion": "SUCCESS",
+                          "detailsUrl": "https://socket.dev"
+                        },
+                        {
+                          "__typename": "StatusContext",
+                          "context": "buildkite/loop-qa-deploy-preview",
+                          "state": "SUCCESS",
+                          "targetUrl": "https://buildkite.com/replay/loop-qa-deploy-preview/builds/22572"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "reviewThreads": {
+            "nodes": []
+          },
+          "timelineItems": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "Y3Vyc29yOnYyOpPPAAABognNPFgH2gAzNTQ1OTMwNDU0OTo0MWVhZjgxYjE2YzJiNTZmOTg5ZmVhZDdjYTY4NDNkMDVjYjlhMWFl"
+            },
+            "nodes": [
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOSw4eCs8AAAABRWZgZdoAKDQ0MGZlOGIzZjJmYWRlMzJjYmQ1YjY1MzI5ZGMyODg3ZjczYWMyNWU",
+                "commit": {
+                  "oid": "440fe8b3f2fade32cbd5b65329dc2887f73ac25e",
+                  "messageHeadline": "Fix Eval failure: Owner passcode gate reported blocked but app never …",
+                  "authoredDate": "2026-11-23T18:56:20Z",
+                  "committedDate": "2026-11-23T18:56:20Z",
+                  "author": {
+                    "user": {
+                      "login": "replay-evals[bot]"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "IssueComment",
+                "id": "IC_kwDOSw4eCs8AAAABp9c_fA",
+                "createdAt": "2026-11-23T18:56:28Z",
+                "updatedAt": "2026-11-23T18:56:28Z",
+                "lastEditedAt": null,
+                "author": {
+                  "login": "replay-evals",
+                  "__typename": "Bot"
+                },
+                "body": "⏳ **Evals Check** — this PR carries the `journey-blocked` eval `eval-mtt6n87m-2yuf352w`.\n\nWaiting for the PR preview deployment; the eval will then be re-run **on the preview**, so its verdict reflects this PR’s changes rather than `main`.",
+                "url": "https://github.com/replayio/loop-qa/pull/9016#issuecomment-7110868860"
+              },
+              {
+                "__typename": "IssueComment",
+                "id": "IC_kwDOSw4eCs8AAAABp9dEXw",
+                "createdAt": "2026-11-23T18:56:31Z",
+                "updatedAt": "2026-11-23T19:01:15Z",
+                "lastEditedAt": "2026-11-23T19:01:15Z",
+                "author": {
+                  "login": "replay-qa",
+                  "__typename": "Bot"
+                },
+                "body": "<!-- replay-qa-bot -->\n## Replay QA\n\n✅ QA **skipped** for `440fe8b3f2fa` (eval/eval-mtt6n87m-2yuf352w-1795460177045) — no code changes to test.\n\n[Full report in Replay QA →](https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/test-runs/github-pr-ver-mwtmn167-xpgvbrz5)\n\n<!-- replay-qa-test-run-summary -->\n#### Findings summary\n\n**No new bugs were found in the testing that completed.**\n\n#### Coverage summary\n\n**No testing took place this round.** The driver found no code diff for PR #9016 on the preview at https://pr-9016--loop-qa-j63k5x.netlify.app and skipped QA. Login credentials were available, but QA never used them. It loaded only the root page (`/`), took no actions, ran for about 2 seconds, and authored no reusable journeys.\n\nQA did not exercise the change under test. The owner-passcode gate and the app loading behind it named in the PR were never reached, and no authenticated area of the app was tested. Coverage of the preview is therefore unestablished. No blockers, failed actions, target-app errors, or infrastructure failures were logged. The run ended on the skip decision rather than on any barrier.\n\nThe owner's testing instructions limited this round's scope to two things:\n\n- exercising the PR preview when the diff touches user-facing UI\n- testing https://bug-playground-e8bt8k.netlify.app/glitches/1 indirectly by creating a new QA project at https://qa.replay.io and waiting for it to file a bug\n\nAnything outside that scope was left untested by instruction, not by omission. However, this run did not carry out the in-scope work either. The instructions explicitly say not to stop with zero steps on a non-UI or backend-only diff. Even so, the run stopped with zero steps, never visited https://qa.replay.io, and never created the bug-playground project.",
+                "url": "https://github.com/replayio/loop-qa/pull/9016#issuecomment-7110870111"
+              },
+              {
+                "__typename": "IssueComment",
+                "id": "IC_kwDOSw4eCs8AAAABp9iDIA",
+                "createdAt": "2026-11-23T19:00:00Z",
+                "updatedAt": "2026-11-23T19:06:55Z",
+                "lastEditedAt": "2026-11-23T19:06:55Z",
+                "author": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "body": "⏭️ **Loop QA preview** skipped: this head changes only Replay QA `ignorePaths`.",
+                "url": "https://github.com/replayio/loop-qa/pull/9016#issuecomment-7110951712"
+              },
+              {
+                "__typename": "IssueComment",
+                "id": "IC_kwDOSw4eCs8AAAABp9qvWQ",
+                "createdAt": "2026-11-23T19:06:06Z",
+                "updatedAt": "2026-11-23T19:06:06Z",
+                "lastEditedAt": null,
+                "author": {
+                  "login": "replay-evals",
+                  "__typename": "Bot"
+                },
+                "body": "<!-- replay-evals-fix-report -->\n# Fix report — Bug Report #24583: journey-blocked eval `eval-mtt6n87m-2yuf352w` (PR replayio/loop-qa#9016)\n\n## Verdict\n\nThe run was correct and the verdict was wrong. The `eval.verdict` judge failed a correct\n`blocked:auth-wall` report because its evidence base was the run's **browser recording only** — and this\neval's clone/mirror serving mode makes that recording a chrome-only shell. The judge was never offered the\nrun's **driver recording**, which is where every step, measured observation, check result and recovery\nverdict of the run actually sits. Confirmed the investigation's lead in both recordings, then fixed the\nshared judge so it is offered both kinds of a run's recordings and taught which kind answers which\nquestion.\n\n## What the recordings establish (investigation lead: CONFIRMED)\n\n**Browser recording `d7d8d6d4-bd97-4e5c-a76b-5773ec6da347`** (offered to the judge, and its only\nrecording): `RecordingOverview` shows one failed Playwright test with **0 total steps**; `PlaywrightSteps`\nreturns \"**1 test:** 0 passed, 1 failed / **0 total steps**\"; no console errors; 28 requests, all\nbrowser-chrome resources. No app traffic anywhere. This is a recording-scope artifact of the mirror\nserving mode, not evidence about the run: the run's browser page was `https://app.carecyrcle.com:43337/`\n(the local mirror), and the uploaded browser-side recording captured none of it.\n\n**Driver recording `9060191d-9f6f-4242-83f7-14c9983bcfd7`** (never offered to the judge): the node\nrun-script of the graded run. Its console carries the entire chain the judge called fabricated:\n\n- `journey.step.begin` step 2: \"Enter the owner portal via the 'Owner access' control on the portal\n  selection screen\" (the abstract action), then `journey.execute-result` completing.\n- `journey.check.result` step 2, measured `actual`: \"The \\\"Owner access\\\" control correctly revealed the\n  owner passcode gate (\\\"Enter the owner passcode to view internal materials.\\\" with the Passcode field S10\n  and Unlock/Cancel controls)…\", followed by the `off-track`/`auth-wall` classification.\n- `journey.recovery.verdict`: `blocked`/`auth-wall` — \"The Owner access gate stands with only a Passcode\n  field (S10), Unlock (S12), and Cancel (S11) available; the run's stored credential sources contain only\n  $login_mode=\\\"create\\\" and $login_email…\".\n- `journey.run.complete`: `outcome blocked, code auth-wall, steps 2, errors 0`; `journey.execution status\n  ok`; browser page closed at `https://app.carecyrcle.com:43337/`.\n\nThe run reached the gate, measured it, identified the missing owner credential from stored sources,\nperformed one click and one observation (no repeated cancel/reopen cycles), filed no bugs, and reported\n`blocked:auth-wall` — exactly the eval's ground truth. The judge, denied the driver recording, read the\nempty browser shell as proof \"the app was never loaded and no 'Owner access' click exists\", declared the\nmeasured gate observation fabricated, classified the run a runner/tool failure, and failed it. The\ninvestigation's claim that the judge inspected only `d7d8d6d4` is confirmed: that is the only recording\n`browserRecordings` (src/guidance/evals/judge.ts) ever listed for it.\n\n## Root cause\n\n`src/guidance/evals/judge.ts`'s recording list (`browserRecordings`, renamed here to `runRecordings`)\nread the run's `test_runs` rows but used only `replay_recording_id`, deliberately excluding\n`driver_recording_id` (\"a judge pointed at one reads 'no such element' off the harness\"). That exclusion\nwas about DOM tools, but it also denied the judge the run's own log stream. For a mirror-served run the\nbrowser recording can be a chrome-only shell with no app traffic, so the run's execution evidence exists\nONLY in the driver recording's console — a judge denied it must either trust prose it cannot verify or\n(what happened here) read the empty shell as proof the run never happened. The investigation layer already\nlists both recordings (`collectRecordings` in src/guidance/evals/investigate.ts); the judge did not.\n\n## Changes\n\nExactly two files changed; no eval definition, override, journey, capture or grading bar was touched.\n\n**`src/guidance/evals/judge.ts`**\n\n1. `browserRecordings` → `runRecordings` (exported): the judge's recording list now includes each journey\n   run's **driver recording** (`driver_recording_id`, already carried by the `test_runs` artifact read)\n   beside its browser recording, each with a role naming what it settles — the browser recording \"the pages\n   the run loaded; DOM/rendered-state tools apply here\", the driver recording \"the node process that drove\n   the run; its console is the run's own log stream (step results, measured observations, check results,\n   recovery verdicts); DOM tools do not apply here\". Browser recordings are listed first, so the warm\n   loop's bounded wait still serves the primary DOM evidence channel before any large driver recording.\n   Exploration rows, de-duplication, and the prose-only fallback on an unanswering host are unchanged.\n2. `judgeSystemPrompt(withRecordings)` now teaches the judge the two recording kinds and routes each\n   question to the kind that answers it (rendered state → browser; what the run did and decided → the\n   driver recording's console/outgoing requests; DOM tools on a driver recording fail by design, and that\n   failure is not a finding). Crucially, it closes this wrong-verdict's exact shape: an empty browser\n   recording (no Playwright steps, no interactions, no app requests) does NOT establish the app was never\n   loaded or that the run's observation was fabricated — a mirror-served run drives the app from the\n   driver process and the browser recording can be a shell that captured no app traffic; before concluding\n   a runner/tool failure or a fabricated observation, the judge must read the driver recording's console.\n\n**`src/guidance/evals/tests/contract.ts`** — pins the new guidance (two kinds, the empty-shell rule, the\ndriver-console-before-runner-failure rule) in the judge-prompt contract test, and a new test for the\nlisting itself: driver recording offered beside the browser one, browser first, role text naming what each\nsettles, exploration rows unchanged, de-duplication, and the empty-list fallback.\n\nThis is the shared judge layer, so the change applies to every eval kind that grades with recordings —\nwhich is the point: any mirror-served or otherwise browser-recording-empty run of any kind had the same\nhole. It does not weaken the conservative bar: the judge still must earn a pass from evidence it can point\nat; it is now simply handed the recording where that evidence lives instead of being forced to conclude\nfrom an empty shell.\n\n## Verification\n\n- Read both recordings through the Replay MCP and confirmed every fact above (this report quotes the\n  console lines and tool outputs they returned).\n- `pnpm run test:evals` (the evals guidance contract suite): **267 passed, 0 failed**, including the two\n  updated/new tests pinning this fix.\n- `pnpm run check` (typecheck + lint): **passed**.\n- `npx oxlint` on both changed files: clean.\n\nThe fix is unverified against a live re-run — the next eligible worker run against this branch's deploy is\nwhat proves it. Expected passing shape: the run again reaches the Owner access gate over the mirror,\nreports `blocked:auth-wall` identifying the missing owner passcode with no bugs filed; the judge, now\noffered the driver recording, reads its console for the step/observation/verdict chain instead of grading\nthe empty browser shell, and passes the run. If a future run's browser recording does carry app traffic,\nnothing changes — the browser recording remains the primary DOM channel.",
+                "url": "https://github.com/replayio/loop-qa/pull/9016#issuecomment-7111094105"
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOSw4eCs8AAAABRWZgZdoAKDQxZWFmODFiMTZjMmI1NmY5ODlmZWFkN2NhNjg0M2QwNWNiOWExYWU",
+                "commit": {
+                  "oid": "41eaf81b16c2b56f989fead7ca6843d05cb9a1ae",
+                  "messageHeadline": "Bug Report #24583: Fetch the bug report with `curl -fsS \"...",
+                  "authoredDate": "2026-11-23T19:06:15Z",
+                  "committedDate": "2026-11-23T19:06:15Z",
+                  "author": {
+                    "user": null
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 2,
+    "remaining": 4991,
+    "resetAt": "2026-11-24T03:34:12.000Z",
+    "gatewayErrors": 0
+  }
+}

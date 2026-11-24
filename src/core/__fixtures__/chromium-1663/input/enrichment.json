@@ -1,0 +1,353 @@
+{
+  "subjectKey": "replayio/chromium#1663",
+  "subject": {
+    "nodeId": "PR_kwDOE2wi2c8AAAABQWiJyg",
+    "state": "MERGED",
+    "author": "Andarist",
+    "headRef": "andarist/157-repaint-diverged-sync-calls",
+    "baseRef": "rebase/157/working",
+    "headSha": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+    "baseSha": "2372e276b715c18b034d732581be8f7d71f281e8",
+    "updatedAt": "2026-11-23T14:29:30Z",
+    "raw": {
+      "id": "PR_kwDOE2wi2c8AAAABQWiJyg",
+      "number": 1663,
+      "title": "Replay: a diverged replay releases the sync calls it is waiting for replies to",
+      "state": "MERGED",
+      "isDraft": false,
+      "author": {
+        "login": "Andarist",
+        "__typename": "User"
+      },
+      "baseRefName": "rebase/157/working",
+      "headRefName": "andarist/157-repaint-diverged-sync-calls",
+      "baseRefOid": "2372e276b715c18b034d732581be8f7d71f281e8",
+      "headRefOid": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+      "mergedAt": "2026-11-23T14:29:30Z",
+      "closedAt": "2026-11-23T14:29:30Z",
+      "updatedAt": "2026-11-23T14:29:30Z",
+      "reviewDecision": null,
+      "reviewRequests": {
+        "nodes": []
+      },
+      "latestReviews": {
+        "nodes": []
+      },
+      "closingIssuesReferences": {
+        "nodes": []
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+              "statusCheckRollup": {
+                "state": "FAILURE"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "CRE_kwDODVUEis8AAAAFcaCVsQ",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-19T10:28:51Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDODVUEis8AAAAFcaCVsQ",
+        "createdAt": "2026-11-19T10:28:51Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": true,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 14041,
+          "title": "chromium-recording: a case for a repaint taken while the compositor waits on the GPU process",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "replayio/backend"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADOE2wi2c8AAAABgqFe288AAAAIiG0DIQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-19T12:30:06Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADOE2wi2c8AAAABgqFe288AAAAIiG0DIQ",
+        "createdAt": "2026-11-19T12:30:06Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "527ab2493ead2d261acb72391bd4c61e2a8252a5"
+        },
+        "afterCommit": {
+          "oid": "c0014f107cddd0ab2f7d1eed1c2c62ee3c6939aa"
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDljNTgwMGQ4ZjU4M2MxZjczNzM1YTdkMzQyOThjYzAyMjgyYTE3OTc",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:47:55Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDljNTgwMGQ4ZjU4M2MxZjczNzM1YTdkMzQyOThjYzAyMjgyYTE3OTc",
+        "commit": {
+          "oid": "9c5800d8f583c1f73735a7d34298cc02282a1797",
+          "messageHeadline": "Replay: a diverged replay releases the sync calls it is waiting for r…",
+          "authoredDate": "2026-11-18T20:58:04Z",
+          "committedDate": "2026-11-22T19:47:55Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKGQ3OTI0NjMxYzY4MWFiMzNmOWY5MjY1ZTk1NjlkZDg5MjY2ZGY1MmQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:47:55Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKGQ3OTI0NjMxYzY4MWFiMzNmOWY5MjY1ZTk1NjlkZDg5MjY2ZGY1MmQ",
+        "commit": {
+          "oid": "d7924631c681ab33f9f9265e9569dd89266df52d",
+          "messageHeadline": "Replay: the in-flight sync calls are listed by the fork's own code",
+          "authoredDate": "2026-11-18T22:33:01Z",
+          "committedDate": "2026-11-22T19:47:55Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDE1NzIyMDUzMmQyNTcwNWE4OTFiNDA0ZDRlNGI1YTFkNGU5NjMwZjQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:47:56Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDE1NzIyMDUzMmQyNTcwNWE4OTFiNDA0ZDRlNGI1YTFkNGU5NjMwZjQ",
+        "commit": {
+          "oid": "157220532d25705a891b404d4e4b5a1d4e9630f4",
+          "messageHeadline": "Replay: the in-flight sync call lock is never an ordered lock",
+          "authoredDate": "2026-11-18T23:47:08Z",
+          "committedDate": "2026-11-22T19:47:56Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDY5ZmVlNThjMWM0MzY1OTA0YzIwYjU2OGIwM2Y4ZDA2Yzg5YzQ0NjI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:47:57Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDY5ZmVlNThjMWM0MzY1OTA0YzIwYjU2OGIwM2Y4ZDA2Yzg5YzQ0NjI",
+        "commit": {
+          "oid": "69fee58c1c4365904c20b568b03f8d06c89c4462",
+          "messageHeadline": "Replay: the sync call release names the callees it is known to mishandle",
+          "authoredDate": "2026-11-18T23:47:55Z",
+          "committedDate": "2026-11-22T19:47:57Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDBlN2Y1NmI2NGI1ODBkZDlkZmFhZjdkMzY2ODkwYmUwZjA3NTU4MjI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:47:58Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDBlN2Y1NmI2NGI1ODBkZDlkZmFhZjdkMzY2ODkwYmUwZjA3NTU4MjI",
+        "commit": {
+          "oid": "0e7f56b64b580dd9dfaaf7d366890be0f0755822",
+          "messageHeadline": "Replay: two more limitations of releasing a stranded sync call, in th…",
+          "authoredDate": "2026-11-18T23:48:51Z",
+          "committedDate": "2026-11-22T19:47:58Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc2Yjk3YTQwODZhNmIzNmUyZGE2ZWRlZGMxNjU5OGFjZGMyMzRhNzg",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:47:59Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc2Yjk3YTQwODZhNmIzNmUyZGE2ZWRlZGMxNjU5OGFjZGMyMzRhNzg",
+        "commit": {
+          "oid": "76b97a4086a6b36e2da6ededc16598acdc234a78",
+          "messageHeadline": "Replay: the in-flight sync call lock's comment states the invariant, …",
+          "authoredDate": "2026-11-19T01:33:56Z",
+          "committedDate": "2026-11-22T19:47:59Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKGU4YjU0YWM4MTEzNmMzODIzMWJlOWZjYTNmNTFlMzhhMWQyMDAxZTc",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:48:00Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKGU4YjU0YWM4MTEzNmMzODIzMWJlOWZjYTNmNTFlMzhhMWQyMDAxZTc",
+        "commit": {
+          "oid": "e8b54ac81136c38231be9fca3f51e38a1d2001e7",
+          "messageHeadline": "Replay: the sync call release's recorded limitations say the right thing",
+          "authoredDate": "2026-11-19T07:23:29Z",
+          "committedDate": "2026-11-22T19:48:00Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc0YTJiODhmZjkwZTY5ZTg3OTc3M2MzYzQzZjhiNzJhNjQzOTRlOTE",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:48:01Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc0YTJiODhmZjkwZTY5ZTg3OTc3M2MzYzQzZjhiNzJhNjQzOTRlOTE",
+        "commit": {
+          "oid": "74a2b88ff90e69e879773c3c43f8b72a64394e91",
+          "messageHeadline": "Replay: trim the sync-call release comments to what a reader needs",
+          "authoredDate": "2026-11-19T10:07:58Z",
+          "committedDate": "2026-11-22T19:48:01Z",
+          "author": {
+            "user": null
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc4YWUxODU5MjQ3ODgwZWNkZDc1YzIyYzNkYTgxZDRhZTliMDM1Mjk",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:48:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc4YWUxODU5MjQ3ODgwZWNkZDc1YzIyYzNkYTgxZDRhZTliMDM1Mjk",
+        "commit": {
+          "oid": "78ae1859247880ecdd75c22c3da81d4ae9b03529",
+          "messageHeadline": "Replay: the sync call release's comments say what the release does to…",
+          "authoredDate": "2026-11-19T10:26:42Z",
+          "committedDate": "2026-11-22T19:48:02Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADOE2wi2c8AAAABgqFe288AAAAImj-sMw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-22T21:04:36Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADOE2wi2c8AAAABgqFe288AAAAImj-sMw",
+        "createdAt": "2026-11-22T21:04:36Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c0014f107cddd0ab2f7d1eed1c2c62ee3c6939aa"
+        },
+        "afterCommit": {
+          "oid": "78ae1859247880ecdd75c22c3da81d4ae9b03529"
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOE2wi2c8AAAABQWiJytoAKGRjNTE3MGFlMDMzZTJmNGIzYmRmOGUxZWI5ZWIwMTkwMzZjODE5NTU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-23T12:18:40Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKGRjNTE3MGFlMDMzZTJmNGIzYmRmOGUxZWI5ZWIwMTkwMzZjODE5NTU",
+        "commit": {
+          "oid": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+          "messageHeadline": "Replay: the sync call release's comments say what is blocked and what…",
+          "authoredDate": "2026-11-23T12:18:40Z",
+          "committedDate": "2026-11-23T12:18:40Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "ME_lADOE2wi2c8AAAABgqFe288AAAAInn22rQ",
+      "typename": "MergedEvent",
+      "createdAt": "2026-11-23T14:29:30Z",
+      "raw": {
+        "__typename": "MergedEvent",
+        "id": "ME_lADOE2wi2c8AAAABgqFe288AAAAInn22rQ",
+        "createdAt": "2026-11-23T14:29:30Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "commit": {
+          "oid": "0834cffb5afffae2bd09681b4df30dce5c38bdee"
+        }
+      }
+    },
+    {
+      "nodeId": "CE_lADOE2wi2c8AAAABgqFe288AAAAInn23Ww",
+      "typename": "ClosedEvent",
+      "createdAt": "2026-11-23T14:29:30Z",
+      "raw": {
+        "__typename": "ClosedEvent",
+        "id": "CE_lADOE2wi2c8AAAABgqFe288AAAAInn23Ww",
+        "createdAt": "2026-11-23T14:29:30Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "stateReason": "COMPLETED",
+        "closer": null
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-24T02:35:07.440Z"
+}

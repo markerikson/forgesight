@@ -1,0 +1,2470 @@
+{
+  "subjectKey": "replayio/backend#14063",
+  "subject": {
+    "nodeId": "PR_kwDODVUEis8AAAABQhQKKw",
+    "state": "OPEN",
+    "author": "Domiii",
+    "headRef": "dominik/dg-react-query-chain",
+    "baseRef": "dominik/dg-redux-dispatch-cause",
+    "headSha": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77",
+    "baseSha": "11d7e592a687559c9319a95f8314a0b356ac470d",
+    "updatedAt": "2026-11-24T02:13:27Z",
+    "raw": {
+      "id": "PR_kwDODVUEis8AAAABQhQKKw",
+      "number": 14063,
+      "title": "DependencyGraph: react-query-chain case, and library causes in a TanStack Query notify flush name its query updates",
+      "state": "OPEN",
+      "isDraft": true,
+      "author": {
+        "login": "Domiii",
+        "__typename": "User"
+      },
+      "baseRefName": "dominik/dg-redux-dispatch-cause",
+      "headRefName": "dominik/dg-react-query-chain",
+      "baseRefOid": "11d7e592a687559c9319a95f8314a0b356ac470d",
+      "headRefOid": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77",
+      "mergedAt": null,
+      "closedAt": null,
+      "updatedAt": "2026-11-24T02:13:27Z",
+      "reviewDecision": null,
+      "reviewRequests": {
+        "nodes": []
+      },
+      "latestReviews": {
+        "nodes": []
+      },
+      "closingIssuesReferences": {
+        "nodes": []
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77",
+              "statusCheckRollup": {
+                "state": "FAILURE",
+                "contexts": {
+                  "nodes": [
+                    {
+                      "__typename": "CheckRun",
+                      "name": "review",
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "detailsUrl": "https://github.com/replayio/backend/actions/runs/45310793980/job/138165775017"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "review",
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "detailsUrl": "https://github.com/replayio/backend/actions/runs/45310989030/job/138166436188"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "post",
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "detailsUrl": "https://github.com/replayio/backend/actions/runs/45310793980/job/138165732018"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "post",
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "detailsUrl": "https://github.com/replayio/backend/actions/runs/45310989030/job/138166374327"
+                    },
+                    {
+                      "__typename": "StatusContext",
+                      "context": "buildkite/backend-ci",
+                      "state": "FAILURE",
+                      "targetUrl": "https://buildkite.com/replay/backend-ci/builds/36048"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Socket Security: Project Report",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://socket.dev/dashboard/org/replayio/sbom/e64bca4a-f642-4e9a-80d2-7bc72d8f8871"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Socket Security: Pull Request Alerts",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://socket.dev"
+                    },
+                    {
+                      "__typename": "StatusContext",
+                      "context": "buildkite/backend-e2e-tests",
+                      "state": "SUCCESS",
+                      "targetUrl": "https://buildkite.com/replay/backend-e2e-tests/builds/29665"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIi8Algg",
+      "typename": "AddedToStackEvent",
+      "createdAt": "2026-11-19T21:51:01Z",
+      "raw": {
+        "__typename": "AddedToStackEvent",
+        "id": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIi8Algg",
+        "createdAt": "2026-11-19T21:51:01Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "AE_lADODVUEis8AAAABg2q5b88AAAAIi8DooA",
+      "typename": "AssignedEvent",
+      "createdAt": "2026-11-19T21:51:35Z",
+      "raw": {
+        "__typename": "AssignedEvent",
+        "id": "AE_lADODVUEis8AAAABg2q5b88AAAAIi8DooA",
+        "createdAt": "2026-11-19T21:51:35Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "assignee": {
+          "login": "Domiii"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIi9Bmnw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-19T22:03:19Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIi9Bmnw",
+        "createdAt": "2026-11-19T22:03:19Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "20ec88b5e0847836557ca125ddfc8c25c1088d78"
+        },
+        "afterCommit": {
+          "oid": "917fa5f4141ddec53a7c82d39aca3018977266c2"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIi9nDlA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-19T22:10:32Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIi9nDlA",
+        "createdAt": "2026-11-19T22:10:32Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "917fa5f4141ddec53a7c82d39aca3018977266c2"
+        },
+        "afterCommit": {
+          "oid": "1049ca4ff67c8b32da814864a7aa4d4ef1c39e37"
+        }
+      }
+    },
+    {
+      "nodeId": "RTE_lADODVUEis8AAAABg2q5b88AAAAIi9nheQ",
+      "typename": "RenamedTitleEvent",
+      "createdAt": "2026-11-19T22:10:38Z",
+      "raw": {
+        "__typename": "RenamedTitleEvent",
+        "id": "RTE_lADODVUEis8AAAABg2q5b88AAAAIi9nheQ",
+        "createdAt": "2026-11-19T22:10:38Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "previousTitle": "Chromium recording: react-query-chain case, react-chain's page with its data in a TanStack Query cache",
+        "currentTitle": "DependencyGraph: react-query-chain case, and library causes in a TanStack Query notify flush name its query updates"
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIi_PD1g",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-19T22:31:09Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIi_PD1g",
+        "createdAt": "2026-11-19T22:31:09Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "1049ca4ff67c8b32da814864a7aa4d4ef1c39e37"
+        },
+        "afterCommit": {
+          "oid": "519a7dd4b51becb8b45bf6e4c63db83aa7bf37b0"
+        }
+      }
+    },
+    {
+      "nodeId": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIjFQ4lg",
+      "typename": "RemovedFromStackEvent",
+      "createdAt": "2026-11-19T23:57:04Z",
+      "raw": {
+        "__typename": "RemovedFromStackEvent",
+        "id": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIjFQ4lg",
+        "createdAt": "2026-11-19T23:57:04Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjIMbYg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T00:36:26Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjIMbYg",
+        "createdAt": "2026-11-20T00:36:26Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "257039a8c7fccc2e5153eacfe2c5a0128fd4b32a"
+        },
+        "afterCommit": {
+          "oid": "5054c86b1215536d8fe254959d476479054ea70a"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjIMhRw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T00:36:27Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjIMhRw",
+        "createdAt": "2026-11-20T00:36:27Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "519a7dd4b51becb8b45bf6e4c63db83aa7bf37b0"
+        },
+        "afterCommit": {
+          "oid": "b1e6027f5a2654f53c635f74d85eb4b7e418e499"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJABVw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T00:47:03Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJABVw",
+        "createdAt": "2026-11-20T00:47:03Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b1e6027f5a2654f53c635f74d85eb4b7e418e499"
+        },
+        "afterCommit": {
+          "oid": "4dc8b2dcc31681e149b56ccdb2c62b499b6ee0e4"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJSWnQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T00:50:57Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJSWnQ",
+        "createdAt": "2026-11-20T00:50:57Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "4dc8b2dcc31681e149b56ccdb2c62b499b6ee0e4"
+        },
+        "afterCommit": {
+          "oid": "2cbae5d346e4069538d14fb3b063151227aeb7d7"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJScOA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T00:50:58Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJScOA",
+        "createdAt": "2026-11-20T00:50:58Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "5054c86b1215536d8fe254959d476479054ea70a"
+        },
+        "afterCommit": {
+          "oid": "c68afe137342b253a33f7dc83369d0deb99c36f2"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJ_haA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T01:01:12Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJ_haA",
+        "createdAt": "2026-11-20T01:01:12Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c68afe137342b253a33f7dc83369d0deb99c36f2"
+        },
+        "afterCommit": {
+          "oid": "0abee05072786a6588cb421fcf689b2bd2a9c810"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJ_kvQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T01:01:13Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjJ_kvQ",
+        "createdAt": "2026-11-20T01:01:13Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "2cbae5d346e4069538d14fb3b063151227aeb7d7"
+        },
+        "afterCommit": {
+          "oid": "cb1e718276f0bec3f5421f89ec6224c8d37a7c28"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjK9mFQ",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T01:15:01Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjK9mFQ",
+        "createdAt": "2026-11-20T01:15:01Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "0abee05072786a6588cb421fcf689b2bd2a9c810"
+        },
+        "afterCommit": {
+          "oid": "cbbb9c6376a967269a910e4fe5a281596651ec74"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjK9scA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T01:15:03Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjK9scA",
+        "createdAt": "2026-11-20T01:15:03Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "cb1e718276f0bec3f5421f89ec6224c8d37a7c28"
+        },
+        "afterCommit": {
+          "oid": "c547263d1c4f276cfb2340546d9ff20f015e58dd"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjd8GFA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T06:38:46Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjd8GFA",
+        "createdAt": "2026-11-20T06:38:46Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c547263d1c4f276cfb2340546d9ff20f015e58dd"
+        },
+        "afterCommit": {
+          "oid": "7a787259b6847bc7a7ee728a50c53eba57a8f2b0"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjd8Jrg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T06:38:47Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjd8Jrg",
+        "createdAt": "2026-11-20T06:38:47Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "cbbb9c6376a967269a910e4fe5a281596651ec74"
+        },
+        "afterCommit": {
+          "oid": "f6a929a03c76ee1d2d345dd13ccd054b2b403375"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjeuCSw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T06:50:52Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjeuCSw",
+        "createdAt": "2026-11-20T06:50:52Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "7a787259b6847bc7a7ee728a50c53eba57a8f2b0"
+        },
+        "afterCommit": {
+          "oid": "b81f8dbe65ac2c76c506d92196bb1986bda2cd37"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjeuI2g",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T06:50:54Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjeuI2g",
+        "createdAt": "2026-11-20T06:50:54Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "f6a929a03c76ee1d2d345dd13ccd054b2b403375"
+        },
+        "afterCommit": {
+          "oid": "8b83db6493db3f4cf683029fd743b9aa08f4956f"
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDODVUEis8AAAAFf8ZzGQ",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-20T07:02:31Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDODVUEis8AAAAFf8ZzGQ",
+        "createdAt": "2026-11-20T07:02:31Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 14069,
+          "title": "DependencyGraph tool: a group without a narrower region opens as its next page (page)",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "replayio/backend"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDODVUEis8AAAAFf8aq5g",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-20T07:02:35Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDODVUEis8AAAAFf8aq5g",
+        "createdAt": "2026-11-20T07:02:35Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 14057,
+          "title": "Chromium recording: a case can build its app as a React app",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "replayio/backend"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjgP7bw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T07:13:56Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjgP7bw",
+        "createdAt": "2026-11-20T07:13:56Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b81f8dbe65ac2c76c506d92196bb1986bda2cd37"
+        },
+        "afterCommit": {
+          "oid": "b4c62f18cb21ad542c28769ac583392bbbe800f2"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjguE1Q",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T07:20:44Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjguE1Q",
+        "createdAt": "2026-11-20T07:20:44Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b4c62f18cb21ad542c28769ac583392bbbe800f2"
+        },
+        "afterCommit": {
+          "oid": "287a368e3a5870e819dc8af3ac98b742a15bb120"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjguIJg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T07:20:45Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjguIJg",
+        "createdAt": "2026-11-20T07:20:45Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "8b83db6493db3f4cf683029fd743b9aa08f4956f"
+        },
+        "afterCommit": {
+          "oid": "3c6f71f272554af70109752f154dca721876e5bc"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjjmqQQ",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:01:13Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjjmqQQ",
+        "createdAt": "2026-11-20T08:01:13Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "3c6f71f272554af70109752f154dca721876e5bc"
+        },
+        "afterCommit": {
+          "oid": "40c154f5540f9ac79e7f1d53ea138de6fadec9b4"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjjmvNA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:01:14Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjjmvNA",
+        "createdAt": "2026-11-20T08:01:14Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "287a368e3a5870e819dc8af3ac98b742a15bb120"
+        },
+        "afterCommit": {
+          "oid": "030686d60bef53b19145c207d7ee1a342932f816"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjktINg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:16:16Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjktINg",
+        "createdAt": "2026-11-20T08:16:16Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "030686d60bef53b19145c207d7ee1a342932f816"
+        },
+        "afterCommit": {
+          "oid": "7595b64556e8d981e4c8f8502823499b8032fc8e"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjktMAw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:16:17Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjktMAw",
+        "createdAt": "2026-11-20T08:16:17Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "40c154f5540f9ac79e7f1d53ea138de6fadec9b4"
+        },
+        "afterCommit": {
+          "oid": "c94c494d7ca353ced714f53fd8fa045c7060fb1b"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjlm2ZA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:28:39Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjlm2ZA",
+        "createdAt": "2026-11-20T08:28:39Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "7595b64556e8d981e4c8f8502823499b8032fc8e"
+        },
+        "afterCommit": {
+          "oid": "5a4efe50f711afc7b8f83fef66190ea8bfc242f0"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjlm7Vw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:28:40Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjlm7Vw",
+        "createdAt": "2026-11-20T08:28:40Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c94c494d7ca353ced714f53fd8fa045c7060fb1b"
+        },
+        "afterCommit": {
+          "oid": "8858e7aa7cb565547547d4f66d6394326a29bf20"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjm-qYQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:46:39Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjm-qYQ",
+        "createdAt": "2026-11-20T08:46:39Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "5a4efe50f711afc7b8f83fef66190ea8bfc242f0"
+        },
+        "afterCommit": {
+          "oid": "cbdd6e69f2573cb3955b51c3528447c0dd020e80"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjm-vAA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:46:39Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjm-vAA",
+        "createdAt": "2026-11-20T08:46:39Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "8858e7aa7cb565547547d4f66d6394326a29bf20"
+        },
+        "afterCommit": {
+          "oid": "ac1705cc8ef5d36d9e9e326904304e794c5e7109"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjn2I5Q",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:57:58Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjn2I5Q",
+        "createdAt": "2026-11-20T08:57:58Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "ac1705cc8ef5d36d9e9e326904304e794c5e7109"
+        },
+        "afterCommit": {
+          "oid": "70348b2d88887829ec7268c72eaf9fce55848f1c"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjn2OMg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T08:57:59Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjn2OMg",
+        "createdAt": "2026-11-20T08:57:59Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "cbdd6e69f2573cb3955b51c3528447c0dd020e80"
+        },
+        "afterCommit": {
+          "oid": "6a3d91106d7695c743553b3c4bd4aa5c0ff05387"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjoZ3zw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T09:04:54Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjoZ3zw",
+        "createdAt": "2026-11-20T09:04:54Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "70348b2d88887829ec7268c72eaf9fce55848f1c"
+        },
+        "afterCommit": {
+          "oid": "90d20216685c45c742725b1b29e36c3a93dda268"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjoZ8Hw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T09:04:55Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjoZ8Hw",
+        "createdAt": "2026-11-20T09:04:55Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "6a3d91106d7695c743553b3c4bd4aa5c0ff05387"
+        },
+        "afterCommit": {
+          "oid": "8897ddd7478c7ba78f14321c7e50c99f090955bf"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjp539Q",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T09:23:23Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjp539Q",
+        "createdAt": "2026-11-20T09:23:23Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "8897ddd7478c7ba78f14321c7e50c99f090955bf"
+        },
+        "afterCommit": {
+          "oid": "22572bf89ace1878199752fcfb082f7de224a0b9"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjp5-jQ",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T09:23:24Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjp5-jQ",
+        "createdAt": "2026-11-20T09:23:24Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "90d20216685c45c742725b1b29e36c3a93dda268"
+        },
+        "afterCommit": {
+          "oid": "e63fbf7b728fad893e22aa750c7d7e7d5a8497c9"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjqqnWg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T09:32:44Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjqqnWg",
+        "createdAt": "2026-11-20T09:32:44Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "22572bf89ace1878199752fcfb082f7de224a0b9"
+        },
+        "afterCommit": {
+          "oid": "7214157088cd6db4d4835c48f1a3a8538251826c"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjqqrHQ",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T09:32:44Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjqqrHQ",
+        "createdAt": "2026-11-20T09:32:44Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "e63fbf7b728fad893e22aa750c7d7e7d5a8497c9"
+        },
+        "afterCommit": {
+          "oid": "db79c41434ab62c2b7d4fcfeef30c503733a876f"
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDODVUEis8AAAAFgZPsbQ",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-20T09:49:50Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDODVUEis8AAAAFgZPsbQ",
+        "createdAt": "2026-11-20T09:49:50Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 14052,
+          "title": "DependencyGraph: credit vertices created in React code to their React cause",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "replayio/backend"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtBbPA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:01:50Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtBbPA",
+        "createdAt": "2026-11-20T10:01:50Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "7214157088cd6db4d4835c48f1a3a8538251826c"
+        },
+        "afterCommit": {
+          "oid": "f2e24799c8a5f1dbf7f569f0f3b4ba4b7bb70332"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtBhXg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:01:52Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtBhXg",
+        "createdAt": "2026-11-20T10:01:52Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "db79c41434ab62c2b7d4fcfeef30c503733a876f"
+        },
+        "afterCommit": {
+          "oid": "788cbab4f917a02b65d26ab0b4db376fcdc23c4f"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtaraQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:06:45Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtaraQ",
+        "createdAt": "2026-11-20T10:06:45Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "f2e24799c8a5f1dbf7f569f0f3b4ba4b7bb70332"
+        },
+        "afterCommit": {
+          "oid": "e9caa113b9cf74013ccc8eec8bea75a9d4572a5a"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtawQw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:06:46Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtawQw",
+        "createdAt": "2026-11-20T10:06:46Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "788cbab4f917a02b65d26ab0b4db376fcdc23c4f"
+        },
+        "afterCommit": {
+          "oid": "aab185df8886049f9baff3f09939d58a9ae8131d"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtk0UA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:08:43Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtk0UA",
+        "createdAt": "2026-11-20T10:08:43Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "e9caa113b9cf74013ccc8eec8bea75a9d4572a5a"
+        },
+        "afterCommit": {
+          "oid": "37f1afeae3dd078e36ed7f814a5e61bc6274c18c"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtk50A",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:08:44Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjtk50A",
+        "createdAt": "2026-11-20T10:08:44Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "aab185df8886049f9baff3f09939d58a9ae8131d"
+        },
+        "afterCommit": {
+          "oid": "1d8363198495ff4e07c9ba338c194e0e0dde703f"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuFSPw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:15:08Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuFSPw",
+        "createdAt": "2026-11-20T10:15:08Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "37f1afeae3dd078e36ed7f814a5e61bc6274c18c"
+        },
+        "afterCommit": {
+          "oid": "f97b1dca7dbac705f00a095fce847c2a5f1ea74f"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuFWqQ",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:15:09Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuFWqQ",
+        "createdAt": "2026-11-20T10:15:09Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "1d8363198495ff4e07c9ba338c194e0e0dde703f"
+        },
+        "afterCommit": {
+          "oid": "08200afc211bfb8205b40cd58e56444698937787"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuZDRg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:18:58Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuZDRg",
+        "createdAt": "2026-11-20T10:18:58Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "08200afc211bfb8205b40cd58e56444698937787"
+        },
+        "afterCommit": {
+          "oid": "28925b1312f6843177917c69869e1d0f745a7db0"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuZHkA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:18:59Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjuZHkA",
+        "createdAt": "2026-11-20T10:18:59Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "f97b1dca7dbac705f00a095fce847c2a5f1ea74f"
+        },
+        "afterCommit": {
+          "oid": "543dae34927cc8c4ff0e5be4ccee3fbe4f190d8a"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjukQEA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T10:21:10Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIjukQEA",
+        "createdAt": "2026-11-20T10:21:10Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "543dae34927cc8c4ff0e5be4ccee3fbe4f190d8a"
+        },
+        "afterCommit": {
+          "oid": "d63f3586d0fe9bd890b2ed225a9603dea63d07aa"
+        }
+      }
+    },
+    {
+      "nodeId": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIjwTy5Q",
+      "typename": "AddedToStackEvent",
+      "createdAt": "2026-11-20T10:43:28Z",
+      "raw": {
+        "__typename": "AddedToStackEvent",
+        "id": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIjwTy5Q",
+        "createdAt": "2026-11-20T10:43:28Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIj-nEjg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T13:43:56Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIj-nEjg",
+        "createdAt": "2026-11-20T13:43:56Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "9a982d42ed79d8e2e79732e79d6f4e3eb8a571d9"
+        },
+        "afterCommit": {
+          "oid": "7d5aa4993753f5940c61151f14f1fd4dbf817be8"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIj-nLlQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T13:43:58Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIj-nLlQ",
+        "createdAt": "2026-11-20T13:43:58Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "bc14cf216649cd49ee4adf6d01dfeb6a16642c45"
+        },
+        "afterCommit": {
+          "oid": "5e00b62003a8c290e6abe0d2e31e43b9bf003b91"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkF05BA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T15:05:37Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkF05BA",
+        "createdAt": "2026-11-20T15:05:37Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b5daa87eb37d3f2590a9b7b2658cca6a2424c9f4"
+        },
+        "afterCommit": {
+          "oid": "e01548731d54200c0d418317b2f6a61878fc4472"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkF08vQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T15:05:38Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkF08vQ",
+        "createdAt": "2026-11-20T15:05:38Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "5e00b62003a8c290e6abe0d2e31e43b9bf003b91"
+        },
+        "afterCommit": {
+          "oid": "b9e698cc6c09642d7a057c6baddf874a3f499baa"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGUrcA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T15:11:02Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGUrcA",
+        "createdAt": "2026-11-20T15:11:02Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "6326265476ca38586bb43fa9dd4c92c1140f9ef2"
+        },
+        "afterCommit": {
+          "oid": "cc4e293ec4e7549fc7887e441b4c5a21b063c8e6"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGUxLA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T15:11:03Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGUxLA",
+        "createdAt": "2026-11-20T15:11:03Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b6e034cc9a29033773d11886717cb8273d17ca62"
+        },
+        "afterCommit": {
+          "oid": "3bb1d31bc9221b208109c0d7c9f701a68aaf7b2e"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGc84w",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T15:12:27Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGc84w",
+        "createdAt": "2026-11-20T15:12:27Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "3bb1d31bc9221b208109c0d7c9f701a68aaf7b2e"
+        },
+        "afterCommit": {
+          "oid": "b6e034cc9a29033773d11886717cb8273d17ca62"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGdBEQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T15:12:28Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkGdBEQ",
+        "createdAt": "2026-11-20T15:12:28Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "cc4e293ec4e7549fc7887e441b4c5a21b063c8e6"
+        },
+        "afterCommit": {
+          "oid": "6326265476ca38586bb43fa9dd4c92c1140f9ef2"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkNh9ag",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T16:29:51Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkNh9ag",
+        "createdAt": "2026-11-20T16:29:51Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "6326265476ca38586bb43fa9dd4c92c1140f9ef2"
+        },
+        "afterCommit": {
+          "oid": "8315a52ffabb2d78392fc73c7baabf4a9cb71987"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkNiCeg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T16:29:52Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkNiCeg",
+        "createdAt": "2026-11-20T16:29:52Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b6e034cc9a29033773d11886717cb8273d17ca62"
+        },
+        "afterCommit": {
+          "oid": "8391f4be92e55000bf3d4a4a6bd4381659bde50b"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTJO3Q",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T17:35:31Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTJO3Q",
+        "createdAt": "2026-11-20T17:35:31Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "a962aff6a4ea5041e716fbfda81a124cb9ce85b8"
+        },
+        "afterCommit": {
+          "oid": "6a7dc09ae9854cd799521cb57390746a7e4ec710"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTJTBQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T17:35:32Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTJTBQ",
+        "createdAt": "2026-11-20T17:35:32Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "fdc3c4b93a6a34031a58cd776d399ff7824cec76"
+        },
+        "afterCommit": {
+          "oid": "11dd08de698746d1fb37531e4ce14c003ba90131"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTQRfg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T17:36:53Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTQRfg",
+        "createdAt": "2026-11-20T17:36:53Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "11dd08de698746d1fb37531e4ce14c003ba90131"
+        },
+        "afterCommit": {
+          "oid": "f573823db68848135bb434b9f3bb75912fdc01f5"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTQVWw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T17:36:54Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkTQVWw",
+        "createdAt": "2026-11-20T17:36:54Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "6a7dc09ae9854cd799521cb57390746a7e4ec710"
+        },
+        "afterCommit": {
+          "oid": "426c8ef62c8712a550a076c283681da0fac66e53"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkcJBjw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-20T19:30:40Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIkcJBjw",
+        "createdAt": "2026-11-20T19:30:40Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "426c8ef62c8712a550a076c283681da0fac66e53"
+        },
+        "afterCommit": {
+          "oid": "e7aaffed316329de6f2f4b19238f8495ac0baceb"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkcJH-A",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T19:30:41Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkcJH-A",
+        "createdAt": "2026-11-20T19:30:41Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "f573823db68848135bb434b9f3bb75912fdc01f5"
+        },
+        "afterCommit": {
+          "oid": "7a6cf2001068eebf649c0c1447bba405e1e846c8"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkfoAFw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-20T20:16:42Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIkfoAFw",
+        "createdAt": "2026-11-20T20:16:42Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "7a6cf2001068eebf649c0c1447bba405e1e846c8"
+        },
+        "afterCommit": {
+          "oid": "fc728085749793166c46a35fc30f5aa09f889795"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAInjjsvA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T13:46:22Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAInjjsvA",
+        "createdAt": "2026-11-23T13:46:22Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "60b34e9b9b75f7e859c4f2d5fab843114145d931"
+        },
+        "afterCommit": {
+          "oid": "c1c66a1a9e4bfe9278e67424ca21b3b870145eb9"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInjjyOw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T13:46:23Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInjjyOw",
+        "createdAt": "2026-11-23T13:46:23Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "fc728085749793166c46a35fc30f5aa09f889795"
+        },
+        "afterCommit": {
+          "oid": "b853eb1d096a4949b832aeb5dbdb07f017c556a4"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAInkP0ow",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T13:53:21Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAInkP0ow",
+        "createdAt": "2026-11-23T13:53:21Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c1c66a1a9e4bfe9278e67424ca21b3b870145eb9"
+        },
+        "afterCommit": {
+          "oid": "ebfb38c57c9168b46169dbdd52e2654c69a7b6f1"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInkP6Ow",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T13:53:22Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInkP6Ow",
+        "createdAt": "2026-11-23T13:53:22Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b853eb1d096a4949b832aeb5dbdb07f017c556a4"
+        },
+        "afterCommit": {
+          "oid": "9a881ecc4ade2a14a5ff1c12b5b1adea58e40e53"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInkeHaw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T13:55:41Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInkeHaw",
+        "createdAt": "2026-11-23T13:55:41Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "9a881ecc4ade2a14a5ff1c12b5b1adea58e40e53"
+        },
+        "afterCommit": {
+          "oid": "00ee861f9227e9ddbec48e8756045d0709b754b6"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInxw1zQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T16:04:46Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInxw1zQ",
+        "createdAt": "2026-11-23T16:04:46Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "00ee861f9227e9ddbec48e8756045d0709b754b6"
+        },
+        "afterCommit": {
+          "oid": "8a30b9fbd1d6a7b719dda96d2f04c716a4fec76e"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInyc4eA",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T16:11:26Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInyc4eA",
+        "createdAt": "2026-11-23T16:11:26Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "8a30b9fbd1d6a7b719dda96d2f04c716a4fec76e"
+        },
+        "afterCommit": {
+          "oid": "1228f5f387403486a0420f68035dc8d4f5dcde93"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIn2Lbsg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T16:49:02Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIn2Lbsg",
+        "createdAt": "2026-11-23T16:49:02Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "1228f5f387403486a0420f68035dc8d4f5dcde93"
+        },
+        "afterCommit": {
+          "oid": "4d4bcf17a7bf35c557b9cb2ed591eeed2ed79c6a"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIn5WLmw",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T17:21:29Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIn5WLmw",
+        "createdAt": "2026-11-23T17:21:29Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "4d4bcf17a7bf35c557b9cb2ed591eeed2ed79c6a"
+        },
+        "afterCommit": {
+          "oid": "63c3a9e791517e385331a67ce52287472bfbdbe2"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoCkGXQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T19:02:41Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoCkGXQ",
+        "createdAt": "2026-11-23T19:02:41Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "63c3a9e791517e385331a67ce52287472bfbdbe2"
+        },
+        "afterCommit": {
+          "oid": "c82f71c81c4b440121151dd802481885fa6c7c0d"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoCkKiw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T19:02:42Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoCkKiw",
+        "createdAt": "2026-11-23T19:02:42Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "50f7166bf940eb53d6143fb73c8c8faff89be987"
+        },
+        "afterCommit": {
+          "oid": "41f375f8dbbaaf453bebb1ed229f82e972adb75a"
+        }
+      }
+    },
+    {
+      "nodeId": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIoColtQ",
+      "typename": "RemovedFromStackEvent",
+      "createdAt": "2026-11-23T19:03:30Z",
+      "raw": {
+        "__typename": "RemovedFromStackEvent",
+        "id": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIoColtQ",
+        "createdAt": "2026-11-23T19:03:30Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIoCqDMg",
+      "typename": "AddedToStackEvent",
+      "createdAt": "2026-11-23T19:03:45Z",
+      "raw": {
+        "__typename": "AddedToStackEvent",
+        "id": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIoCqDMg",
+        "createdAt": "2026-11-23T19:03:45Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoD4hDw",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T19:17:40Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoD4hDw",
+        "createdAt": "2026-11-23T19:17:40Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "41f375f8dbbaaf453bebb1ed229f82e972adb75a"
+        },
+        "afterCommit": {
+          "oid": "b1e0ddd23969e70900b0ad94185113b618254d33"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoD4lcg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T19:17:41Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoD4lcg",
+        "createdAt": "2026-11-23T19:17:41Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c82f71c81c4b440121151dd802481885fa6c7c0d"
+        },
+        "afterCommit": {
+          "oid": "646779e0935670b02b4237f50c8dcb167c9808f9"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoH-ydA",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T20:04:27Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoH-ydA",
+        "createdAt": "2026-11-23T20:04:27Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "b1e0ddd23969e70900b0ad94185113b618254d33"
+        },
+        "afterCommit": {
+          "oid": "aded8fd24bb5b73de7e776425943e81b15c22f20"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoH-3yQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T20:04:28Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoH-3yQ",
+        "createdAt": "2026-11-23T20:04:28Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "646779e0935670b02b4237f50c8dcb167c9808f9"
+        },
+        "afterCommit": {
+          "oid": "c0ebce7cdd7db3a628a9fc4cbf4f0158f7987379"
+        }
+      }
+    },
+    {
+      "nodeId": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIoICMvg",
+      "typename": "RemovedFromStackEvent",
+      "createdAt": "2026-11-23T20:05:03Z",
+      "raw": {
+        "__typename": "RemovedFromStackEvent",
+        "id": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIoICMvg",
+        "createdAt": "2026-11-23T20:05:03Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIoID3PA",
+      "typename": "AddedToStackEvent",
+      "createdAt": "2026-11-23T20:05:21Z",
+      "raw": {
+        "__typename": "AddedToStackEvent",
+        "id": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIoID3PA",
+        "createdAt": "2026-11-23T20:05:21Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoKu35A",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T20:34:21Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoKu35A",
+        "createdAt": "2026-11-23T20:34:21Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "c0ebce7cdd7db3a628a9fc4cbf4f0158f7987379"
+        },
+        "afterCommit": {
+          "oid": "dc245acaf6051b85054a00d4995031aa732be7cf"
+        }
+      }
+    },
+    {
+      "nodeId": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIoKvkRw",
+      "typename": "RemovedFromStackEvent",
+      "createdAt": "2026-11-23T20:34:28Z",
+      "raw": {
+        "__typename": "RemovedFromStackEvent",
+        "id": "RFSE_lADODVUEis8AAAABg2q5b88AAAAIoKvkRw",
+        "createdAt": "2026-11-23T20:34:28Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIoKxX1g",
+      "typename": "AddedToStackEvent",
+      "createdAt": "2026-11-23T20:34:47Z",
+      "raw": {
+        "__typename": "AddedToStackEvent",
+        "id": "ATSE_lADODVUEis8AAAABg2q5b88AAAAIoKxX1g",
+        "createdAt": "2026-11-23T20:34:47Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoMvCLQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T20:56:48Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoMvCLQ",
+        "createdAt": "2026-11-23T20:56:48Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "dc245acaf6051b85054a00d4995031aa732be7cf"
+        },
+        "afterCommit": {
+          "oid": "fd6ba4e2a9210db912bb7dd2ddfcb1bfa7425408"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoOtW7A",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T21:19:10Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoOtW7A",
+        "createdAt": "2026-11-23T21:19:10Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "fd6ba4e2a9210db912bb7dd2ddfcb1bfa7425408"
+        },
+        "afterCommit": {
+          "oid": "888857eb7351867db17457f28a8c14fe97845033"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoOtdjg",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T21:19:11Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoOtdjg",
+        "createdAt": "2026-11-23T21:19:11Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "4681d1cda2a6131501d3ee5cc6be95af5db99de7"
+        },
+        "afterCommit": {
+          "oid": "869783d4a8babac045f6bf370ccb9a56a60c7883"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoQOG8w",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-23T21:36:57Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIoQOG8w",
+        "createdAt": "2026-11-23T21:36:57Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "869783d4a8babac045f6bf370ccb9a56a60c7883"
+        },
+        "afterCommit": {
+          "oid": "d77979a510cbc8148e38237490652e71c028975f"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoQOMNQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-23T21:36:58Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoQOMNQ",
+        "createdAt": "2026-11-23T21:36:58Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "888857eb7351867db17457f28a8c14fe97845033"
+        },
+        "afterCommit": {
+          "oid": "ab6b73a5f43da5709e71e752992afee574d3f29d"
+        }
+      }
+    },
+    {
+      "nodeId": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIodtArQ",
+      "typename": "BaseRefForcePushedEvent",
+      "createdAt": "2026-11-24T00:44:05Z",
+      "raw": {
+        "__typename": "BaseRefForcePushedEvent",
+        "id": "BRFPE_lADODVUEis8AAAABg2q5b88AAAAIodtArQ",
+        "createdAt": "2026-11-24T00:44:05Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "d77979a510cbc8148e38237490652e71c028975f"
+        },
+        "afterCommit": {
+          "oid": "479cce9085cf9413206a08447b1186dcea2ee746"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodtEKg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-24T00:44:06Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodtEKg",
+        "createdAt": "2026-11-24T00:44:06Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "ab6b73a5f43da5709e71e752992afee574d3f29d"
+        },
+        "afterCommit": {
+          "oid": "1a1646be3d099b72b112091a48fda60b864f9b50"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodySIQ",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-24T00:45:16Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodySIQ",
+        "createdAt": "2026-11-24T00:45:16Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "1a1646be3d099b72b112091a48fda60b864f9b50"
+        },
+        "afterCommit": {
+          "oid": "4e32e998532376020c1a177e6666feadc40e8d23"
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoepAHg",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-24T00:58:47Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoepAHg",
+        "createdAt": "2026-11-24T00:58:47Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "4e32e998532376020c1a177e6666feadc40e8d23"
+        },
+        "afterCommit": {
+          "oid": "d64691a077e696490e49d6af27d645a4d60fccb7"
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDM1NGYxNDIyNGM2NmFkMzMzM2U1ODExMTA4ZDJkMDdjNTBmZjAxOGI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDM1NGYxNDIyNGM2NmFkMzMzM2U1ODExMTA4ZDJkMDdjNTBmZjAxOGI",
+        "commit": {
+          "oid": "354f14224c66ad3333e5811108d2d07c50ff018b",
+          "messageHeadline": "DependencyGraph: react-query-chain case, and library causes in a TanS…",
+          "authoredDate": "2026-11-19T23:56:49Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGVkMzc0ZTRhNDc3ZmQwN2QwZjhkNGYzOTVjNjI5OGZkMDc1ZjJjNmM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGVkMzc0ZTRhNDc3ZmQwN2QwZjhkNGYzOTVjNjI5OGZkMDc1ZjJjNmM",
+        "commit": {
+          "oid": "ed374e4a477fd07d0f8d4f395c6298fd075f2c6c",
+          "messageHeadline": "DependencyGraph: TanStack Query updates are unavailable once the reco…",
+          "authoredDate": "2026-11-20T09:00:31Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDYwODllNTFmZTM4ZmU2OWRlZTlhYzczNjk5YTUxNmNkMWY5NDFmOGM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDYwODllNTFmZTM4ZmU2OWRlZTlhYzczNjk5YTUxNmNkMWY5NDFmOGM",
+        "commit": {
+          "oid": "6089e51fe38fe69dee9ac73699a516cd1f941f8c",
+          "messageHeadline": "DependencyGraph: a TanStack Query trigger naming no update lists a ve…",
+          "authoredDate": "2026-11-20T10:23:11Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGQyYWRiZDk1ZjQ3MThlYTJkN2Q1NzJlN2NiN2IxMjYwNmRkZDFjNTQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGQyYWRiZDk1ZjQ3MThlYTJkN2Q1NzJlN2NiN2IxMjYwNmRkZDFjNTQ",
+        "commit": {
+          "oid": "d2adbd95f4718ea2d7d572e7cb7b12606ddd1c54",
+          "messageHeadline": "DependencyGraph: store updates nest; TanStack Query records are cappe…",
+          "authoredDate": "2026-11-20T15:05:37Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGFkZjRjMjFiMDgyY2JiN2UxNGYzZTM5YjhhNjg4YWZjNmM0NjVmNzM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGFkZjRjMjFiMDgyY2JiN2UxNGYzZTM5YjhhNjg4YWZjNmM0NjVmNzM",
+        "commit": {
+          "oid": "adf4c21b082cbb7e14f3e39b8a688afc6c465f73",
+          "messageHeadline": "TanStack Query manager: oxfmt",
+          "authoredDate": "2026-11-20T16:16:51Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDVlNTMyOGM5MTk0ZWRlYWE0YjI2MzA3N2MzOWRhYTBlMDNhYWU4MDM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDVlNTMyOGM5MTk0ZWRlYWE0YjI2MzA3N2MzOWRhYTBlMDNhYWU4MDM",
+        "commit": {
+          "oid": "5e5328c9194edeaa4b263077c39daa0e03aae803",
+          "messageHeadline": "DependencyGraph: TanStack Query runs pair with queueings in queue ord…",
+          "authoredDate": "2026-11-20T16:40:28Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDExZDNmMmFhYjg2NWJiMWRmZTI4OTJlODU0NTUyODQ0OWEwNzFmZGU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDExZDNmMmFhYjg2NWJiMWRmZTI4OTJlODU0NTUyODQ0OWEwNzFmZGU",
+        "commit": {
+          "oid": "11d3f2aab865bb1dfe2892e8545528449a071fde",
+          "messageHeadline": "DependencyGraph: TanStack Query update path unavailable where a copy …",
+          "authoredDate": "2026-11-20T16:49:17Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDJkMTM3ZTlhYjNhNmQyMTZlYmM1MmRmOGNlNTk4MzQzZWIzOWI3Mzc",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDJkMTM3ZTlhYjNhNmQyMTZlYmM1MmRmOGNlNTk4MzQzZWIzOWI3Mzc",
+        "commit": {
+          "oid": "2d137e9ab3a6d216ebc52df8ce598343eb39b737",
+          "messageHeadline": "TanStack Query manager: update-path site ids by role, one list",
+          "authoredDate": "2026-11-20T16:54:55Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGE0NmVkNGNiZjJkYWQ4OWE1YTgzZTVjYjcyZTNlYmMyNjgzOThiYTQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGE0NmVkNGNiZjJkYWQ4OWE1YTgzZTVjYjcyZTNlYmMyNjgzOThiYTQ",
+        "commit": {
+          "oid": "a46ed4cbf2dad89a5a83e5cb72e3ebc268398ba4",
+          "messageHeadline": "TanStack Query dispatch box: only a function whose batch notifies the…",
+          "authoredDate": "2026-11-23T13:23:05Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDk4YTQ5N2Q5YjhlYWY0YjQ5YjNiY2EwNTFkMDI5Yzc1ZTdkMDBiNzQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDk4YTQ5N2Q5YjhlYWY0YjQ5YjNiY2EwNTFkMDI5Yzc1ZTdkMDBiNzQ",
+        "commit": {
+          "oid": "98a497d9b8eaf4b49b3bca051d029c75e7d00b74",
+          "messageHeadline": "TanStack Query: a box failing a site of its kind that matches nothing…",
+          "authoredDate": "2026-11-23T13:24:25Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGYwN2Q5ZTE4ZDU5YTE0MzZhNDVlOWQzZGIzNTlmNWMzYmY3NmY5MWE",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGYwN2Q5ZTE4ZDU5YTE0MzZhNDVlOWQzZGIzNTlmNWMzYmY3NmY5MWE",
+        "commit": {
+          "oid": "f07d9e18d59a1436a45e9d3db359f5c3bf76f91a",
+          "messageHeadline": "TanStack Query: updated events are capped apart from the cache's othe…",
+          "authoredDate": "2026-11-23T13:25:32Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGM1OGIyZjM2NzNkOWNiODg1NmMwMTM1ZTgyNGM0NDE5OTZkOWMwMzk",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGM1OGIyZjM2NzNkOWNiODg1NmMwMTM1ZTgyNGM0NDE5OTZkOWMwMzk",
+        "commit": {
+          "oid": "c58b2f3673d9cb8856c0135e824c441996d9c039",
+          "messageHeadline": "DependencyGraph store updates: a Redux reducer call without a dispatc…",
+          "authoredDate": "2026-11-23T13:31:29Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKGJiZGYzZWVmMTk3MjIwZGM0YTFiMWJlNmI0MWJjNzgxZTZjM2NlZDQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:18Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGJiZGYzZWVmMTk3MjIwZGM0YTFiMWJlNmI0MWJjNzgxZTZjM2NlZDQ",
+        "commit": {
+          "oid": "bbdf3eef197220dc4a1b1be6b41bc781e6c3ced4",
+          "messageHeadline": "DependencyGraph: the Redux reducer call gap is in the gap catalog nex…",
+          "authoredDate": "2026-11-23T13:52:34Z",
+          "committedDate": "2026-11-24T02:10:18Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDMwZmY1NDg5NjE1ZTQ1MGY0NTU0MmM3MDhlOTY1MjYyZDk3MGY3OTc",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:19Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDMwZmY1NDg5NjE1ZTQ1MGY0NTU0MmM3MDhlOTY1MjYyZDk3MGY3OTc",
+        "commit": {
+          "oid": "30ff5489615e450f45542c708e965262d970f797",
+          "messageHeadline": "DependencyGraph store updates: a Redux notification names the dispatc…",
+          "authoredDate": "2026-11-23T16:02:38Z",
+          "committedDate": "2026-11-24T02:10:19Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDVjMjIxYjdmMTkyOTI3ZjY0MTUwYTU1OTI0NmQ2NmJiZGMzODg4Njg",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:19Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDVjMjIxYjdmMTkyOTI3ZjY0MTUwYTU1OTI0NmQ2NmJiZGMzODg4Njg",
+        "commit": {
+          "oid": "5c221b7f192927f64150a559246d66bbdc388868",
+          "messageHeadline": "Tool result area dependencies: 20, above the continuation credit change",
+          "authoredDate": "2026-11-23T20:00:30Z",
+          "committedDate": "2026-11-24T02:10:19Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDdhZjMyNmM3ZGVkZDU4MThjNTRhMWUxOTBjMzZjOTIwNDU4ZTFiMzU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:21Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDdhZjMyNmM3ZGVkZDU4MThjNTRhMWUxOTBjMzZjOTIwNDU4ZTFiMzU",
+        "commit": {
+          "oid": "7af326c7dedd5818c54a1e190c36c920458e1b35",
+          "messageHeadline": "DependencyGraph store updates: Redux names the innermost dispatch, ne…",
+          "authoredDate": "2026-11-24T02:09:46Z",
+          "committedDate": "2026-11-24T02:10:21Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABQhQKK9oAKDllNWZkNzIxYWJiOGE2Y2I1ZGY4ZjhjOGY3N2Y3NDFhOWViNTVmNzc",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-24T02:10:50Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDllNWZkNzIxYWJiOGE2Y2I1ZGY4ZjhjOGY3N2Y3NDFhOWViNTVmNzc",
+        "commit": {
+          "oid": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77",
+          "messageHeadline": "Tool result fingerprints regenerated",
+          "authoredDate": "2026-11-24T02:10:50Z",
+          "committedDate": "2026-11-24T02:10:50Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIojQH3A",
+      "typename": "HeadRefForcePushedEvent",
+      "createdAt": "2026-11-24T02:13:26Z",
+      "raw": {
+        "__typename": "HeadRefForcePushedEvent",
+        "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIojQH3A",
+        "createdAt": "2026-11-24T02:13:26Z",
+        "actor": {
+          "login": "Domiii",
+          "__typename": "User"
+        },
+        "beforeCommit": {
+          "oid": "d64691a077e696490e49d6af27d645a4d60fccb7"
+        },
+        "afterCommit": {
+          "oid": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77"
+        }
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-24T02:35:05.481Z",
+  "reviewThreads": []
+}

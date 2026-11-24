@@ -1,0 +1,940 @@
+{
+  "subjectKey": "replayio/backend#14148",
+  "subject": {
+    "nodeId": "PR_kwDODVUEis8AAAABRGrNtw",
+    "state": "OPEN",
+    "author": "Andarist",
+    "headRef": "andarist/157-park-blocked-ordered-lock-wait",
+    "baseRef": "master",
+    "headSha": "ce56ab523ee57dd21effb9b776552f0c3923151f",
+    "baseSha": "dc8750b5f7d4bc9381142b407a153fa10a4f2294",
+    "updatedAt": "2026-11-23T15:10:04Z",
+    "raw": {
+      "id": "PR_kwDODVUEis8AAAABRGrNtw",
+      "number": 14148,
+      "title": "Let the target wrap every wait inside the replay runtime",
+      "state": "OPEN",
+      "isDraft": false,
+      "author": {
+        "login": "Andarist",
+        "__typename": "User"
+      },
+      "baseRefName": "master",
+      "headRefName": "andarist/157-park-blocked-ordered-lock-wait",
+      "baseRefOid": "dc8750b5f7d4bc9381142b407a153fa10a4f2294",
+      "headRefOid": "ce56ab523ee57dd21effb9b776552f0c3923151f",
+      "mergedAt": null,
+      "closedAt": null,
+      "updatedAt": "2026-11-23T15:10:04Z",
+      "reviewDecision": null,
+      "reviewRequests": {
+        "nodes": []
+      },
+      "latestReviews": {
+        "nodes": []
+      },
+      "closingIssuesReferences": {
+        "nodes": []
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "ce56ab523ee57dd21effb9b776552f0c3923151f",
+              "statusCheckRollup": {
+                "state": "SUCCESS",
+                "contexts": {
+                  "nodes": [
+                    {
+                      "__typename": "CheckRun",
+                      "name": "review",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/backend/actions/runs/45075099526/job/137370488548"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "post",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/backend/actions/runs/45075099526/job/137371153507"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Socket Security: Project Report",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://socket.dev/dashboard/org/replayio/sbom/160d19af-11dc-430a-8536-fb5ded0762d4"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Socket Security: Pull Request Alerts",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://socket.dev"
+                    },
+                    {
+                      "__typename": "StatusContext",
+                      "context": "buildkite/backend-ci",
+                      "state": "SUCCESS",
+                      "targetUrl": "https://buildkite.com/replay/backend-ci/builds/35243"
+                    },
+                    {
+                      "__typename": "StatusContext",
+                      "context": "buildkite/backend-e2e-tests",
+                      "state": "SUCCESS",
+                      "targetUrl": "https://buildkite.com/replay/backend-e2e-tests/builds/28900"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDgxMTQ4NTJmODdlMDY2MmRiYTAwZWEwNDE2MDIyMzU1ZWE5MGU4NWI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDgxMTQ4NTJmODdlMDY2MmRiYTAwZWEwNDE2MDIyMzU1ZWE5MGU4NWI",
+        "commit": {
+          "oid": "8114852f87e0662dba00ea0416022355ea90e85b",
+          "messageHeadline": "Instrumentation: V8 is not told to stop instrumenting at the final ch…",
+          "authoredDate": "2026-11-16T01:29:06Z",
+          "committedDate": "2026-11-20T14:07:02Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDBjZTg3ZDc3OTc3MWU1OWZhODJiNDhkOWQ2MGM3MTMwZmIzMjFlZGY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDBjZTg3ZDc3OTc3MWU1OWZhODJiNDhkOWQ2MGM3MTMwZmIzMjFlZGY",
+        "commit": {
+          "oid": "0ce87d779771e59fa82b48d9d60c7130fb321edf",
+          "messageHeadline": "Time: a main-thread clock read with events disallowed gets the last r…",
+          "authoredDate": "2026-11-16T01:30:37Z",
+          "committedDate": "2026-11-20T14:07:02Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGYxYjg0NmViZmM0NDY1ZDVjZmUwMjNlMGY0YzkxYWM3MjBlY2M4ZmM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGYxYjg0NmViZmM0NDY1ZDVjZmUwMjNlMGY0YzkxYWM3MjBlY2M4ZmM",
+        "commit": {
+          "oid": "f1b846ebfc4465d5cfe023e0f4c91ac720ecc8fc",
+          "messageHeadline": "Time: a diverged clock starts at most 1 s past the main thread's last…",
+          "authoredDate": "2026-11-16T01:30:47Z",
+          "committedDate": "2026-11-20T14:07:02Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGY1MDZkYzZiOGJjODhmODViOGRlMzgwNzAzNTRiMzAyNmVkMTc1NjI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGY1MDZkYzZiOGJjODhmODViOGRlMzgwNzAzNTRiMzAyNmVkMTc1NjI",
+        "commit": {
+          "oid": "f506dc6b8bc88f85b8de38070354b3026ed17562",
+          "messageHeadline": "Time: CPU-time clocks continue from the latest replayed value after d…",
+          "authoredDate": "2026-11-16T01:31:08Z",
+          "committedDate": "2026-11-20T14:07:02Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDg3ZjQ2MjEyYTE4ZDY3MTcxODc1OTIyOTk4NTU1YjFkZjFlNTAzNjI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDg3ZjQ2MjEyYTE4ZDY3MTcxODc1OTIyOTk4NTU1YjFkZjFlNTAzNjI",
+        "commit": {
+          "oid": "87f46212a18d67171875922998555b1df1e50362",
+          "messageHeadline": "Repaint: the main thread gives up on a mutex after 2 s and a null pai…",
+          "authoredDate": "2026-11-16T01:33:20Z",
+          "committedDate": "2026-11-20T14:07:02Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGQ4OTQ4M2VlNmRkNTRiMWQwM2YzZjAyZjQwOTRmOTEwMTFiNzI1M2Y",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:02Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGQ4OTQ4M2VlNmRkNTRiMWQwM2YzZjAyZjQwOTRmOTEwMTFiNzI1M2Y",
+        "commit": {
+          "oid": "d89483ee6dd54b1d03f3f02f4094f91011b7253f",
+          "messageHeadline": "Locks: a timed wait on a monotonic condition variable waits by the co…",
+          "authoredDate": "2026-11-16T01:40:20Z",
+          "committedDate": "2026-11-20T14:07:02Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDcxOGNkZTdiM2MwYjM1ZGFlODdlOGMwMDNiODA0ZGYxOWFiZDg2MWY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDcxOGNkZTdiM2MwYjM1ZGFlODdlOGMwMDNiODA0ZGYxOWFiZDg2MWY",
+        "commit": {
+          "oid": "718cde7b3c0b35dae87e8c003b804df19abd861f",
+          "messageHeadline": "Time, repaint: review changes (one rule for every clock source; unrea…",
+          "authoredDate": "2026-11-16T04:06:52Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDY3YTk4MzlmMGZhNDQ1MzM5ZGYyYzg0MTM0YmQ1YjRiMGI1MDYwOWM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDY3YTk4MzlmMGZhNDQ1MzM5ZGYyYzg0MTM0YmQ1YjRiMGI1MDYwOWM",
+        "commit": {
+          "oid": "67a9839f0fa445339df2c84134bd5b4b0b50609c",
+          "messageHeadline": "Review: far-out monotonic deadlines do not overflow; pthread_create's…",
+          "authoredDate": "2026-11-16T05:15:54Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGRiZDllMDdiYmUwYzUwN2I1MGNmN2FjOGRiM2I4OTQ0ZTA0MmNjNTc",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGRiZDllMDdiYmUwYzUwN2I1MGNmN2FjOGRiM2I4OTQ0ZTA0MmNjNTc",
+        "commit": {
+          "oid": "dbd9e07bbe0c507b50cf7ac8db3b8944e042cc57",
+          "messageHeadline": "Linker: clock continues the process CPU clock, a usleep with events d…",
+          "authoredDate": "2026-11-16T09:17:13Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDM3MDM0NTI0ZGQ0M2Y2MThkMjlkMDQyY2M3MDk0MDcxMWQyY2U2YzE",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDM3MDM0NTI0ZGQ0M2Y2MThkMjlkMDQyY2M3MDk0MDcxMWQyY2U2YzE",
+        "commit": {
+          "oid": "37034524dd43f618d29d042cc70940711d2ce6c1",
+          "messageHeadline": "Condition variables: a cvar's clock is set when it is initialised; a …",
+          "authoredDate": "2026-11-16T09:36:41Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGE4ZDM2YTYxNWY2N2FkZjkzOWFhYTc0YWFkZjM4ZjFlMzU4NmM0MTk",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGE4ZDM2YTYxNWY2N2FkZjkzOWFhYTc0YWFkZjM4ZjFlMzU4NmM0MTk",
+        "commit": {
+          "oid": "a8d36a615f67adf939aaa74aadf38f1e3586c419",
+          "messageHeadline": "Repaint: the second ask and the main thread's give-up are taken out; …",
+          "authoredDate": "2026-11-16T10:58:48Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDU3ODlmZGY0MDc1ZTdmMjMyZjExZThhN2ExOTU2MzI5NWM5ODZkMWI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDU3ODlmZGY0MDc1ZTdmMjMyZjExZThhN2ExOTU2MzI5NWM5ODZkMWI",
+        "commit": {
+          "oid": "5789fdf4075e7f232f11e8a7a19563295c986d1b",
+          "messageHeadline": "chromium-recording: the termination tests accept each runtime's own r…",
+          "authoredDate": "2026-11-16T11:44:07Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDIxYTA1OTFiOGNkZTYzMzNhZTkxOTcyMjFkZTQxOTUyM2RiZDFkYjQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:03Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDIxYTA1OTFiOGNkZTYzMzNhZTkxOTcyMjFkZTQxOTUyM2RiZDFkYjQ",
+        "commit": {
+          "oid": "21a0591b8cde6333ae9197221de419523dbd1db4",
+          "messageHeadline": "chromium-recording: console and styles expectations by Chromium versi…",
+          "authoredDate": "2026-11-16T11:44:07Z",
+          "committedDate": "2026-11-20T14:07:03Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDgyYTc5ZWFhZWM0ZDUyYzk0MmQ2MjRiZTk4OWIwZTRlOTIxMTY2MmI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:04Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDgyYTc5ZWFhZWM0ZDUyYzk0MmQ2MjRiZTk4OWIwZTRlOTIxMTY2MmI",
+        "commit": {
+          "oid": "82a79eaaec4d52c942d624be989b0e4e9211662b",
+          "messageHeadline": "chromium-recording: the font width check allows one layout unit",
+          "authoredDate": "2026-11-16T11:44:07Z",
+          "committedDate": "2026-11-20T14:07:04Z",
+          "author": {
+            "user": {
+              "login": "Domiii"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDg5ZWVhZDJlNTAxMzU2OWY5ODRkMGE3ODM2YzEyNjZjMTk3Y2ExOTQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:04Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDg5ZWVhZDJlNTAxMzU2OWY5ODRkMGE3ODM2YzEyNjZjMTk3Y2ExOTQ",
+        "commit": {
+          "oid": "89eead2e5013569f984d0a7836c1266c197ca194",
+          "messageHeadline": "chromium-recording: the Chromium version is a worker fixture",
+          "authoredDate": "2026-11-19T13:23:17Z",
+          "committedDate": "2026-11-20T14:07:04Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDM3ZjNiZDNjYWIxOTc5ZTVlOGViOTQ2NTE3NmZjNGZmZTc0NmVlN2I",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:04Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDM3ZjNiZDNjYWIxOTc5ZTVlOGViOTQ2NTE3NmZjNGZmZTc0NmVlN2I",
+        "commit": {
+          "oid": "37f3bd3cab1979e5e8eb9465176fc4ffe746ee7b",
+          "messageHeadline": "Recorded calls: clock is continued like the other clock sources",
+          "authoredDate": "2026-11-19T13:23:57Z",
+          "committedDate": "2026-11-20T14:07:04Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGRmMmVkODE0MDgwMzg3NmQ1M2ZiY2QwYmE5NGZmNjE4NDk2YTdiMmM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:05Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGRmMmVkODE0MDgwMzg3NmQ1M2ZiY2QwYmE5NGZmNjE4NDk2YTdiMmM",
+        "commit": {
+          "oid": "df2ed8140803876d53fbcd0ba94ff618496a7b2c",
+          "messageHeadline": "Time: the main thread's time on a clock only moves forward",
+          "authoredDate": "2026-11-19T13:23:57Z",
+          "committedDate": "2026-11-20T14:07:05Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDdjZWYwNTJkNzNmYzg1OTU5ODNiMjFkMTEzZTJhY2RjOWEyMmQ1MjY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:05Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDdjZWYwNTJkNzNmYzg1OTU5ODNiMjFkMTEzZTJhY2RjOWEyMmQ1MjY",
+        "commit": {
+          "oid": "7cef052d73fc8595983b21d113e2acdc9a22d526",
+          "messageHeadline": "Linker: a clock pthread_condattr_setclock rejects is reported, not fatal",
+          "authoredDate": "2026-11-19T13:23:57Z",
+          "committedDate": "2026-11-20T14:07:05Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDUxYjkxYjY3NDJmYmZiMWM2NmYxOWYyMjIxMDQxMmE3M2RmNzIxOWQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:05Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDUxYjkxYjY3NDJmYmZiMWM2NmYxOWYyMjIxMDQxMmE3M2RmNzIxOWQ",
+        "commit": {
+          "oid": "51b91b6742fbfb1c66f19f22210412a73df7219d",
+          "messageHeadline": "chromium-recording: the termination tests go back to one exact reason…",
+          "authoredDate": "2026-11-19T13:38:45Z",
+          "committedDate": "2026-11-20T14:07:05Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDM4ZWQ1OGQxZmZkMTBmNDU2ZGVhNzZjYjg3ZjFkMTJlZGU5NDE5N2Q",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:05Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDM4ZWQ1OGQxZmZkMTBmNDU2ZGVhNzZjYjg3ZjFkMTJlZGU5NDE5N2Q",
+        "commit": {
+          "oid": "38ed58d1ffd10f456dea76cb87f1d12ede94197d",
+          "messageHeadline": "Time: a clock read only follows the recording after diverging",
+          "authoredDate": "2026-11-19T14:47:19Z",
+          "committedDate": "2026-11-20T14:07:05Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDM3MmY5ODRkMDYwZDVmNGY1MmFmMGQwN2EyZjY1MzNiN2VmN2NlZGY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:06Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDM3MmY5ODRkMDYwZDVmNGY1MmFmMGQwN2EyZjY1MzNiN2VmN2NlZGY",
+        "commit": {
+          "oid": "372f984d060d5f4f52af0d07a2f6533b7ef7cedf",
+          "messageHeadline": "Time: the thread CPU clock is not continued after diverging",
+          "authoredDate": "2026-11-19T14:47:19Z",
+          "committedDate": "2026-11-20T14:07:06Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDU5YmIyMzYzYmE2ZjQzZDA5MmIxNjljMzE2MTcwMmFhYTkxMTA2Njg",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:06Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDU5YmIyMzYzYmE2ZjQzZDA5MmIxNjljMzE2MTcwMmFhYTkxMTA2Njg",
+        "commit": {
+          "oid": "59bb2363ba6f43d092b169c3161702aaa9110668",
+          "messageHeadline": "Linker: pthread_kill's no-op binding is left to the one Linux already…",
+          "authoredDate": "2026-11-20T09:39:31Z",
+          "committedDate": "2026-11-20T14:07:06Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGRlYjQxMmNkNzZjYTU0Njk2YzI0YmJjNTg2YTVkYWU1MDU4NjlhYWQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:06Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGRlYjQxMmNkNzZjYTU0Njk2YzI0YmJjNTg2YTVkYWU1MDU4NjlhYWQ",
+        "commit": {
+          "oid": "deb412cd76ca54696c24bbc586a5dae505869aad",
+          "messageHeadline": "chromium-recording: heap profiler sampling, an unformatted error stac…",
+          "authoredDate": "2026-11-20T12:37:47Z",
+          "committedDate": "2026-11-20T14:07:06Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDU4M2JkYWM5YjA1ZDUxOGM3MzBhMzNlZTMxMDZhZGEwOTViNGI1ZTY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:07Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDU4M2JkYWM5YjA1ZDUxOGM3MzBhMzNlZTMxMDZhZGEwOTViNGI1ZTY",
+        "commit": {
+          "oid": "583bdac9b05d518c730a33ee3106ada095b4b5e6",
+          "messageHeadline": "chromium-recording: the applied-rules cases style a span, not a div",
+          "authoredDate": "2026-11-20T14:00:28Z",
+          "committedDate": "2026-11-20T14:07:07Z",
+          "author": {
+            "user": null
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGQwOWRhMDczZjhkMjg4MTljMjNlZTE3ZDYyNGRmY2Q0YzgwNWZhYTM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:07:07Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGQwOWRhMDczZjhkMjg4MTljMjNlZTE3ZDYyNGRmY2Q0YzgwNWZhYTM",
+        "commit": {
+          "oid": "d09da073f8d28819c23ee17d624dfcd4c805faa3",
+          "messageHeadline": "Recorded calls: say what the clock block in a pass-through region is for",
+          "authoredDate": "2026-11-20T14:03:04Z",
+          "committedDate": "2026-11-20T14:07:07Z",
+          "author": {
+            "user": null
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDA0M2NhYTA1NmMzZmEyYjI2ODUxYTk3Y2NmYmZlZmY2ZjQ4YzczMTU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:12:22Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDA0M2NhYTA1NmMzZmEyYjI2ODUxYTk3Y2NmYmZlZmY2ZjQ4YzczMTU",
+        "commit": {
+          "oid": "043caa056c3fa2b26851a97ccfbfeff6f48c7315",
+          "messageHeadline": "chromium-recording: the gpu-crash repaint case crashes the GPU proces…",
+          "authoredDate": "2026-11-20T14:12:22Z",
+          "committedDate": "2026-11-20T14:12:22Z",
+          "author": {
+            "user": null
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDNjMDFhMzViODhmNWI1ZWVkNDBjZTJjMmNlMWEyNGQ3MjkwYjlhYmU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T14:12:22Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDNjMDFhMzViODhmNWI1ZWVkNDBjZTJjMmNlMWEyNGQ3MjkwYjlhYmU",
+        "commit": {
+          "oid": "3c01a35b88f5b5eed40ce2c2ce1a24d7290b9abe",
+          "messageHeadline": "chromium-recording: state the font width tolerance in terms of what l…",
+          "authoredDate": "2026-11-20T14:12:22Z",
+          "committedDate": "2026-11-20T14:12:22Z",
+          "author": {
+            "user": null
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGVmMDI3MWY0OTk4OWVmZmRjMTc0MzllOWU2ZWIwZjc0MmMzZDU5MjU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T15:19:39Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGVmMDI3MWY0OTk4OWVmZmRjMTc0MzllOWU2ZWIwZjc0MmMzZDU5MjU",
+        "commit": {
+          "oid": "ef0271f49989effdc17439e9e6eb0f742c3d5925",
+          "messageHeadline": "chromium-recording: the logged-error case states the rule it rests on",
+          "authoredDate": "2026-11-20T15:19:39Z",
+          "committedDate": "2026-11-20T15:19:39Z",
+          "author": {
+            "user": null
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDMyNGY1MTYxNDBhMGVmZjZhZjdlNDUxNzM2ZWIyZDYxOTI4NmU3NWM",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T15:24:51Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDMyNGY1MTYxNDBhMGVmZjZhZjdlNDUxNzM2ZWIyZDYxOTI4NmU3NWM",
+        "commit": {
+          "oid": "324f516140a0eff6af7e451736eb2d619286e75c",
+          "messageHeadline": "chromium-recording: a case for the native sampling profile served ove…",
+          "authoredDate": "2026-11-20T15:24:51Z",
+          "committedDate": "2026-11-20T15:24:51Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDA5MWMwMDhhZjFhMTE3N2MwNmM2ZTcwZTBlODc1NDc5YzMwYzVjMGQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-20T15:35:52Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDA5MWMwMDhhZjFhMTE3N2MwNmM2ZTcwZTBlODc1NDc5YzMwYzVjMGQ",
+        "commit": {
+          "oid": "091c008af1a1177c06c6e70e0e875479c30c5c0d",
+          "messageHeadline": "chromium-recording: a case for the resource cache's first use (#14077)",
+          "authoredDate": "2026-11-20T15:35:52Z",
+          "committedDate": "2026-11-20T15:35:52Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGRiMWQ4M2Y5MmQ0ZjdiNDFiNTlkMTg0YTJmMGFlNGVmMmRiMDIzYWY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-21T20:03:54Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGRiMWQ4M2Y5MmQ0ZjdiNDFiNTlkMTg0YTJmMGFlNGVmMmRiMDIzYWY",
+        "commit": {
+          "oid": "db1d83f92d4f7b41b59d184a2f0ae4ef2db023af",
+          "messageHeadline": "Replay a failed getrlimit without writing its output (#14100)",
+          "authoredDate": "2026-11-21T20:03:54Z",
+          "committedDate": "2026-11-21T20:03:54Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGJlOTEwNTA2NDk2Nzc5MzBiYjU1ZTQ4ZDhkNjkzNTcwYWZlODUyMjg",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-21T23:31:13Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGJlOTEwNTA2NDk2Nzc5MzBiYjU1ZTQ4ZDhkNjkzNTcwYWZlODUyMjg",
+        "commit": {
+          "oid": "be91050649677930bb55e48d8d693570afe85228",
+          "messageHeadline": "chromium-recording: cases for a pending debugger termination during A…",
+          "authoredDate": "2026-11-21T23:31:13Z",
+          "committedDate": "2026-11-21T23:31:13Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDg1MjU4MjJjMmFjOWIyMzFkYmI2MTk4YWJlMGMxNjYwMjgwNmU1MWQ",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-21T23:58:12Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDg1MjU4MjJjMmFjOWIyMzFkYmI2MTk4YWJlMGMxNjYwMjgwNmU1MWQ",
+        "commit": {
+          "oid": "8525822c2ac9b231dbb6198abe0c16602806e51d",
+          "messageHeadline": "chromium-recording: a case for what a redirected frame's URL exposes …",
+          "authoredDate": "2026-11-21T23:58:12Z",
+          "committedDate": "2026-11-21T23:58:12Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDMwMTE3NjMyNmNkMGFlYWE0MTRhNzA1YmQxY2ZjMjczNzFjZDgzMWU",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:37:32Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDMwMTE3NjMyNmNkMGFlYWE0MTRhNzA1YmQxY2ZjMjczNzFjZDgzMWU",
+        "commit": {
+          "oid": "301176326cd0aeaa414a705bd1cfc27371cd831e",
+          "messageHeadline": "chromium-recording: the termination tests expect each runtime's reaso…",
+          "authoredDate": "2026-11-22T19:37:32Z",
+          "committedDate": "2026-11-22T19:37:32Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKDY3ZjNjZDMyYzFhOWZkYTExNmZkODk5MTkwYTRiMjZlNzcyYmQxZDk",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T19:58:34Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKDY3ZjNjZDMyYzFhOWZkYTExNmZkODk5MTkwYTRiMjZlNzcyYmQxZDk",
+        "commit": {
+          "oid": "67f3cd32c1a9fda116fd899190a4b26e772bd1d9",
+          "messageHeadline": "Let the target wrap the wait for an ordered lock's recorded turn",
+          "authoredDate": "2026-11-22T19:58:34Z",
+          "committedDate": "2026-11-22T19:58:34Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOFM5OC88AAAAFoEX2pw",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-22T20:01:46Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOFM5OC88AAAAFoEX2pw",
+        "createdAt": "2026-11-22T20:01:46Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": true,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 404,
+          "title": "Park the local heap while a thread waits inside the replay runtime",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "replayio/chromium-v8"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "IC_kwDODVUEis8AAAABpkvmAA",
+      "typename": "IssueComment",
+      "createdAt": "2026-11-22T20:07:33Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDODVUEis8AAAABpkvmAA",
+        "createdAt": "2026-11-22T20:07:33Z",
+        "updatedAt": "2026-11-22T22:01:38Z",
+        "lastEditedAt": "2026-11-22T22:01:38Z",
+        "author": {
+          "login": "github-actions",
+          "__typename": "Bot"
+        },
+        "body": "### Review of `ce56ab523ee5`\n\n🟡 **Merge risk: moderate** — 1 should-fix finding open.\n\n🔴 **Prod risk: 1** — finding in production code worth acting on.\n\n🟠 **Should fix**: 1\n\n#### Prod risk (1)\n\n- `src/cpp/linker/Thread.cpp`\n  - 🟠 **Should fix** Thread::Wait builds two new ABI thunks on every wait in Windows replay, and moving the wrap into Wait makes this run far more often — [L522](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/linker/Thread.cpp#L522) · _[1]_ <!-- ai-review kind=summary-item file=src/cpp/linker/Thread.cpp line=522 fp=685d957694 sev=should-fix -->\n\n**Intent:** ⚠️ Partly matches the description — The PR title and description describe wrapping only the wait for an ordered lock's turn, but the diff wraps every `Thread::Wait`; only the second commit message mentions this.\n\n**What it does:** Adds a replay-only hook, RecordReplaySetWaitWhileParkedCallback, that a target installs to wrap blocking waits. Thread::Wait, when not preparing for a fork and a callback is installed, hands the callback a trampoline that does the raw wait; otherwise it waits as before.\n\n**What to focus on:** Thread::Wait now routes every non-fork block through an optional target callback so V8 can park its local heap and avoid a safepoint deadlock. Review the single behavioral change in Thread::Wait and the callback/ABI plumbing around it.\n\n**Start here**\n\n1. [`src/cpp/linker/Thread.cpp`](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/linker/Thread.cpp) — Holds the only behavioral change: the new branch in Thread::Wait, the trampoline and the callback setter.\n1. [`src/cpp/linker/Thread.h`](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/linker/Thread.h) — Declares BlockedWaitFn and the setter, and documents the exactly-once contract and the deadlock rationale.\n1. [`src/cpp/api.html`](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/api.html) — Public contract that targets such as V8 will rely on.\n\n📄 **[Full review detail](https://github.com/replayio/backend/actions/runs/45075099526/artifacts/14774981822)** — download the `ai-code-review-14148-ce56ab523` artifact and open `backend-pr14148-ce56ab523ee5-20261122215957.detail.md` for the walkthrough and the evidence behind each finding. Artifacts expire 90 days after the run.\n\n<details><summary>What the reviewers checked (3)</summary>\n\n- The `Driver.cpp` stub `RecordReplaySetWaitWhileParkedCallback` (`src/cpp/driver/Driver.cpp:792`) has the same signature as the `api.html` declaration and as `SetWaitWhileParkedCallback`'s `BlockedWaitFn` parameter (`src/cpp/linker/Thread.h:385,397`).\n- `Thread::Wait` (`src/cpp/linker/Thread.cpp:519-520`) still checks `ShouldPrepareForFork` before calling the callback, so the fork path never runs target code. `PerformBlockedWait` calls `WaitRaw` on the same thread, so `WaitRaw`'s `this == Current()` assert (`src/cpp/linker/Thread.cpp:529`) holds.\n- The target's callback is stored after `ConvertCallbackTargetToDriver` (`src/cpp/linker/Thread.cpp:511`), which matches how other linker callback setters convert target callbacks.\n\n</details>\n\n<!-- ai-review-copy -->\n<details><summary>Copy all findings as Markdown</summary>\n\n```markdown\n# Review findings: PR #14148 Let the target wrap the wait for an ordered lock's recorded turn\n\nBase `301176326cd0`, head `ce56ab523ee5`\n\n1 finding: 1 should-fix.\n\n### [should-fix] Thread::Wait builds two new ABI thunks on every wait in Windows replay, and moving the wrap into Wait makes this run far more often\n\n`src/cpp/linker/Thread.cpp:522` · id `685d957694`\n\nSame defect as the one I reported last time at `OrderedLock.cpp:268`, but the code moved and that made it worse. The conversion is now in `Thread::Wait`, which every block in the runtime goes through, not only the ordered-lock turn. `PerformBlockedWait` is a fixed static function, so its target-ABI form only has to be built once. Doing it once, in `SetWaitWhileParkedCallback` or lazily into a static, removes the per-wait cost. On non-Windows targets `ConvertCallbackDriverToTarget` returns its argument unchanged, so the cost only shows up in Windows replay.\n\nThis replaces the summary item previously reported at `src/cpp/recording/OrderedLock.cpp:268`; that code is gone and the per-wait conversion now sits in `Thread::Wait` (`src/cpp/linker/Thread.cpp:522`), which also covers joins (`Thread.cpp:494`) and `WaitForeverForRecordedCall` (`Thread.cpp:559`).\n\n**Impact:** When a Windows recording is replayed with a callback installed, every blocked wait (lock turns, stream chunk loads, condvar waits, joins) assembles and leaks two pieces of executable code and adds a frame-size entry. Memory grows for the whole replay, and the hottest blocking path now pays for code generation on each call.\n\n**Evidence:** `ConvertCallbackDriverToTarget` (`src/cpp/intercept/Intercept.h:252-257`) calls `ConvertCallbackSystemVToFastcall` when `TARGET_WINDOWS && !RECORDING`. `ConvertCallbackSystemVToFastcallRaw` (`src/cpp/intercept/Intercept.cpp:453-460`) calls both `CreateInvoke` and `CreateIntercept`. Each of those assembles new code with `masm.finish()`, and `CreateIntercept` also calls `Binary::SetFrameSize` (`src/cpp/intercept/Intercept.cpp:310-316`); nothing caches the result.\n\n**Suggestion:** In `SetWaitWhileParkedCallback`, convert `&Thread::PerformBlockedWait` once and store it in a static. `Wait()` then passes the stored pointer.\n```\n\n</details>\n<!-- /ai-review-copy -->\n\n<details><summary>Review details</summary>\n\n- review units: 1\n- code files reviewed: 5\n- docs files not reviewed: 0\n- generated files skipped: 0\n- raw findings: 1\n- after merge: 1\n- after verification: 1\n- registry signals: 3\n- prior comments considered: 1\n- wall time: 1.3 min\n- cost: $0.47\n- model: anthropic/claude-opus-5-5#medium\n- walkthrough model: anthropic/claude-sonnet-5-5#medium\n- walkthrough stops: 3\n\n</details>\n\n<!-- ai-review kind=summary pr=14148 runs=2 head=ce56ab523ee57dd21effb9b776552f0c3923151f -->",
+        "url": "https://github.com/replayio/backend/pull/14148#issuecomment-7084959232"
+      }
+    },
+    {
+      "nodeId": "PURC_lADODVUEis8AAAABRGrNt9oAKGNlNTZhYjUyM2VlNTdkZDIxZWZmYjliNzc2NTUyZjBjMzkyMzE1MWY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-11-22T21:58:59Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADODVUEis8AAAABRGrNt9oAKGNlNTZhYjUyM2VlNTdkZDIxZWZmYjliNzc2NTUyZjBjMzkyMzE1MWY",
+        "commit": {
+          "oid": "ce56ab523ee57dd21effb9b776552f0c3923151f",
+          "messageHeadline": "Wrap every wait inside the replay runtime, not just an ordered lock's…",
+          "authoredDate": "2026-11-22T21:58:59Z",
+          "committedDate": "2026-11-22T21:58:59Z",
+          "author": {
+            "user": {
+              "login": "Andarist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDODVUEis8AAAAFocbJBg",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-22T22:50:30Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDODVUEis8AAAAFocbJBg",
+        "createdAt": "2026-11-22T22:50:30Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 14144,
+          "title": "chromium-recording: cases for the shared-everything wasm wait",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "replayio/backend"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOFM5OC88AAAAFocfLNg",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-22T22:50:59Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOFM5OC88AAAAFocfLNg",
+        "createdAt": "2026-11-22T22:50:59Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": true,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 394,
+          "title": "Replay: order the shared-everything wasm futex wait and notify",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "replayio/chromium-v8"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "RTE_lADODVUEis8AAAABhjyvrM8AAAAImpSaBA",
+      "typename": "RenamedTitleEvent",
+      "createdAt": "2026-11-22T22:59:49Z",
+      "raw": {
+        "__typename": "RenamedTitleEvent",
+        "id": "RTE_lADODVUEis8AAAABhjyvrM8AAAAImpSaBA",
+        "createdAt": "2026-11-22T22:59:49Z",
+        "actor": {
+          "login": "Andarist",
+          "__typename": "User"
+        },
+        "previousTitle": "Let the target wrap the wait for an ordered lock's recorded turn",
+        "currentTitle": "Let the target wrap every wait inside the replay runtime"
+      }
+    },
+    {
+      "nodeId": "ABCSE_lADODVUEis8AAAABhjyvrM8AAAAInsH1KQ",
+      "typename": "AutomaticBaseChangeSucceededEvent",
+      "createdAt": "2026-11-23T15:10:04Z",
+      "raw": {
+        "__typename": "AutomaticBaseChangeSucceededEvent",
+        "id": "ABCSE_lADODVUEis8AAAABhjyvrM8AAAAInsH1KQ",
+        "createdAt": "2026-11-23T15:10:04Z",
+        "oldBase": "dominik/rebase-157-runtime",
+        "newBase": "master"
+      }
+    }
+  ],
+  "stickies": [
+    {
+      "commentNodeId": "IC_kwDODVUEis8AAAABpkvmAA",
+      "author": "github-actions",
+      "lastEditedAt": "2026-11-22T22:01:38Z",
+      "body": "### Review of `ce56ab523ee5`\n\n🟡 **Merge risk: moderate** — 1 should-fix finding open.\n\n🔴 **Prod risk: 1** — finding in production code worth acting on.\n\n🟠 **Should fix**: 1\n\n#### Prod risk (1)\n\n- `src/cpp/linker/Thread.cpp`\n  - 🟠 **Should fix** Thread::Wait builds two new ABI thunks on every wait in Windows replay, and moving the wrap into Wait makes this run far more often — [L522](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/linker/Thread.cpp#L522) · _[1]_ <!-- ai-review kind=summary-item file=src/cpp/linker/Thread.cpp line=522 fp=685d957694 sev=should-fix -->\n\n**Intent:** ⚠️ Partly matches the description — The PR title and description describe wrapping only the wait for an ordered lock's turn, but the diff wraps every `Thread::Wait`; only the second commit message mentions this.\n\n**What it does:** Adds a replay-only hook, RecordReplaySetWaitWhileParkedCallback, that a target installs to wrap blocking waits. Thread::Wait, when not preparing for a fork and a callback is installed, hands the callback a trampoline that does the raw wait; otherwise it waits as before.\n\n**What to focus on:** Thread::Wait now routes every non-fork block through an optional target callback so V8 can park its local heap and avoid a safepoint deadlock. Review the single behavioral change in Thread::Wait and the callback/ABI plumbing around it.\n\n**Start here**\n\n1. [`src/cpp/linker/Thread.cpp`](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/linker/Thread.cpp) — Holds the only behavioral change: the new branch in Thread::Wait, the trampoline and the callback setter.\n1. [`src/cpp/linker/Thread.h`](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/linker/Thread.h) — Declares BlockedWaitFn and the setter, and documents the exactly-once contract and the deadlock rationale.\n1. [`src/cpp/api.html`](https://github.com/replayio/backend/blob/ce56ab523ee57dd21effb9b776552f0c3923151f/src/cpp/api.html) — Public contract that targets such as V8 will rely on.\n\n📄 **[Full review detail](https://github.com/replayio/backend/actions/runs/45075099526/artifacts/14774981822)** — download the `ai-code-review-14148-ce56ab523` artifact and open `backend-pr14148-ce56ab523ee5-20261122215957.detail.md` for the walkthrough and the evidence behind each finding. Artifacts expire 90 days after the run.\n\n<details><summary>What the reviewers checked (3)</summary>\n\n- The `Driver.cpp` stub `RecordReplaySetWaitWhileParkedCallback` (`src/cpp/driver/Driver.cpp:792`) has the same signature as the `api.html` declaration and as `SetWaitWhileParkedCallback`'s `BlockedWaitFn` parameter (`src/cpp/linker/Thread.h:385,397`).\n- `Thread::Wait` (`src/cpp/linker/Thread.cpp:519-520`) still checks `ShouldPrepareForFork` before calling the callback, so the fork path never runs target code. `PerformBlockedWait` calls `WaitRaw` on the same thread, so `WaitRaw`'s `this == Current()` assert (`src/cpp/linker/Thread.cpp:529`) holds.\n- The target's callback is stored after `ConvertCallbackTargetToDriver` (`src/cpp/linker/Thread.cpp:511`), which matches how other linker callback setters convert target callbacks.\n\n</details>\n\n<!-- ai-review-copy -->\n<details><summary>Copy all findings as Markdown</summary>\n\n```markdown\n# Review findings: PR #14148 Let the target wrap the wait for an ordered lock's recorded turn\n\nBase `301176326cd0`, head `ce56ab523ee5`\n\n1 finding: 1 should-fix.\n\n### [should-fix] Thread::Wait builds two new ABI thunks on every wait in Windows replay, and moving the wrap into Wait makes this run far more often\n\n`src/cpp/linker/Thread.cpp:522` · id `685d957694`\n\nSame defect as the one I reported last time at `OrderedLock.cpp:268`, but the code moved and that made it worse. The conversion is now in `Thread::Wait`, which every block in the runtime goes through, not only the ordered-lock turn. `PerformBlockedWait` is a fixed static function, so its target-ABI form only has to be built once. Doing it once, in `SetWaitWhileParkedCallback` or lazily into a static, removes the per-wait cost. On non-Windows targets `ConvertCallbackDriverToTarget` returns its argument unchanged, so the cost only shows up in Windows replay.\n\nThis replaces the summary item previously reported at `src/cpp/recording/OrderedLock.cpp:268`; that code is gone and the per-wait conversion now sits in `Thread::Wait` (`src/cpp/linker/Thread.cpp:522`), which also covers joins (`Thread.cpp:494`) and `WaitForeverForRecordedCall` (`Thread.cpp:559`).\n\n**Impact:** When a Windows recording is replayed with a callback installed, every blocked wait (lock turns, stream chunk loads, condvar waits, joins) assembles and leaks two pieces of executable code and adds a frame-size entry. Memory grows for the whole replay, and the hottest blocking path now pays for code generation on each call.\n\n**Evidence:** `ConvertCallbackDriverToTarget` (`src/cpp/intercept/Intercept.h:252-257`) calls `ConvertCallbackSystemVToFastcall` when `TARGET_WINDOWS && !RECORDING`. `ConvertCallbackSystemVToFastcallRaw` (`src/cpp/intercept/Intercept.cpp:453-460`) calls both `CreateInvoke` and `CreateIntercept`. Each of those assembles new code with `masm.finish()`, and `CreateIntercept` also calls `Binary::SetFrameSize` (`src/cpp/intercept/Intercept.cpp:310-316`); nothing caches the result.\n\n**Suggestion:** In `SetWaitWhileParkedCallback`, convert `&Thread::PerformBlockedWait` once and store it in a static. `Wait()` then passes the stored pointer.\n```\n\n</details>\n<!-- /ai-review-copy -->\n\n<details><summary>Review details</summary>\n\n- review units: 1\n- code files reviewed: 5\n- docs files not reviewed: 0\n- generated files skipped: 0\n- raw findings: 1\n- after merge: 1\n- after verification: 1\n- registry signals: 3\n- prior comments considered: 1\n- wall time: 1.3 min\n- cost: $0.47\n- model: anthropic/claude-opus-5-5#medium\n- walkthrough model: anthropic/claude-sonnet-5-5#medium\n- walkthrough stops: 3\n\n</details>\n\n<!-- ai-review kind=summary pr=14148 runs=2 head=ce56ab523ee57dd21effb9b776552f0c3923151f -->"
+    }
+  ],
+  "timelineSyncedUntil": "2026-11-24T02:35:02.576Z",
+  "reviewThreads": []
+}

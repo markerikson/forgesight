@@ -1,0 +1,947 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: pullRequest(number: 14170) { timelineItems(first: 100, after: \"Y3Vyc29yOnYyOpPPAAABofqmZ-AH2gAzNTQ1NTA4MTA5Njo5NWNiNjM1NWQxMTI0NGFlYjI1ZTBmMTVjZWJmZjgwY2U0MzdmYTk1\") { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment PrItems on PullRequestTimelineItems {\n  __typename\n  ... on Node { id }\n  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }\n  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }\n  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }\n  ... on ReopenedEvent { createdAt actor { login __typename } }\n  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on LabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on MentionedEvent { createdAt actor { login __typename } }\n  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }\n  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n\n  ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }\n    comments(first: 10) { nodes { id path body author { login } } } }\n  ... on PullRequestCommit { commit { oid messageHeadline authoredDate committedDate author { user { login } } } }\n  ... on HeadRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefChangedEvent { createdAt actor { login __typename } previousRefName currentRefName }\n  ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }\n  ... on ReviewRequestedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewRequestRemovedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewDismissedEvent { createdAt actor { login __typename } previousReviewState dismissalMessage }\n  ... on ReadyForReviewEvent { createdAt actor { login __typename } }\n  ... on ConvertToDraftEvent { createdAt actor { login __typename } }\n  ... on MergedEvent { createdAt actor { login __typename } commit { oid } }\n  ... on AddedToStackEvent { createdAt actor { login __typename } }\n  ... on RemovedFromStackEvent { createdAt actor { login __typename } }\n}\n",
+  "variables": {
+    "owner": "replayio",
+    "name": "backend",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "replayio/backend",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "timelineItems": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "Y3Vyc29yOnYyOpPPAAABogo7--gBqzM3MDU4NDA5NzE3"
+            },
+            "nodes": [
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQzNjEyNzQ2ZmNkNTNhOTJkNjE0ZDZkMzRlYjFjMDM4NDQ4NDI0YmI",
+                "commit": {
+                  "oid": "43612746fcd53a92d614d6d34eb1c038448424bb",
+                  "messageHeadline": "point.test: getProgressRangeCheckpoints, identical to #14133",
+                  "authoredDate": "2026-11-20T20:30:49Z",
+                  "committedDate": "2026-11-20T20:30:49Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDNjN2UxN2Q1Nzk1ZThhZWE3NzgzZGExYWM0MjdhNDk0NzEwZjRiZGU",
+                "commit": {
+                  "oid": "3c7e17d5795e8aea7783da1ac427a494710f4bde",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:31:05Z",
+                  "committedDate": "2026-11-20T20:31:05Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdjYmMzZDJhYTNkNDczMzAxY2MyMzc0OWRlZTJkMWI2NjJjYzVmNTM",
+                "commit": {
+                  "oid": "7cbc3d2aa3d473301cc23749dee2d1b662cc5f53",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:31:19Z",
+                  "committedDate": "2026-11-20T20:31:19Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDA1NDEyMzdhOWFhMTEzNGNkMDYxZDE5MTYzMTk0YmUxMWQzMWRmZTE",
+                "commit": {
+                  "oid": "0541237a9aa1134cd061d19163194be11d31dfe1",
+                  "messageHeadline": "Point references: a range's end clamps only if it is past the context…",
+                  "authoredDate": "2026-11-20T20:43:46Z",
+                  "committedDate": "2026-11-20T20:43:46Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGM2NzYzYTYyMjc0MTcyYzk5NDQxMTIxN2E5NTMyMjIyODA4Y2EyNDA",
+                "commit": {
+                  "oid": "c6763a62274172c994411217a9532222808ca240",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/streamed-re…",
+                  "authoredDate": "2026-11-20T20:44:04Z",
+                  "committedDate": "2026-11-20T20:44:04Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdlZWMxYTlmYzZlNzgzY2FhYjU3NzhiOTQyNDFjYTk2MWI3ZGMxM2I",
+                "commit": {
+                  "oid": "7eec1a9fc6e783caab5778b94241ca961b7dc13b",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:44:25Z",
+                  "committedDate": "2026-11-20T20:44:25Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDg2ODBhNTNkZjMzMmE2OTQyMGEzMzJiOGU3ZjIwOWMzOWRiMDVmOTA",
+                "commit": {
+                  "oid": "8680a53df332a69420a332b8e7f209c39db05f90",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:44:57Z",
+                  "committedDate": "2026-11-20T20:44:57Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGVkMWE0MmQyNTQxOGQ5ZmRiMDQ4M2MzNDRmODJkYzYyNzU4NDA5YWQ",
+                "commit": {
+                  "oid": "ed1a42d25418d9fdb0483c344f82dc62758409ad",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:45:18Z",
+                  "committedDate": "2026-11-20T20:45:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDM2ZDdiYTMxOWZlZTU5MzAwYjYwZjhhYzZmNDY2ZTFhYzAzODQ2YzA",
+                "commit": {
+                  "oid": "36d7ba319fee59300b60f8ac6f466e1ac03846c0",
+                  "messageHeadline": "Points: precedesItsCheckpoint takes a decoded ExecutionPoint, whose p…",
+                  "authoredDate": "2026-11-20T20:49:10Z",
+                  "committedDate": "2026-11-20T20:49:10Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdhMjliYTQwYjIwM2QxZjdkMDQ5ODVlYWEwMzk3YmEzMDJjM2Q3NWY",
+                "commit": {
+                  "oid": "7a29ba40b203d1f7d04985eaa0397ba302c3d75f",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/streamed-re…",
+                  "authoredDate": "2026-11-20T20:49:30Z",
+                  "committedDate": "2026-11-20T20:49:30Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGE1NDJhYjVlM2ViYTI5NTBiMjA5NDBmNTY2MjczY2MxNTZjMmRkN2Q",
+                "commit": {
+                  "oid": "a542ab5e3eba2950b20940f566273cc156c2dd7d",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:49:50Z",
+                  "committedDate": "2026-11-20T20:49:50Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDZiODNjNzM2ZTVmNzI5OWVhOGNhOWFmZDcyNDAxMDNhNzUyZDc0NDg",
+                "commit": {
+                  "oid": "6b83c736e5f7299ea8ca9afd7240103a752d7448",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:50:12Z",
+                  "committedDate": "2026-11-20T20:50:12Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDA3M2NiMGMwYjNjOGVhMTE5N2UzMzU3MTFkZmRjZjY2NzIwNWUyNzY",
+                "commit": {
+                  "oid": "073cb0c0b3c8ea1197e335711dfdcf667205e276",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:50:33Z",
+                  "committedDate": "2026-11-20T20:50:33Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDBmZjk3NTRmOGQzMTQ5NWJiYWE4ZGRiYjQ0NGUxZjNjNTU5NTkxNWI",
+                "commit": {
+                  "oid": "0ff9754f8d31495bbaa8ddbb444e1f3c5595915b",
+                  "messageHeadline": "TODOs: known pairing-core defects",
+                  "authoredDate": "2026-11-23T10:35:53Z",
+                  "committedDate": "2026-11-23T10:35:53Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDI2ZTFkNDc3ZTNlZTM3OWE5Y2Q0MDdjYjE0MTI0ODIyNmViZGNmYWY",
+                "commit": {
+                  "oid": "26e1d477e3ee379a9cd407cb141248226ebdcfaf",
+                  "messageHeadline": "Points: a point before its checkpoint's progress is Nonexistent in th…",
+                  "authoredDate": "2026-11-23T12:41:33Z",
+                  "committedDate": "2026-11-23T12:41:33Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDUxODY0NGUxODA3NDhhODNlMGU5OTVkNzNlZDNiNmEwODZiNTI4ZTY",
+                "commit": {
+                  "oid": "518644e180748a83e0e995d73ed3b6a086b528e6",
+                  "messageHeadline": "Points: a point before its checkpoint has its own classification, Bef…",
+                  "authoredDate": "2026-11-23T12:49:06Z",
+                  "committedDate": "2026-11-23T12:49:06Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGYxYWE4MTkwZWI4NGI4MDk4ZTU0YmI0MWI2N2I0NzFkYWJhNThlODQ",
+                "commit": {
+                  "oid": "f1aa8190eb84b8098e54bb41b67b471daba58e84",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-23T12:51:50Z",
+                  "committedDate": "2026-11-23T12:51:50Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGI0MjhjNzI2Mjg0ZDI0NDA4MjhhYjU2MjE1NWNmODFhYTI1MjQ1OGU",
+                "commit": {
+                  "oid": "b428c726284d2440828ab562155cf81aa252458e",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-23T12:52:15Z",
+                  "committedDate": "2026-11-23T12:52:15Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDljNzFkYTk4YWIyNGI1ZjQxNWZhOTQ0NWE2OTAxMDA1ODczNDViNzc",
+                "commit": {
+                  "oid": "9c71da98ab24b5f415fa9445a690100587345b77",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-23T12:52:27Z",
+                  "committedDate": "2026-11-23T12:52:27Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGVkM2RlYzBkNmNkODY5MWM3ZjhmODA4MjA0YjliNTNhNjI1ZjA4Zjc",
+                "commit": {
+                  "oid": "ed3dec0d6cd8691c7f8f808204b9b53a625f08f7",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-23T12:52:42Z",
+                  "committedDate": "2026-11-23T12:52:42Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDMxNjAyZjhjNjY4Mjk5YzIwZDY2YzZhYTA1OGU2Y2Q2NWUwZjk5NGQ",
+                "commit": {
+                  "oid": "31602f8c668299c20d66c6aa058e6cd65e0f994d",
+                  "messageHeadline": "AnalysisContext test: a point before its checkpoint is refused with I…",
+                  "authoredDate": "2026-11-23T12:56:39Z",
+                  "committedDate": "2026-11-23T12:56:39Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDgzNGI5M2RjNjMwOGNiMmRmYjNiNDEzOWVhYTFjNDliNTEwMjBlZmM",
+                "commit": {
+                  "oid": "834b93dc6308cb2dfb3b4139eaa1c49b51020efc",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-23T12:56:52Z",
+                  "committedDate": "2026-11-23T12:56:52Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDUxNDc1NTZkN2U3NjFiMTY3N2FlZWQ4OTZhNWY3MmJhY2M0MTI2ZmQ",
+                "commit": {
+                  "oid": "5147556d7e761b1677aeed896a5f72bacc4126fd",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-23T12:57:03Z",
+                  "committedDate": "2026-11-23T12:57:03Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDFhMWE0Y2M5ODlmNWZlYWRlZDYwMGRlZDViMzYzZjA2ZjM1OTNlMjQ",
+                "commit": {
+                  "oid": "1a1a4cc989f5feaded600ded5b363f06f3593e24",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-23T12:57:13Z",
+                  "committedDate": "2026-11-23T12:57:13Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDUwODA2NDcwYzNmZWY3MGZmMDQ5ZGIzNDYyMGY2ZTI5YWZhNmQyMjY",
+                "commit": {
+                  "oid": "50806470c3fef70ff049db34620f6e29afa6d226",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-23T12:57:23Z",
+                  "committedDate": "2026-11-23T12:57:23Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDk1YjVmYmQ0NDVkNTA4MzY4ZDg2NjZiNWFhOTYyZWNiOWNlYzExMjQ",
+                "commit": {
+                  "oid": "95b5fbd445d508368d8666b5aa962ecb9cec1124",
+                  "messageHeadline": "Tool errors: RecordingNotYetAvailableError is a refusal, not a tool b…",
+                  "authoredDate": "2026-11-23T13:07:17Z",
+                  "committedDate": "2026-11-23T13:07:17Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDI3MjQwOTYyMThjOGQ4OTUxM2UwNjdhMTEyNDQ0ZDg0Mjg3NzRlMzA",
+                "commit": {
+                  "oid": "2724096218c8d89513e067a112444d8428774e30",
+                  "messageHeadline": "RecordingNotYetAvailableError: a target past a bound query's extent a…",
+                  "authoredDate": "2026-11-23T13:09:15Z",
+                  "committedDate": "2026-11-23T13:09:15Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDM5ZDg5NDFkYmYyZDQxYTM2N2Y0ZjA1YjM2M2JkOTdiYjAzNGQ3NTM",
+                "commit": {
+                  "oid": "39d8941dbf2d41a367f4f05b363bd97bb034d753",
+                  "messageHeadline": "callSideTool: the result schema is bound to the tool's data again, as…",
+                  "authoredDate": "2026-11-23T13:09:27Z",
+                  "committedDate": "2026-11-23T13:09:27Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDUzMjgxMjY0N2I5OWUwNmFiOGQxN2U5OWY4YTIyOTI4OTNmNmMzZmM",
+                "commit": {
+                  "oid": "532812647b99e06ab8d17e99f8a2292893f6c3fc",
+                  "messageHeadline": "Tool-local point resolution failures (EvaluateMultiPoint, ConsoleMess…",
+                  "authoredDate": "2026-11-23T13:11:08Z",
+                  "committedDate": "2026-11-23T13:11:08Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGI5OTFmNTQzY2IxY2MyNjI1N2I2MzFkNDAyZTdlYjQ2MmRhNjUwMGQ",
+                "commit": {
+                  "oid": "b991f543cb1cc26257b631d402e7eb462da6500d",
+                  "messageHeadline": "RecordingOverview sections: span names RecordingOverview.<section>, a…",
+                  "authoredDate": "2026-11-23T13:11:46Z",
+                  "committedDate": "2026-11-23T13:11:46Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGYwMThkNzliMjEyNmM2OTUzNjcxNGQyN2EyNDMyMmJmZGUyNjRhNTA",
+                "commit": {
+                  "oid": "f018d79b2126c69536714d27a24322bfde264a50",
+                  "messageHeadline": "callSideTool: DeclaredFields drops only an unknown-valued index signa…",
+                  "authoredDate": "2026-11-23T13:12:20Z",
+                  "committedDate": "2026-11-23T13:12:20Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDI5YzIzNjExZGE3ZmM5OGQxNzM3MjA5YjUxYjBiNzE2ZGY3ZDJjZGQ",
+                "commit": {
+                  "oid": "29c23611da7fc98d1737209b51b0b716df7d2cdd",
+                  "messageHeadline": "recording.ts: precedesItsCheckpoint decides on a progress, not a type…",
+                  "authoredDate": "2026-11-23T13:12:48Z",
+                  "committedDate": "2026-11-23T13:12:48Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQwZDAwNWYxNWU2N2RlYjI1MDY0Njg1NTJiZjNlNTI2MGM5YTUwMTI",
+                "commit": {
+                  "oid": "40d005f15e67deb2506468552bf3e5260c9a5012",
+                  "messageHeadline": "recording.ts: one precedesItsCheckpoint guard for both callers; a poi…",
+                  "authoredDate": "2026-11-23T13:18:29Z",
+                  "committedDate": "2026-11-23T13:18:29Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDRhMDIyOTIzODZkYjIwNDdiZjk4YTZjYTRmMmMzMjVmZDk5MjM2MGU",
+                "commit": {
+                  "oid": "4a02292386db2047bf98a6ca4f2c325fd992360e",
+                  "messageHeadline": "runInHangSection: span name as an optional option, not a string | opt…",
+                  "authoredDate": "2026-11-23T13:18:49Z",
+                  "committedDate": "2026-11-23T13:18:49Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDM4OTdkOWNkNDAzNTc4NDYwODdjYzkxNTUxNTA1MDE1NjNjZjYzOTA",
+                "commit": {
+                  "oid": "3897d9cd40357846087cc9155150501563cf6390",
+                  "messageHeadline": "RecordingNotYetAvailableError names the extent that refused the targe…",
+                  "authoredDate": "2026-11-23T13:20:19Z",
+                  "committedDate": "2026-11-23T13:20:19Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDhhNDJiNmViMDM5MDRjYTBkZTdjYmM5ZTRiYzJhMzRiMDM3MGQxNWM",
+                "commit": {
+                  "oid": "8a42b6eb03904ca0de7cbc9e4bc2a34b0370d15c",
+                  "messageHeadline": "Tool-local point resolution failures: the error message without the t…",
+                  "authoredDate": "2026-11-23T13:21:04Z",
+                  "committedDate": "2026-11-23T13:21:04Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGJjMTY3MGIyMGRhZTJhNDZmMjU1YzVhMDM3MmE2MmZjZTVhNzdlN2Y",
+                "commit": {
+                  "oid": "bc1670b20dae2a46f255c5a0372a62fce5a77e7f",
+                  "messageHeadline": "ConsoleMessages detail: an unknown point reference (UnknownReferenceE…",
+                  "authoredDate": "2026-11-23T13:22:05Z",
+                  "committedDate": "2026-11-23T13:22:05Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGRkZjQ3OGNmMTBiMDVhZGE1MzE3Mjk3MGVlN2IxM2MxODY4MmQ0NjY",
+                "commit": {
+                  "oid": "ddf478cf10b05ada53172970ee7b13c18682d466",
+                  "messageHeadline": "Tool result fingerprints: regenerated for toolErrorText.ts, ConsoleMe…",
+                  "authoredDate": "2026-11-23T13:22:40Z",
+                  "committedDate": "2026-11-23T13:22:40Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDFlNzNiNTEyYjZlMGQ1NzNlZDE0ZDA1YzhiN2NmODRjMWY4NDY0YmU",
+                "commit": {
+                  "oid": "1e73b512b6e0d573ed14d05c8b7cf84c1f8464be",
+                  "messageHeadline": "Merge branch 'dominik/streamed-replay-processor' into dominik/paired-…",
+                  "authoredDate": "2026-11-23T13:26:05Z",
+                  "committedDate": "2026-11-23T13:26:05Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGRlMmNlMDZhYzUwMjcwMjI0ODEwMzg0MTVmNTI3MGI5NzFhOTFjODA",
+                "commit": {
+                  "oid": "de2ce06ac5027022481038415f5270b971a91c80",
+                  "messageHeadline": "Merge branch 'dominik/paired-recordings' into dominik/paired-recordin…",
+                  "authoredDate": "2026-11-23T13:26:47Z",
+                  "committedDate": "2026-11-23T13:26:47Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDAxNjMwNzg2MjRjOWEyMTlmMDNiY2E4MzE1NGVmZmNjMmNlZjljZDc",
+                "commit": {
+                  "oid": "0163078624c9a219f03bca83154effcc2cef9cd7",
+                  "messageHeadline": "Merge branch 'dominik/paired-recordings-response-probe' into dominik/…",
+                  "authoredDate": "2026-11-23T13:28:08Z",
+                  "committedDate": "2026-11-23T13:28:08Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDAzOTMwMzMyYmUzY2RmN2Q5ZDUxNTY5NjE5OTYyYTk1NjJiMDFlYWQ",
+                "commit": {
+                  "oid": "03930332be3cdf7d9d51569619962a9562b01ead",
+                  "messageHeadline": "ToolErrorCode recording-not-yet-available: also past the extent a cal…",
+                  "authoredDate": "2026-11-23T13:28:21Z",
+                  "committedDate": "2026-11-23T13:28:21Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDFjZTU4NzY1MGQyOTBlMmYxMWI5NjRjYjllZjMyZmE5NzA3NmY1M2U",
+                "commit": {
+                  "oid": "1ce587650d290e2f11b964cb9ef32fa97076f53e",
+                  "messageHeadline": "Merge branch 'dominik/paired-recordings-region-api' into dominik/pair…",
+                  "authoredDate": "2026-11-23T13:29:37Z",
+                  "committedDate": "2026-11-23T13:29:37Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDU1MGUzMDhiYmEzZGMwOGJmMGU3NWQxMTc4ZGU2ZGFmODExZjRiMWU",
+                "commit": {
+                  "oid": "550e308bba3dc08bf0e75d1178de6daf811f4b1e",
+                  "messageHeadline": "callReplayMcp script: describeToolError from its module, toolErrorText",
+                  "authoredDate": "2026-11-23T13:34:43Z",
+                  "committedDate": "2026-11-23T13:34:43Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGYyYzc2ZjA2NDhhMGM5M2RmZDQ1YTIwMTI0Y2ZhMmU4MWJhMDY3MjU",
+                "commit": {
+                  "oid": "f2c76f0648a0c93dfd45a20124cfa2e81ba06725",
+                  "messageHeadline": "Merge branch 'dominik/streamed-replay-processor' into dominik/paired-…",
+                  "authoredDate": "2026-11-23T13:34:58Z",
+                  "committedDate": "2026-11-23T13:34:58Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDJhZjUxOTFmYjEyMWI4NjcxZDE4MThiMDk0YzI3ZTlkMjYyNDkwODE",
+                "commit": {
+                  "oid": "2af5191fb121b8671d1818b094c27e9d26249081",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-23T13:35:35Z",
+                  "committedDate": "2026-11-23T13:35:35Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDU0ZjUwNDk0Y2RhY2I4MzE2NGQ5NWQwZTBkODIxYTAxMDVkMzUzZjc",
+                "commit": {
+                  "oid": "54f50494cdacb83164d95d0e0d821a0105d353f7",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-23T13:36:07Z",
+                  "committedDate": "2026-11-23T13:36:07Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQ5ODg1YzA0NDdkYjFiOTY4ZDlmNjgwMGM2ZmQ4YjdhODZkOGU1OTc",
+                "commit": {
+                  "oid": "49885c0447db1b968d9f6800c6fd8b7a86d8e597",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-23T13:36:33Z",
+                  "committedDate": "2026-11-23T13:36:33Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGRmYWQyNTk2NTQ0MWQzZTUxYmI1Y2I0OTY4OTM2NWFiNjRlMDg1MDc",
+                "commit": {
+                  "oid": "dfad25965441d3e51bb5cb49689365ab64e08507",
+                  "messageHeadline": "Live-paths case: the vertex check views a side's DependencyGraph thro…",
+                  "authoredDate": "2026-11-23T13:37:21Z",
+                  "committedDate": "2026-11-23T13:37:21Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGQzZWI5OWM1OWRmMTAwMzZlNjYxOTZkZjAyZGFkOWE1OTk1ZDFhY2Y",
+                "commit": {
+                  "oid": "d3eb99c59df10036e66196df02dad9a5995d1acf",
+                  "messageHeadline": "CI vehicle (R4c): next dev server recording's final ListSources has a…",
+                  "authoredDate": "2026-11-23T14:23:41Z",
+                  "committedDate": "2026-11-23T14:23:41Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestReview",
+                "id": "PRR_kwDODVUEis8AAAABZwcPkA",
+                "createdAt": "2026-11-23T14:34:22Z",
+                "submittedAt": "2026-11-23T14:34:22Z",
+                "state": "APPROVED",
+                "author": {
+                  "login": "replay-soc2",
+                  "__typename": "Bot"
+                },
+                "body": "",
+                "commit": {
+                  "oid": "d3eb99c59df10036e66196df02dad9a5995d1acf"
+                },
+                "comments": {
+                  "nodes": []
+                }
+              },
+              {
+                "__typename": "IssueComment",
+                "id": "IC_kwDODVUEis8AAAABp3GwYA",
+                "createdAt": "2026-11-23T14:34:48Z",
+                "updatedAt": "2026-11-23T14:34:48Z",
+                "lastEditedAt": null,
+                "author": {
+                  "login": "socket-security",
+                  "__typename": "Bot"
+                },
+                "body": "**Review the following changes in direct dependencies.** Learn more about [Socket for GitHub](https://socket.dev?utm_medium=gh).\n\n<table>\n<thead>\n<tr>\n<th>Diff</th>\n<th width=\"200px\">Package</th>\n<th align=\"center\" width=\"100px\">Supply Chain<br/>Security</th>\n<th align=\"center\" width=\"100px\">Vulnerability</th>\n<th align=\"center\" width=\"100px\">Quality</th>\n<th align=\"center\" width=\"100px\">Maintenance</th>\n<th align=\"center\" width=\"100px\">License</th>\n</tr>\n</thead>\n<tbody>\n<tr><td align=\"center\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\"><img src=\"https://github-app-statics.socket.dev/diff-added.svg\" title=\"Added\" alt=\"Added\" width=\"20\" height=\"20\"></a></td><td><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\">npm/​next@​16.4.6</a></td><td align=\"center\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\"><img src=\"https://github-app-statics.socket.dev/score-62.svg\" title=\"Supply Chain Security\" width=\"40\" height=\"40\" alt=\"62\"></a></td><td align=\"center\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\"><img src=\"https://github-app-statics.socket.dev/score-100.svg\" title=\"Vulnerability\" width=\"40\" height=\"40\" alt=\"100\"></a></td><td align=\"center\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\"><img src=\"https://github-app-statics.socket.dev/score-90.svg\" title=\"Quality\" width=\"40\" height=\"40\" alt=\"90\"></a></td><td align=\"center\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\"><img src=\"https://github-app-statics.socket.dev/score-99.svg\" title=\"Maintenance\" width=\"40\" height=\"40\" alt=\"99\"></a></td><td align=\"center\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies&dependency_item_key=101973724236\"><img src=\"https://github-app-statics.socket.dev/score-70.svg\" title=\"License\" width=\"40\" height=\"40\" alt=\"70\"></a></td></tr>\n</tbody>\n</table>\n\n[View full report](https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=dependencies)\n\n<!-- overview-comment -->",
+                "url": "https://github.com/replayio/backend/pull/14170#issuecomment-7104213088"
+              },
+              {
+                "__typename": "IssueComment",
+                "id": "IC_kwDODVUEis8AAAABp3GzxA",
+                "createdAt": "2026-11-23T14:34:50Z",
+                "updatedAt": "2026-11-23T14:34:50Z",
+                "lastEditedAt": null,
+                "author": {
+                  "login": "socket-security",
+                  "__typename": "Bot"
+                },
+                "body": "> [!CAUTION]\n> **Review the following alerts detected in dependencies.**\n>\n> According to your organization's Security Policy, you must resolve all **\"Block\"** alerts before proceeding. Learn more about [Socket for GitHub](https://socket.dev?utm_medium=gh).\n\n<table>\n<thead>\n<tr>\n<th>Priority</th>\n<th width=\"800px\" align=\"left\">Alert &emsp;(click \"▶\" to expand/collapse)</th>\n<th width=\"90px\">Action</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q7_DBX7hACpRHa7YO0xorQ_FiY2cI6wLyLy0pK3OL28g\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details open><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 62.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> The fragment corresponds to a security-sensitive Edge VM sandbox in package/dist/compiled/edge-runtime/index.js that uses eval and vm.runInContext to execute caller-supplied configuration and code within a controlled environment. This capability, combined with forwarding request-derived URLs and response headers/cookies, creates meaningful abuse potential if inputs are untrusted, underscoring the need for threat modeling, strict supply-chain controls, and robust isolation guarantees in deployment.</p> \n<p><strong>Confidence:</strong> 0.62</p> \n<p><strong>Severity:</strong> 0.72</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q7_DBX7hACpRHa7YO0xorQ_FiY2cI6wLyLy0pK3OL28g\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q7_DBX7hACpRHa7YO0xorQ_FiY2cI6wLyLy0pK3OL28g\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QreHEuvVjBT8FCLJ0ycdN58fUeieqHdxUvGnXjdXx-Ck\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 60.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> The file package/app/node_modules/next/dist/compiled/browserslist/index.js is part of Browserslist/caniuse data tooling and relies on dynamic module loading via eval(&quot;require&quot;) and require.resolve using inputs such as ctx.path and name, with potential synchronous filesystem reads of caller-influenced paths. If these inputs can be influenced by an attacker, the library could load and execute unintended code at require-time. No direct malware activity is shown, but strict upstream validation and allowlisting of inputs are essential to prevent unsafe module loading or access to config/stat data.</p> \n<p><strong>Confidence:</strong> 0.60</p> \n<p><strong>Severity:</strong> 0.52</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QreHEuvVjBT8FCLJ0ycdN58fUeieqHdxUvGnXjdXx-Ck\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QreHEuvVjBT8FCLJ0ycdN58fUeieqHdxUvGnXjdXx-Ck\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QWLmujUjktJ4WD0jMrdfs6yyK9-ypPY9mPXY6eZrji9s\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 66.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> This module is a dynamic script/style loader that can execute attacker-controlled code if untrusted data is passed in via props.src, props.dangerouslySetInnerHTML.__html, or props.children. It injects <script> elements (inline and remote) and appends them to the DOM without allowlisting/sanitization in this fragment. While there are no clear signs of covert malware (exfiltration/backdoors/obfuscation) within the provided code, its capability is inherently high-impact and makes it dangerous under weak trust boundaries. Ensure callers treat all these props as trusted, enforce strict CSP, and avoid passing any user-influenced input into these fields.</p> \n<p><strong>Confidence:</strong> 0.66</p> \n<p><strong>Severity:</strong> 0.60</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QWLmujUjktJ4WD0jMrdfs6yyK9-ypPY9mPXY6eZrji9s\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QWLmujUjktJ4WD0jMrdfs6yyK9-ypPY9mPXY6eZrji9s\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q8ZyAdty-IZcEl-vNOA-6p2CTSFYe7FxdUVblISl1CoI\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 66.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> The module may patch console methods and forward console/error/unhandled-rejection content—including raw argument data and potentially sensitive error/owner stacks—over a WebSocket, creating an information-disclosure risk if enabled in production or if the receiving endpoint is not fully trusted. There are no explicit malware primitives present; the threat is governed by enablement conditions and the trustworthiness of the log receiver.</p> \n<p><strong>Confidence:</strong> 0.66</p> \n<p><strong>Severity:</strong> 0.62</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q8ZyAdty-IZcEl-vNOA-6p2CTSFYe7FxdUVblISl1CoI\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q8ZyAdty-IZcEl-vNOA-6p2CTSFYe7FxdUVblISl1CoI\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Qv_zs4DIJy06i0HPP0uamAGbwMR6I4XLunEmjy0pykI0\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 70.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> This module is a client-side telemetry logger: it patches many console methods and forwards console arguments plus error/unhandled-rejection details (including stack traces and owner stack) to a remote endpoint over WebSocket when enabled. There are no clear malicious execution/backdoor behaviors in the snippet; however, it creates a meaningful sensitive-data exfiltration risk because it captures arbitrary developer/application log contents and sends them without explicit redaction/allowlisting. The overall security depends heavily on whether logs commonly contain secrets and whether the WebSocket destination is strictly authenticated/authorized.</p> \n<p><strong>Confidence:</strong> 0.70</p> \n<p><strong>Severity:</strong> 0.68</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Qv_zs4DIJy06i0HPP0uamAGbwMR6I4XLunEmjy0pykI0\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Qv_zs4DIJy06i0HPP0uamAGbwMR6I4XLunEmjy0pykI0\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QYjzRunCb1IOPzu_SF0dX77onc9AwxaRMgaRqCIJ5Dpc\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 62.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> This file is best characterized as a webpack-style loader runner. It dynamically loads and executes configured loader modules via <code>require(loader.path)</code> (CommonJS) and via an <code>eval</code>-wrapped dynamic <code>import(...)</code> of a <code>file://</code> URL (ESM), then runs the loaded modules’ <code>pitch</code>/<code>normal</code> functions. There is no direct evidence of data exfiltration or persistence within this fragment, but the presence of dynamic code loading/execution makes it security-sensitive: if an attacker can influence loader configuration (especially <code>loader.path</code> and <code>loader.type</code>), this can become a powerful arbitrary code execution vector. Overall risk is therefore moderate-to-high due to the execution primitive, not due to an observed malware payload in this code alone.</p> \n<p><strong>Confidence:</strong> 0.62</p> \n<p><strong>Severity:</strong> 0.56</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QYjzRunCb1IOPzu_SF0dX77onc9AwxaRMgaRqCIJ5Dpc\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QYjzRunCb1IOPzu_SF0dX77onc9AwxaRMgaRqCIJ5Dpc\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Qo8dbJE-xH2P0x0XwWR1g04R1J9YKQ8WKlhQnNIqT980\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 72.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> This module appears to be legitimate telemetry/diagnostic upload tooling: it reads local Next.js profiling artifacts from a .next-profiles directory, performs basic header checks, fetches upload authorization metadata, and uploads the artifacts to a remote blob endpoint. It does not show overt malware behavior (no exec/backdoor/persistence), but it does create a meaningful privacy/data-exfiltration risk by transmitting local CPU/trace artifacts off-host. The largest security concern is the environment variable override of the upload URL, which could redirect the token-request flow if the runtime environment is manipulated. Library safety is also reduced by process.exit(1) on failures.</p> \n<p><strong>Confidence:</strong> 0.72</p> \n<p><strong>Severity:</strong> 0.60</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Qo8dbJE-xH2P0x0XwWR1g04R1J9YKQ8WKlhQnNIqT980\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Qo8dbJE-xH2P0x0XwWR1g04R1J9YKQ8WKlhQnNIqT980\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QUV_T6rvrbDeJFnEtpTHVyDg5c7mE9lcyCTs-jE37XbA\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 70.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> Manifest loading supports evaluating manifest content as JavaScript via vm.runInNewContext, enabling arbitrary code execution if untrusted manifest content is supplied. The system also caches results, and behavior can be amplified when manifest content or resolved paths are influenced by attacker-controlled inputs.</p> \n<p><strong>Confidence:</strong> 0.70</p> \n<p><strong>Severity:</strong> 0.70</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QUV_T6rvrbDeJFnEtpTHVyDg5c7mE9lcyCTs-jE37XbA\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QUV_T6rvrbDeJFnEtpTHVyDg5c7mE9lcyCTs-jE37XbA\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QzhjnZHlCH5Scx_aRQdrz9zq10dWq4OvHoYJhYAiOg6U\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 72.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> Both alerts describe the same vulnerability in the worker runtime: a module is dynamically loaded using eval('require')(file) based on IPC input from the parent and its exports are invoked according to parent-provided names/arguments. If IPC integrity or parent trust is compromised, this allows arbitrary code execution within the worker, with error objects and stack traces serialized back to the parent increasing information exposure.</p> \n<p><strong>Confidence:</strong> 0.72</p> \n<p><strong>Severity:</strong> 0.62</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QzhjnZHlCH5Scx_aRQdrz9zq10dWq4OvHoYJhYAiOg6U\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QzhjnZHlCH5Scx_aRQdrz9zq10dWq4OvHoYJhYAiOg6U\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QeD9apJZyk5ysVVoQCOFsKfbukovn_Qn0sWmfVUGMIM4\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 66.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> The module loads a manifest and can execute its contents as JavaScript using vm.runInNewContext when in eval mode. If an attacker can influence the manifest path or the manifest contents, this enables high-risk code execution through the executed manifest, while JSON parsing remains comparatively lower risk. The threat arises from unvalidated path derivation from caller inputs and the ability to perform direct code execution on manifest data.</p> \n<p><strong>Confidence:</strong> 0.66</p> \n<p><strong>Severity:</strong> 0.72</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QeD9apJZyk5ysVVoQCOFsKfbukovn_Qn0sWmfVUGMIM4\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QeD9apJZyk5ysVVoQCOFsKfbukovn_Qn0sWmfVUGMIM4\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q39un-FHzkYGo4OdW6a-eQ-FroRdD6LGOlwtQ9dQUu2c\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 72.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> The package contains a VM/sandbox utility that can execute arbitrary caller-provided JavaScript via eval in the current realm (runInThisContext) and in a hidden iframe realm (runInContext), creating a high-risk arbitrary code execution primitive. While no explicit exfiltration is shown in the snippet, the design risks bridging powerful built-ins back into caller context, requiring strict trust and tight usage controls.</p> \n<p><strong>Confidence:</strong> 0.72</p> \n<p><strong>Severity:</strong> 0.70</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q39un-FHzkYGo4OdW6a-eQ-FroRdD6LGOlwtQ9dQUu2c\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=Q39un-FHzkYGo4OdW6a-eQ-FroRdD6LGOlwtQ9dQUu2c\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n<tr>\n<td align=\"center\" valign=\"top\"><a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QuOsJMwnkulW_ieOu0bf83-0OC2vlw8H4-gWWucJAZ5U\"><img src=\"https://github-app-statics.socket.dev/priority-low.svg\" title=\"Priority 140 (Low)\" width=\"20\" height=\"20\" alt=\"Low priority\"></a></td>\n<td><details><summary><strong>Potential code anomaly (AI signal)</strong>:  npm <code>next</code> is 96.0% likely to have a medium risk anomaly</summary>\n<p></p>\n<p><strong>Notes:</strong> The code is a conventional HTTP(S) resource-fetching helper. Its main security concern is that an externally influenced URL can be used for arbitrary server-side requests, potentially including internal services, unless validation occurs elsewhere. Unlimited response buffering and the lack of a production timeout can also permit resource exhaustion. No evidence of malicious behavior, data theft, backdoors, obfuscation, or suspicious persistence is present in this fragment.</p> \n<p><strong>Confidence:</strong> 0.96</p> \n<p><strong>Severity:</strong> 0.56</p> \n<p><strong>From:</strong> <a href=\"https://github.com/replayio/backend/pull/14170/files#diff-05b0e38772493da4dd931ba45f04544ccc97ed78bd3c6a41df45260d3c227167\">test/fullstack-recording/tests/next/dev-live-mcp/app/package-lock.json</a> → <code>npm/next@16.4.6</code></p>\n<p>ℹ Read more on: <a href=\"https://socket.dev/npm/package/next/overview/16.4.6\">This package</a> | <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QuOsJMwnkulW_ieOu0bf83-0OC2vlw8H4-gWWucJAZ5U\">This alert</a> | <a href=\"https://socket.dev/alerts/gptAnomaly\">What is an AI-detected potential code anomaly?</a></p>\n<blockquote>\n<p>\n  <em>Next steps:</em> Take a moment to review the security alert above. Review\n  the linked package source code to understand the potential risk. Ensure the\n  package is not malicious before proceeding. If you're unsure how to proceed,\n  reach out to your security team or ask the Socket team for help at\n  <code>support@socket.dev</code>.\n</p>\n<p><em>Suggestion:</em> An AI system found a low-risk anomaly in this package. It may still be fine to use, but you should check that it is safe before proceeding.</p>\n<p>\n    <em>Mark the package as acceptable risk</em>. To ignore this alert only\n    in this pull request, reply with the comment\n    <code>@SocketSecurity ignore npm/next@16.4.6</code>. You can\n    also ignore all packages with <code>@SocketSecurity ignore-all</code>.\n    To ignore an alert for all future pull requests, use Socket's Dashboard to\n    change the <a href=\"https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&alert_item_key=QuOsJMwnkulW_ieOu0bf83-0OC2vlw8H4-gWWucJAZ5U\">triage state of this alert</a>.\n  </p>\n</blockquote>\n</details></td>\n<td valign=\"top\" nowrap><img src=\"https://github-app-statics.socket.dev/action-error.svg\" width=\"16\" height=\"16\" alt=\"\" align=\"absmiddle\"> <strong>Block</strong></td>\n</tr>\n</tbody>\n</table>\n\n[View full report](https://socket.dev/dashboard/org/replayio/diff-scan/9bbb8311-35ac-4ec7-9afc-b0ccb142ee7f?tab=alerts&action=error%2Cwarn)",
+                "url": "https://github.com/replayio/backend/pull/14170#issuecomment-7104213956"
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIn3nETQ",
+                "createdAt": "2026-11-23T17:03:49Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "d33c0d79929c9cd55ad6de905635a40acce8519c"
+                },
+                "afterCommit": {
+                  "oid": "902512323c1b00395232f26a2ecc9c6b2db48c4c"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIn-JvKA",
+                "createdAt": "2026-11-23T18:13:37Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "902512323c1b00395232f26a2ecc9c6b2db48c4c"
+                },
+                "afterCommit": {
+                  "oid": "c369651e8084da3dc9bf4970a391d223afae2c91"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIoClrjg",
+                "createdAt": "2026-11-23T19:02:58Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "c369651e8084da3dc9bf4970a391d223afae2c91"
+                },
+                "afterCommit": {
+                  "oid": "178ca7d837f6885875e9b068a75cf97b643ac6b4"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIoDzH_w",
+                "createdAt": "2026-11-23T19:16:43Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "178ca7d837f6885875e9b068a75cf97b643ac6b4"
+                },
+                "afterCommit": {
+                  "oid": "a43057f80cac552fecadb36eb0db6ab131e838cb"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIoFqQxA",
+                "createdAt": "2026-11-23T19:38:05Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "a43057f80cac552fecadb36eb0db6ab131e838cb"
+                },
+                "afterCommit": {
+                  "oid": "7d7aff862b8baf159a018fdfb6111d07b1d1768c"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIoHhA0A",
+                "createdAt": "2026-11-23T19:59:12Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "7d7aff862b8baf159a018fdfb6111d07b1d1768c"
+                },
+                "afterCommit": {
+                  "oid": "051b5347eb32bc97ef43086e124c06240da35a72"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIoIUR_Q",
+                "createdAt": "2026-11-23T20:08:17Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "051b5347eb32bc97ef43086e124c06240da35a72"
+                },
+                "afterCommit": {
+                  "oid": "dcc101a2b4f8c64bd91b087f7aec7af3ba77a1ab"
+                }
+              },
+              {
+                "__typename": "BaseRefForcePushedEvent",
+                "id": "BRFPE_lADODVUEis8AAAABhxqRCs8AAAAIoNp09Q",
+                "createdAt": "2026-11-23T21:07:13Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "dcc101a2b4f8c64bd91b087f7aec7af3ba77a1ab"
+                },
+                "afterCommit": {
+                  "oid": "d09273d37b0b430d43f9c96bd33d1ed12d11a949"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 1,
+    "remaining": 4686,
+    "resetAt": "2026-11-24T02:58:58.000Z",
+    "gatewayErrors": 0
+  }
+}

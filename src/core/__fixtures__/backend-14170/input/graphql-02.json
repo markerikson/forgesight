@@ -1,0 +1,1533 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: pullRequest(number: 14170) { timelineItems(first: 100, after: \"Y3Vyc29yOnYyOpPPAAABofn0t5gH2gAzNTQ1NTA4MTA5Njo2NWE4NmYzMzU2YTBmOWZmNDQ5ZDFlMzNkNzBhNWVlMDE4YzJjMDgx\") { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment PrItems on PullRequestTimelineItems {\n  __typename\n  ... on Node { id }\n  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }\n  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }\n  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }\n  ... on ReopenedEvent { createdAt actor { login __typename } }\n  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on LabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on MentionedEvent { createdAt actor { login __typename } }\n  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }\n  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n\n  ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }\n    comments(first: 10) { nodes { id path body author { login } } } }\n  ... on PullRequestCommit { commit { oid messageHeadline authoredDate committedDate author { user { login } } } }\n  ... on HeadRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefChangedEvent { createdAt actor { login __typename } previousRefName currentRefName }\n  ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }\n  ... on ReviewRequestedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewRequestRemovedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewDismissedEvent { createdAt actor { login __typename } previousReviewState dismissalMessage }\n  ... on ReadyForReviewEvent { createdAt actor { login __typename } }\n  ... on ConvertToDraftEvent { createdAt actor { login __typename } }\n  ... on MergedEvent { createdAt actor { login __typename } commit { oid } }\n  ... on AddedToStackEvent { createdAt actor { login __typename } }\n  ... on RemovedFromStackEvent { createdAt actor { login __typename } }\n}\n",
+  "variables": {
+    "owner": "replayio",
+    "name": "backend",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "replayio/backend",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "timelineItems": {
+            "pageInfo": {
+              "hasNextPage": true,
+              "endCursor": "Y3Vyc29yOnYyOpPPAAABofqmZ-AH2gAzNTQ1NTA4MTA5Njo5NWNiNjM1NWQxMTI0NGFlYjI1ZTBmMTVjZWJmZjgwY2U0MzdmYTk1"
+            },
+            "nodes": [
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGM0MDBlMWZmMWJiZmUyNmJmZWRiNzg4MjQxZWI0ZjU4NjhhZjAyZTY",
+                "commit": {
+                  "oid": "c400e1ff1bbfe26bfedb788241eb4f5868af02e6",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:15:42Z",
+                  "committedDate": "2026-11-20T17:15:42Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDhlZDM3ZmEyZmE4Mjg2MTUwMWI5ZTAxNWU2MzA1OGYwNTdjNjBiODM",
+                "commit": {
+                  "oid": "8ed37fa2fa82861501b9e015e63058f057c60b83",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T17:16:04Z",
+                  "committedDate": "2026-11-20T17:16:04Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGU5MDFkYTdlM2FmZDBhNTc4NzI5ZmI4NzM0MWU4ZjExZTdjODgwOTc",
+                "commit": {
+                  "oid": "e901da7e3afd0a578729fb87341e8f11e7c88097",
+                  "messageHeadline": "Streamed recordings with nothing replayable yet: session focus window…",
+                  "authoredDate": "2026-11-20T17:16:51Z",
+                  "committedDate": "2026-11-20T17:16:51Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDhmZjQzMjg2Y2U5MzNkM2FlMTVhN2UzODFiM2ZhMTIyMzc4NTNlMDE",
+                "commit": {
+                  "oid": "8ff43286ce933d3ae15a7e381b3fa12237853e01",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:16:59Z",
+                  "committedDate": "2026-11-20T17:16:59Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGRiMTIwNDAzNDQ4NjUxODQ1NzFlYzVhYjdlMjhjMDMwYmI4YjMzNDQ",
+                "commit": {
+                  "oid": "db12040344865184571ec5ab7e28c030bb8b3344",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:17:32Z",
+                  "committedDate": "2026-11-20T17:17:32Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDZkZjk0NmQwNzJjZTRhZTRjODYzNTBmZDQxMjg1Yzc5OGJlNDhjNjk",
+                "commit": {
+                  "oid": "6df946d072ce4ae4c86350fd41285c798be48c69",
+                  "messageHeadline": "Merge commit 'db12040344' into HEAD",
+                  "authoredDate": "2026-11-20T17:17:43Z",
+                  "committedDate": "2026-11-20T17:17:43Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGQyNzljZDA0M2MxNDI1MTczMmQ2MjAyYzMxMmRkODY4MGZiNmIwZjY",
+                "commit": {
+                  "oid": "d279cd043c14251732d6202c312dd8680fb6b0f6",
+                  "messageHeadline": "Merge commit '6df946d072' into HEAD",
+                  "authoredDate": "2026-11-20T17:17:54Z",
+                  "committedDate": "2026-11-20T17:17:54Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDEyOGY5ZmI2MTY3N2NhMjNkZTVkZGE5MTY2MWI3Njc2MmNkZTU5Mjc",
+                "commit": {
+                  "oid": "128f9fb61677ca23de5dda91661b76762cde5927",
+                  "messageHeadline": "Recording pair API: a side's failure answers its tool error code, so …",
+                  "authoredDate": "2026-11-20T17:18:35Z",
+                  "committedDate": "2026-11-20T17:18:35Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGQ5YmI1NzYwNjJiYzM3Y2E1MjZmZDMzNzE3YjY2NTk1ZTc4NzFkMGQ",
+                "commit": {
+                  "oid": "d9bb576062bc37ca526fd33717b66595e7871d0d",
+                  "messageHeadline": "Merge commit '128f9fb616' into HEAD",
+                  "authoredDate": "2026-11-20T17:19:36Z",
+                  "committedDate": "2026-11-20T17:19:36Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGU2NjIzYTlkNjQwYjEzYzJlNzEwNDk0MDVlYThhM2FmZTcxNWM3NzI",
+                "commit": {
+                  "oid": "e6623a9d640b13c2e71049405ea8a3afe715c772",
+                  "messageHeadline": "Processor fatal: the linker's exit (code, signal, stderr tail) is log…",
+                  "authoredDate": "2026-11-20T17:20:32Z",
+                  "committedDate": "2026-11-20T17:20:32Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDhlNGVlYjFlMzRlMDdkMjliZjE4MzNlODZkZTRlODMyMDE2NTY5M2I",
+                "commit": {
+                  "oid": "8e4eeb1e34e07d29bf1833e86de4e8320165693b",
+                  "messageHeadline": "Processor fatal: the crash-output window closes once every process wr…",
+                  "authoredDate": "2026-11-20T17:20:39Z",
+                  "committedDate": "2026-11-20T17:20:39Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDU1MmM5ODAyOTg0N2U3NWU2NGQ0N2M2M2Y5ZDg0MWNjZDgxOGU5ODQ",
+                "commit": {
+                  "oid": "552c98029847e75e64d47c63f9d841ccd818e984",
+                  "messageHeadline": "Local dispatcher: a recording whose server crashed or failed gets a f…",
+                  "authoredDate": "2026-11-20T17:20:39Z",
+                  "committedDate": "2026-11-20T17:20:39Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDI3MmNkN2QwNTcxOGRhMTU3ZTllMmE5ZWU3ODY2ZWQ4NjFkNWY1Njk",
+                "commit": {
+                  "oid": "272cd7d05718da157e9e2a9ee7866ed861d5f569",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:21:04Z",
+                  "committedDate": "2026-11-20T17:21:04Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDVjMTk3MjgyYWU0ODNiMzYzZGFhOGJiZmMxMWYyZTliNmRlYzRlYmI",
+                "commit": {
+                  "oid": "5c197282ae483b363daa8bbfc11f2e9b6dec4ebb",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:21:57Z",
+                  "committedDate": "2026-11-20T17:21:57Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDZlMzU5MzE3MmM4MTEwODdjNDE3NThhZDRkYWI3YzNlM2M2MjFiYjA",
+                "commit": {
+                  "oid": "6e3593172c811087c41758ad4dab7c3e3c621bb0",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T17:22:30Z",
+                  "committedDate": "2026-11-20T17:22:30Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGE3NDJlY2EzYTk1MGIyYTc5MWJiZGM4MjY1NGMwZmRkZjhjMDc4YWI",
+                "commit": {
+                  "oid": "a742eca3a950b2a791bbdc82654c0fddf8c078ab",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:22:47Z",
+                  "committedDate": "2026-11-20T17:22:47Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGE4NzE0NWNlNTlmZDVkZmU1NDFmOGJiYTBmN2VkYWNjYTA4YmQyMmI",
+                "commit": {
+                  "oid": "a87145ce59fd5dfe541f8bba0f7edacca08bd22b",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T17:23:04Z",
+                  "committedDate": "2026-11-20T17:23:04Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdmZDQ2MWNmYjBiNjM1ZTU0ZDMxNzJhNTYwZGRlM2JmZjRlNjdiZDI",
+                "commit": {
+                  "oid": "7fd461cfb0b635e54d3172a560dde3bff4e67bd2",
+                  "messageHeadline": "Analysis context: a streamed recording that opened with nothing repla…",
+                  "authoredDate": "2026-11-20T17:24:12Z",
+                  "committedDate": "2026-11-20T17:24:12Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGJlZWEzYzYyNzg2MmEyODQ5ZGY2MGIzZDdiMWJmMDE4MmY0MTZhZDQ",
+                "commit": {
+                  "oid": "beea3c627862a2849df60b3d7b1bf0182f416ad4",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:24:51Z",
+                  "committedDate": "2026-11-20T17:24:51Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQxYWViMTc1MzkyNzZjN2FjOWFkNjRlNTQ4OTdjMWYzYjNjZWZjNWI",
+                "commit": {
+                  "oid": "41aeb17539276c7ac9ad64e54897c1f3b3cefc5b",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T17:24:58Z",
+                  "committedDate": "2026-11-20T17:24:58Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGM3NjNjNmYwNDkyM2UwM2JlMTcyYmEwNzQ1ZjRjZWVkYjVlNDdkOTY",
+                "commit": {
+                  "oid": "c763c6f04923e03be172ba0745f4ceedb5e47d96",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:25:05Z",
+                  "committedDate": "2026-11-20T17:25:05Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGIxNzYwYTg2ZTQ1MTkzNWVjZjU1NWRjMDgyM2M1NjI0NmFlMWVjODU",
+                "commit": {
+                  "oid": "b1760a86e451935ecf555dc0823c56246ae1ec85",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T17:25:13Z",
+                  "committedDate": "2026-11-20T17:25:13Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDY0NjI5N2Y2MTU3YjBlMzBiYTZlZDdiNTI1MWNkMWE2YzVkOGM0ZTE",
+                "commit": {
+                  "oid": "646297f6157b0e30ba6ed7b5251cd1a6c5d8c4e1",
+                  "messageHeadline": "RequestSpans arrivals: a listener's request is read by the name of it…",
+                  "authoredDate": "2026-11-20T17:28:45Z",
+                  "committedDate": "2026-11-20T17:28:45Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDBkMjFhNGIzNWRiODJjMmRmOGViNWFhZWI1NGNlYTZlZjM2ZjEzNGE",
+                "commit": {
+                  "oid": "0d21a4b35db82c2df8eb5aaeb54cea6ef36f134a",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:29:00Z",
+                  "committedDate": "2026-11-20T17:29:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGUwNGI1ZDAyYzhlMjc2YWJiMTA2MjYzYTIyMzU1ZGQ3MjkzZTM2MmU",
+                "commit": {
+                  "oid": "e04b5d02c8e276abb106263a22355dd7293e362e",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:29:51Z",
+                  "committedDate": "2026-11-20T17:29:51Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGUyZjRiZmU1NDY3NWEwMWNkZDhhZmZhNTlmNGVjNWE5YjNmZDk1Yjc",
+                "commit": {
+                  "oid": "e2f4bfe54675a01cdd8affa59f4ec5a9b3fd95b7",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T17:31:32Z",
+                  "committedDate": "2026-11-20T17:31:32Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDcwMzA5MGZiNWZhNTk1YTdkNDc1YWViZjJmNGM3NmUzOWZjNWIzMjI",
+                "commit": {
+                  "oid": "703090fb5fa595a7d475aebf2f4c76e39fc5b322",
+                  "messageHeadline": "Processor fatal: the crash report keeps the linker's last output line…",
+                  "authoredDate": "2026-11-20T17:40:06Z",
+                  "committedDate": "2026-11-20T17:40:06Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGMyNzk4NzZlNDI1YjBhNDM4YWQyMjdjZjM4ZDg2OWM1YWEzMGU0YjM",
+                "commit": {
+                  "oid": "c279876e425b0a438ad227cf38d869c5aa30e4b3",
+                  "messageHeadline": "Local dispatcher: a crashed server is destroyed when evicted, and its…",
+                  "authoredDate": "2026-11-20T17:40:06Z",
+                  "committedDate": "2026-11-20T17:40:06Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGY5ZGUxNzNiOGVjMzZiMjUxYjlhZDViNGY1M2M2NGM1ZDZhZGQyMjQ",
+                "commit": {
+                  "oid": "f9de173b8ec36b251b9ad5b4f53c64c5d6add224",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:40:31Z",
+                  "committedDate": "2026-11-20T17:40:31Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGRmNGZmYTk4OThlMWUzNjZkYzk2Zjk2ODI1YWQwMWE1NWMyN2M4ZmU",
+                "commit": {
+                  "oid": "df4ffa9898e1e366dc96f96825ad01a55c27c8fe",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T17:40:39Z",
+                  "committedDate": "2026-11-20T17:40:39Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDBjYzU5OGI3NDJiZDRjZjljMGM2YTVkNjI1MmU1Nzk3M2VhZDA0M2M",
+                "commit": {
+                  "oid": "0cc598b742bd4cf9c0c6a5d6252e57973ead043c",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:40:46Z",
+                  "committedDate": "2026-11-20T17:40:46Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdmM2NkZmMyYmE1NDc2OTFhMzAyOWNmZmQzMWQ0NTMxNDllZmU4YWU",
+                "commit": {
+                  "oid": "7f3cdfc2ba547691a3029cffd31d453149efe8ae",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T17:40:53Z",
+                  "committedDate": "2026-11-20T17:40:53Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDU3YjNlNTc4NmUyYzZjNWZmZThjYjVhMzViZmFhNDNkYmUyYmNmMDk",
+                "commit": {
+                  "oid": "57b3e5786e2c6c5ffe8cb5a35bfaa43dbe2bcf09",
+                  "messageHeadline": "Recording pair: one MCP server, POST /nut/recording-pair/mcp, replace…",
+                  "authoredDate": "2026-11-20T17:51:49Z",
+                  "committedDate": "2026-11-20T17:52:20Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDgxMmZhMWU1NmY0NWI0MWRiNmViODg5NzBiYzlkM2JkZGE3NDc0Nzg",
+                "commit": {
+                  "oid": "812fa1e56f45b41db6eb88970bc9d3bdda747478",
+                  "messageHeadline": "Processor fatal: the crash report keeps a non-JSON linker output line…",
+                  "authoredDate": "2026-11-20T17:53:50Z",
+                  "committedDate": "2026-11-20T17:53:50Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDIwMDBmYjljNDhmMDA1NTkzMmNmZjQ4MThlZjExNWY1N2FhZjNjMTQ",
+                "commit": {
+                  "oid": "2000fb9c48f0055932cff4818ef115f57aaf3c14",
+                  "messageHeadline": "Processor server: destroy resolves once its analysis context is torn …",
+                  "authoredDate": "2026-11-20T17:53:51Z",
+                  "committedDate": "2026-11-20T17:53:51Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDhhNzdkYmFhMzVlYWQ2Y2QxZTZkNzA0Yzc4M2RkNjNmMjJkYjJiMWU",
+                "commit": {
+                  "oid": "8a77dbaa35ead6cd1e6d704c783dd63f22db2b1e",
+                  "messageHeadline": "Processor server shutdown: a failed teardown is logged by the operato…",
+                  "authoredDate": "2026-11-20T17:53:51Z",
+                  "committedDate": "2026-11-20T17:53:51Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDE2OWIzNzdkMDgxMDRkZDQyNzY0ZmQxMGZhYzgxNWY0MTIwZTQ3M2M",
+                "commit": {
+                  "oid": "169b377d08104dd42764fd10fac815f4120e473c",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T17:54:25Z",
+                  "committedDate": "2026-11-20T17:54:25Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGM0ZmU2MzMyYzU4YjBlMjI0ZDRhMGEwN2YzNGNkNDRkNmM2YjZlOTI",
+                "commit": {
+                  "oid": "c4fe6332c58b0e224d4a0a07f34cd44d6c6b6e92",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T17:54:34Z",
+                  "committedDate": "2026-11-20T17:54:34Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdiZTNlOTE4NGY2MTcyZGY0MWRkMGRjY2I1ZDUwNDY1ZWM0MTU2N2E",
+                "commit": {
+                  "oid": "7be3e9184f6172df41dd0dccb5d50465ec41567a",
+                  "messageHeadline": "Recording pair MCP: PairRequestLinks logs a side's exceeded limit and…",
+                  "authoredDate": "2026-11-20T17:55:00Z",
+                  "committedDate": "2026-11-20T17:55:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDAxODE0ZTVhMjMxMTNkOTE0NDcxYzYwODI0ZDM2NTBkOTZmMTg1NjA",
+                "commit": {
+                  "oid": "01814e5a23113d914471c60824d3650d96f18560",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T17:55:52Z",
+                  "committedDate": "2026-11-20T17:55:52Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDg1M2JiNDMwNDc1ZmU1YTM3OGUwMTE1MGRkMTE2ZDM3Nzg2MTViZTQ",
+                "commit": {
+                  "oid": "853bb430475fe5a378e01150dd116d3778615be4",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T17:56:23Z",
+                  "committedDate": "2026-11-20T17:56:23Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGMyYmU0N2IxOTI2ZWVmNmQ1NzQxOThlYjdiMTU4MDM3NjhmNGNmNTk",
+                "commit": {
+                  "oid": "c2be47b1926eef6d574198eb7b15803768f4cf59",
+                  "messageHeadline": "Recording pair MCP: a side's failure keeps its tool error code (ToolE…",
+                  "authoredDate": "2026-11-20T17:57:02Z",
+                  "committedDate": "2026-11-20T17:57:02Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDIzNTc5N2QyNzM2MzJjOWRiZGY5ZTkxNWI5MmVlYmM5MDBjZmIxMDA",
+                "commit": {
+                  "oid": "235797d273632c9dbdf9e915b92eebc900cfb100",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T17:57:45Z",
+                  "committedDate": "2026-11-20T17:58:06Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGRhMWEyODNjYmM2YmI0ZWJjNjI4YjlmN2M5MGNlNDhmMDE4YmExMGM",
+                "commit": {
+                  "oid": "da1a283cbc6bb4ebc628b9f7c90ce48f018ba10c",
+                  "messageHeadline": "Recording pair MCP: PairOverview, PairExplain and PairEffects tools; …",
+                  "authoredDate": "2026-11-20T18:00:09Z",
+                  "committedDate": "2026-11-20T18:00:09Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGVhYmVlNTVhZTk3ZTM4OThjMWRmNDRjY2UzNjYxOGE1OThiOWNlNzc",
+                "commit": {
+                  "oid": "eabee55ae97e3898c1df44cce36618a598b9ce77",
+                  "messageHeadline": "Recording pair MCP: handleRecordingPairMcpRequest takes the request a…",
+                  "authoredDate": "2026-11-20T18:09:44Z",
+                  "committedDate": "2026-11-20T18:09:44Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGUzYzNlMjNjMDllZWUyNzQyY2Y3OGNlOGEyZWFjNmM5ZDI2MmEwNTE",
+                "commit": {
+                  "oid": "e3c3e23c09eee2742cf78ce8a2eac6c9d262a051",
+                  "messageHeadline": "Recording pair MCP: a pair tool's opening failure is an internal erro…",
+                  "authoredDate": "2026-11-20T18:15:08Z",
+                  "committedDate": "2026-11-20T18:15:08Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDU5OTZmMTgzY2VkZDZmMDBhZWI2M2ZlZDM2ZWFhOWMwOTY1ZGYxMTQ",
+                "commit": {
+                  "oid": "5996f183cedd6f00aeb63fed36eaa9c0965df114",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T18:15:14Z",
+                  "committedDate": "2026-11-20T18:15:14Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGU2YmIxNTRlNmI5YWNhNmUwMmU1ZGZhYTA3ZmJlYzQzMGY0YzRkNTY",
+                "commit": {
+                  "oid": "e6bb154e6b9aca6e02e5dfaa07fbec430f4c4d56",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T18:15:27Z",
+                  "committedDate": "2026-11-20T18:15:27Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDViZDA2NDMzY2ZhYjc1YTBlZDkzMDYzMTQyZjFiYjE3MDFlNTkwYTA",
+                "commit": {
+                  "oid": "5bd06433cfab75a0ed93063142f1bb1701e590a0",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T18:15:38Z",
+                  "committedDate": "2026-11-20T18:15:38Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDRmYTg0Y2MwMmM0NmE4YmI4ZDk1NTIyNTcwMDgwOWQ2YzljNzY4MGI",
+                "commit": {
+                  "oid": "4fa84cc02c46a8bb8d955225700809d6c9c7680b",
+                  "messageHeadline": "tests/paired: withPairMcp also calls a side's single-recording tool i…",
+                  "authoredDate": "2026-11-20T18:17:08Z",
+                  "committedDate": "2026-11-20T18:17:08Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDdiOTY4YWY2ZmZkNTRiOWQxNDdmNjRiMjA1ZWNmNDg4MTExMzE0MTE",
+                "commit": {
+                  "oid": "7b968af6ffd54b9d147f64b205ecf48811131411",
+                  "messageHeadline": "Processor: a query reads the extent of its context's bound (getQueryE…",
+                  "authoredDate": "2026-11-20T18:46:17Z",
+                  "committedDate": "2026-11-20T18:46:17Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGVlNjhjYTQxYTJhMjFmYmE2NmI3YzE2YzdhMmI4ZTY3NzVmOGE1NmQ",
+                "commit": {
+                  "oid": "ee68ca41a2a21fba66b7c16c7a2b8e6775f8a56d",
+                  "messageHeadline": "Basic data: a bookmark no region up to an extent has is null once the…",
+                  "authoredDate": "2026-11-20T18:46:17Z",
+                  "committedDate": "2026-11-20T18:46:17Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDk4YjVmYTAwMmVlM2U4N2U1ZGI2ZDM3ZjIzMTA2MmQwZmE2ZDFhZjM",
+                "commit": {
+                  "oid": "98b5fa002ee3e87e5db6d37f231062d0fa6d1af3",
+                  "messageHeadline": "Possible breakpoints: a source's are read once the extent's basic dat…",
+                  "authoredDate": "2026-11-20T18:46:17Z",
+                  "committedDate": "2026-11-20T18:46:17Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGM4YjQwN2Y5Y2Y1OTE4ZTkxNWQ0MzU4ZTRlZGM0YzBiNWNkMjlmZGQ",
+                "commit": {
+                  "oid": "c8b407f9cf5918e915d4358e4edc4c0b5cd29fdd",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T18:46:55Z",
+                  "committedDate": "2026-11-20T18:46:55Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDY2MWQ5N2UyMWU4MWRlYzdkYTNmMzljMTQ1NjFiYWU1MjQ5MzhhM2Y",
+                "commit": {
+                  "oid": "661d97e21e81dec7da3f39c14561bae524938a3f",
+                  "messageHeadline": "Processor: RecordingProcessor.getQueryExtent is the linker's getQuery…",
+                  "authoredDate": "2026-11-20T18:47:39Z",
+                  "committedDate": "2026-11-20T18:47:39Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDBmMzhmMjJjZDVhOTA4M2I5MjI1YTgyNGZkZjI0NmVlNWE3MTk1ZmI",
+                "commit": {
+                  "oid": "0f38f22cd5a9083b9225a824fdf246ee5a7195fb",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T18:47:56Z",
+                  "committedDate": "2026-11-20T18:47:56Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDExMTgwZDBjZWE0MzIyNjAzYjYzN2E3NjUzZTMzMThlZDY2OWUzOWQ",
+                "commit": {
+                  "oid": "11180d0cea4322603b637a7653e3318ed669e39d",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T18:48:30Z",
+                  "committedDate": "2026-11-20T18:48:30Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGZhNGZjNTFkZDUzNjBhMjliM2U0ODEwN2RhYTNhM2E3OTZhN2VlNjI",
+                "commit": {
+                  "oid": "fa4fc51dd5360a29b3e48107daa3a3a796a7ee62",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T18:49:05Z",
+                  "committedDate": "2026-11-20T18:49:05Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDU5NDY2ODkwNGZiZTg5YjRjYjYxOWJlMjBlMDFkMDBiMDRiYmNkZTk",
+                "commit": {
+                  "oid": "594668904fbe89b4cb619be20e01d00b04bbcde9",
+                  "messageHeadline": "Points: a point past the extent of its context's bound is not yet rec…",
+                  "authoredDate": "2026-11-20T18:55:13Z",
+                  "committedDate": "2026-11-20T18:55:13Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDM2YTA1ODNkNWQ5Y2MyYmMxZjk5OTQ0OWY3MDcwYmVkNzBjM2I3Yjk",
+                "commit": {
+                  "oid": "36a0583d5d9cc2bc1f999449f7070bed70c3b7b9",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T18:55:30Z",
+                  "committedDate": "2026-11-20T18:55:30Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQzN2NiZjczMDZjM2U0Yjc2MGYxYWUxYTQyYTQ0MDdlMWI3MDIxZDQ",
+                "commit": {
+                  "oid": "437cbf7306c3e4b760f1ae1a42a4407e1b7021d4",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T18:55:40Z",
+                  "committedDate": "2026-11-20T18:55:40Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGNkODFhYThhMTdlZDI1NzMwYTcwM2FkZTE2MzRkODQwNzEwYzFlMzc",
+                "commit": {
+                  "oid": "cd81aa8a17ed25730a703ade1634d840710c1e37",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T18:55:50Z",
+                  "committedDate": "2026-11-20T18:55:50Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDFhYjAyNjhhODA0NmYwOTlmNjEzZDBjYTU4YzlhYzY4YTA2NWRkN2Q",
+                "commit": {
+                  "oid": "1ab0268a8046f099f613d0ca58c9ac68a065dd7d",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T18:56:00Z",
+                  "committedDate": "2026-11-20T18:56:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDIzNzMyOGU1ZmYzN2MwNmU0MTZjZjI2N2VlY2JkNmQ2YTU3MTNlNTM",
+                "commit": {
+                  "oid": "237328e5ff37c06e416cf267eecbd6d6a5713e53",
+                  "messageHeadline": "Hang monitor: a hang lists the sections still open under its monitor …",
+                  "authoredDate": "2026-11-20T19:01:51Z",
+                  "committedDate": "2026-11-20T19:01:51Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDcwY2I3NDM1ZjA4MDAyNDA3Mzc5ZDQxMDEyYjA2YWJjNGU2ZWNmN2I",
+                "commit": {
+                  "oid": "70cb7435f08002407379d41012b06abc4e6ecf7b",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T19:02:07Z",
+                  "committedDate": "2026-11-20T19:02:07Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGY1NjU2ZmZlNzMzNjIwNDBhNTc2NTg2MzhiMTNhODMzNGE3ZDg5MTM",
+                "commit": {
+                  "oid": "f5656ffe73362040a57658638b13a8334a7d8913",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T19:02:16Z",
+                  "committedDate": "2026-11-20T19:02:16Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDZhNjY5NjcwNjllOGUxYTIzNjc3NWYyOThiNTFjODZjZGI5YzI5ZmM",
+                "commit": {
+                  "oid": "6a66967069e8e1a236775f298b51c86cdb9c29fc",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T19:02:26Z",
+                  "committedDate": "2026-11-20T19:02:26Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDhhYWIyYjg4YjY0ZGU5MjIwZGI1OWM1MmVjM2VlMDNkMTJiYTk5MmM",
+                "commit": {
+                  "oid": "8aab2b88b64de9220db59c52ec3ee03d12ba992c",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T19:02:37Z",
+                  "committedDate": "2026-11-20T19:02:37Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDg2NjNkMTE4NzRjM2RlYjQxZmYwYzIxN2QxNGM3OGZmYTczYTQ3MWE",
+                "commit": {
+                  "oid": "8663d11874c3deb41ff0c217d14c78ffa73a471a",
+                  "messageHeadline": "Processor: one resolution of the bound of a context's queries (Record…",
+                  "authoredDate": "2026-11-20T19:13:00Z",
+                  "committedDate": "2026-11-20T19:13:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGZmMmFjY2I4NDlhY2NhMzI2ZmQ2YWI1OGI1ZDNjZDQ5ZGJlMGMzYjY",
+                "commit": {
+                  "oid": "ff2accb849acca326fd6ab58b5d3cd49dbe0c3b6",
+                  "messageHeadline": "First scripted point: up to a checkpoint is the execution before it; …",
+                  "authoredDate": "2026-11-20T19:13:00Z",
+                  "committedDate": "2026-11-20T19:13:15Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDJjZjcyYmM0ZjE3NDFkOWE1ODBjZTc5OTA3ODQzOGJhODBlMjJhY2Y",
+                "commit": {
+                  "oid": "2cf72bc4f1741d9a580ce799078438ba80e22acf",
+                  "messageHeadline": "Basic data: an entry of the data up to the bound of a context's queri…",
+                  "authoredDate": "2026-11-20T19:13:28Z",
+                  "committedDate": "2026-11-20T19:13:28Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDJmOGZjNTA4OTBhN2UwYjZmMjlkYzhhZjIxZmEyOThlZjA1NmNjMWM",
+                "commit": {
+                  "oid": "2f8fc50890a7e0b6f29dc8af21fa298ef056cc1c",
+                  "messageHeadline": "Possible breakpoints: on a build publishing them at the sapling's fin…",
+                  "authoredDate": "2026-11-20T19:13:42Z",
+                  "committedDate": "2026-11-20T19:13:42Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDI4ZDE5YWUxY2NjZWE5NDU2ZTI4NTBmMjg2MmIyYTllZGI1ZTRhZjI",
+                "commit": {
+                  "oid": "28d19ae1cccea9456e2850f2862b2a9edb5e4af2",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/streamed-replay-processo…",
+                  "authoredDate": "2026-11-20T19:15:00Z",
+                  "committedDate": "2026-11-20T19:15:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGMwMDNmNjdmNDlhODdmYmI4MGFlYzZkNTJmZThhOTY1OWYxNzg2OGY",
+                "commit": {
+                  "oid": "c003f67f49a87fbb80aec6d52fe8a9659f17868f",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings' into …",
+                  "authoredDate": "2026-11-20T19:15:16Z",
+                  "committedDate": "2026-11-20T19:15:16Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQxOWFjMThjMGM1NGZkODExZjAxZDdhMGVkNmFmZjIzZjNkMDkwMmU",
+                "commit": {
+                  "oid": "419ac18c0c54fd811f01d7a0ed6aff23f3d0902e",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T19:15:48Z",
+                  "committedDate": "2026-11-20T19:15:48Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDUyZjczZmIwYjlmYmYyMzc3ZjlkMzdkZjQwODEyYWJjMGFlMmUxNGY",
+                "commit": {
+                  "oid": "52f73fb0b9fbf2377f9d37df40812abc0ae2e14f",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T19:16:09Z",
+                  "committedDate": "2026-11-20T19:16:09Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGZhOWUzMDE4MDhkMWIxZjEzN2M4OTkwZDhhZGJmYzFmZjE0MmI4YzY",
+                "commit": {
+                  "oid": "fa9e301808d1b1f137c8990d8adbfc1ff142b8c6",
+                  "messageHeadline": "Pauses: each caller's bound refuses a point past its extent before th…",
+                  "authoredDate": "2026-11-20T19:21:43Z",
+                  "committedDate": "2026-11-20T19:21:43Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQwMjZlMzdjNzA5ZDg5NGZhNTg2M2QyNzY4MzY4Yzc0N2QwMDMwNTk",
+                "commit": {
+                  "oid": "4026e37c709d894fa5863d2768368c747d003059",
+                  "messageHeadline": "Hang monitor: the deadline of an analysis at a non-final extent lists…",
+                  "authoredDate": "2026-11-20T19:22:00Z",
+                  "committedDate": "2026-11-20T19:22:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDljYjRjZGI5NzM2MmI1MmZkOTQ4N2IxN2ZjMDIxNzBlOWIwM2IyYjk",
+                "commit": {
+                  "oid": "9cb4cdb97362b52fd9487b17fc02170e9b03b2b9",
+                  "messageHeadline": "Merge branch 'dominik/streamed-replay-processor' into dominik/paired-…",
+                  "authoredDate": "2026-11-20T19:22:25Z",
+                  "committedDate": "2026-11-20T19:22:25Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGZhNGVhMDdjOTZlOTBhM2M0ODI4ODUzZDU4OTU3YzkzM2IxYjg0MmU",
+                "commit": {
+                  "oid": "fa4ea07c96e90a3c4828853d58957c933b1b842e",
+                  "messageHeadline": "Merge branch 'dominik/paired-recordings' into dominik/paired-recordin…",
+                  "authoredDate": "2026-11-20T19:22:35Z",
+                  "committedDate": "2026-11-20T19:22:35Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDJlMmQzMGNjMWI5ODJmMjg5OTRiMGQyMWNmYjYxYmU2NWMwMTM3YmE",
+                "commit": {
+                  "oid": "2e2d30cc1b982f28994b0d21cfb61be65c0137ba",
+                  "messageHeadline": "Merge branch 'dominik/paired-recordings-response-probe' into dominik/…",
+                  "authoredDate": "2026-11-20T19:22:46Z",
+                  "committedDate": "2026-11-20T19:22:46Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDYzYWU2YmE2YjBjNjBkYmFmZTNmYTUyZDg1ZDE1YTU4MTA3ZjIxODY",
+                "commit": {
+                  "oid": "63ae6ba6b0c60dbafe3fa52d85d15a58107f2186",
+                  "messageHeadline": "Merge branch 'dominik/paired-recordings-region-api' into dominik/pair…",
+                  "authoredDate": "2026-11-20T19:22:56Z",
+                  "committedDate": "2026-11-20T19:22:56Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGNkZTM4ZGRjYWQxZmI5M2Y0MWM1MjJlZDE4MWZlMmQzNWIxNzNlMGU",
+                "commit": {
+                  "oid": "cde38ddcad1fb93f41c522ed181fe2d35b173e0e",
+                  "messageHeadline": "Tool results: dependencies area version 15, as the node label options…",
+                  "authoredDate": "2026-11-20T19:34:56Z",
+                  "committedDate": "2026-11-20T19:34:56Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDQyMDM4NjQzYTZjN2ZjMDYzNzg1NGE2ZGJjODRiMzkyZTg1ZWNkYWQ",
+                "commit": {
+                  "oid": "42038643a6c7fc0637854a6dbc84b392e85ecdad",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T19:36:30Z",
+                  "committedDate": "2026-11-20T19:36:30Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDZkYjEyOWZhM2YyNDI0ZmY3MTk4MTk3YjhhYWYxYWM3YjhlZjc1OGM",
+                "commit": {
+                  "oid": "6db129fa3f2424ff7198197b8aaf1ac7b8ef758c",
+                  "messageHeadline": "RequestSpans arrivals: a listener entry is searched in every checkpoi…",
+                  "authoredDate": "2026-11-20T19:44:26Z",
+                  "committedDate": "2026-11-20T19:44:26Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDg4MDY2NWJmNzExMDJlNTgzYjUzNWI5NGI4YTFjNDcwOWVmYTMwN2Y",
+                "commit": {
+                  "oid": "880665bf71102e583b535b94b8a1c4709efa307f",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T19:45:26Z",
+                  "committedDate": "2026-11-20T19:45:26Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGJlNzFmZGY3NjFlY2ZlYTE0NzI2MmY3YWNhMzdhNDkyNjNkNjFlN2Q",
+                "commit": {
+                  "oid": "be71fdf761ecfea147262f7aca37a49263d61e7d",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T19:45:46Z",
+                  "committedDate": "2026-11-20T19:45:46Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGQwMjY5MzFhYjliZDgwM2I3MzQ5ZjIwYjRlM2U0NzYxZDNlNTQ0ZDc",
+                "commit": {
+                  "oid": "d026931ab9bd803b7349f20b4e3e4761d3e544d7",
+                  "messageHeadline": "RequestSpans arrivals: a dispatch's listener code is at the progresse…",
+                  "authoredDate": "2026-11-20T20:00:13Z",
+                  "committedDate": "2026-11-20T20:00:13Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGY3NzVjZTRlZmJjYzg3NWFkMjhkNzQ0YmY2YjI3MzRmNmNkYzVlZWM",
+                "commit": {
+                  "oid": "f775ce4efbcc875ad28d744bf6b2734f6cdc5eec",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-respon…",
+                  "authoredDate": "2026-11-20T20:01:06Z",
+                  "committedDate": "2026-11-20T20:01:06Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDAxZWY5ZTFmMmYwZTM2YjhiZDNhN2ZkZTk3MzllY2M4MzMyZWNkOTc",
+                "commit": {
+                  "oid": "01ef9e1f2f0e36b8bd3a7fde9739ecc8332ecd97",
+                  "messageHeadline": "Merge remote-tracking branch 'origin/dominik/paired-recordings-region…",
+                  "authoredDate": "2026-11-20T20:01:28Z",
+                  "committedDate": "2026-11-20T20:01:28Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDRjMjQwMjI3YzRjNmRmYjQ5ZmRhZWM0MjNlNDA3MTZlMGJhYjhkNmQ",
+                "commit": {
+                  "oid": "4c240227c4c6dfb49fdaec423e40716e0bab8d6d",
+                  "messageHeadline": "Point references: a range's end not yet recorded at the context's ext…",
+                  "authoredDate": "2026-11-20T20:16:42Z",
+                  "committedDate": "2026-11-20T20:16:42Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDA3NmMwYWQxZTU1MmY3MGFiMjFlNjYyNTUwY2E5MmRhYjM1ZjVmNzE",
+                "commit": {
+                  "oid": "076c0ad1e552f70ab21e662550ca92dab35f5f71",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/streamed-re…",
+                  "authoredDate": "2026-11-20T20:17:01Z",
+                  "committedDate": "2026-11-20T20:17:01Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGU3ZWY0YjA1NjQxZTczNzQ0OTU2YTMxOWQ1NmM2MzYzN2YzMzhhNjM",
+                "commit": {
+                  "oid": "e7ef4b05641e73744956a319d56c63637f338a63",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:17:38Z",
+                  "committedDate": "2026-11-20T20:17:38Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDFiYjJjNmUxM2RlZmQzZjNhN2NjNDc2YzUzZmU2YmFiNGMyOGY4N2Q",
+                "commit": {
+                  "oid": "1bb2c6e13defd3f3a7cc476c53fe6bab4c28f87d",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:18:10Z",
+                  "committedDate": "2026-11-20T20:18:10Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGE3NjZhZDc1YWQ1YTczZTlkYjIwZmRmZGNlNTAwMDVlOTBlODEwMjE",
+                "commit": {
+                  "oid": "a766ad75ad5a73e9db20fdfdce50005e90e81021",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:18:47Z",
+                  "committedDate": "2026-11-20T20:18:47Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGFmNGQ2MjExZTdiMzcxOGU0YTNjY2Q5NjllYjhhZDdlMTM2MWQwNTA",
+                "commit": {
+                  "oid": "af4d6211e7b3718e4a3ccd969eb8ad7e1361d050",
+                  "messageHeadline": "Point references: one endpoint, loaded first, resolves a point and bo…",
+                  "authoredDate": "2026-11-20T20:28:02Z",
+                  "committedDate": "2026-11-20T20:28:02Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDI4NjI5YzkxZDljZmFhNDI5M2FhM2ZmMWYzM2NkYjgwMTVjMTQ0NTQ",
+                "commit": {
+                  "oid": "28629c91d9cfaa4293aa3ff1f33cdb8015c14454",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/streamed-re…",
+                  "authoredDate": "2026-11-20T20:28:20Z",
+                  "committedDate": "2026-11-20T20:28:20Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKGVhYTUzNDI0ODM3ODY2MTZkZWRhYjI0OWRkMjE3OTcxOWQ3ZjcyZGY",
+                "commit": {
+                  "oid": "eaa5342483786616dedab249dd2179719d7f72df",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:28:41Z",
+                  "committedDate": "2026-11-20T20:28:41Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDFmMTA1MTdkOWM2NWVmYzJjZTM2NjJlOWI0NzhjOWYyZDM1ZTYzYTQ",
+                "commit": {
+                  "oid": "1f10517d9c65efc2ce3662e9b478c9f2d35e63a4",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:29:11Z",
+                  "committedDate": "2026-11-20T20:29:11Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABRSXuiNoAKDk1Y2I2MzU1ZDExMjQ0YWViMjVlMGYxNWNlYmZmODBjZTQzN2ZhOTU",
+                "commit": {
+                  "oid": "95cb6355d11244aeb25e0f15cebff80ce437fa95",
+                  "messageHeadline": "Merge remote-tracking branch 'refs/remotes/origin/dominik/paired-reco…",
+                  "authoredDate": "2026-11-20T20:29:32Z",
+                  "committedDate": "2026-11-20T20:29:32Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 1,
+    "remaining": 4988,
+    "resetAt": "2026-11-24T03:34:12.000Z",
+    "gatewayErrors": 0
+  }
+}

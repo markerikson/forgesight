@@ -1,0 +1,333 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: pullRequest(number: 14063) { timelineItems(first: 100, after: \"Y3Vyc29yOnYyOpPPAAABogsCi_ABqzM3MDc1MjM5OTc4\") { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment PrItems on PullRequestTimelineItems {\n  __typename\n  ... on Node { id }\n  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }\n  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }\n  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }\n  ... on ReopenedEvent { createdAt actor { login __typename } }\n  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on LabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on MentionedEvent { createdAt actor { login __typename } }\n  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }\n  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n\n  ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }\n    comments(first: 10) { nodes { id path body author { login } } } }\n  ... on PullRequestCommit { commit { oid messageHeadline authoredDate committedDate author { user { login } } } }\n  ... on HeadRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefChangedEvent { createdAt actor { login __typename } previousRefName currentRefName }\n  ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }\n  ... on ReviewRequestedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewRequestRemovedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewDismissedEvent { createdAt actor { login __typename } previousReviewState dismissalMessage }\n  ... on ReadyForReviewEvent { createdAt actor { login __typename } }\n  ... on ConvertToDraftEvent { createdAt actor { login __typename } }\n  ... on MergedEvent { createdAt actor { login __typename } commit { oid } }\n  ... on AddedToStackEvent { createdAt actor { login __typename } }\n  ... on RemovedFromStackEvent { createdAt actor { login __typename } }\n}\n",
+  "variables": {
+    "owner": "replayio",
+    "name": "backend",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "replayio/backend",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "timelineItems": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "Y3Vyc29yOnYyOpPPAAABogtUVXABqzM3MDgxMDU3MjQ0"
+            },
+            "nodes": [
+              {
+                "__typename": "HeadRefForcePushedEvent",
+                "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodySIQ",
+                "createdAt": "2026-11-24T00:45:16Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "1a1646be3d099b72b112091a48fda60b864f9b50"
+                },
+                "afterCommit": {
+                  "oid": "4e32e998532376020c1a177e6666feadc40e8d23"
+                }
+              },
+              {
+                "__typename": "HeadRefForcePushedEvent",
+                "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoepAHg",
+                "createdAt": "2026-11-24T00:58:47Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "4e32e998532376020c1a177e6666feadc40e8d23"
+                },
+                "afterCommit": {
+                  "oid": "d64691a077e696490e49d6af27d645a4d60fccb7"
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDM1NGYxNDIyNGM2NmFkMzMzM2U1ODExMTA4ZDJkMDdjNTBmZjAxOGI",
+                "commit": {
+                  "oid": "354f14224c66ad3333e5811108d2d07c50ff018b",
+                  "messageHeadline": "DependencyGraph: react-query-chain case, and library causes in a TanS…",
+                  "authoredDate": "2026-11-19T23:56:49Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGVkMzc0ZTRhNDc3ZmQwN2QwZjhkNGYzOTVjNjI5OGZkMDc1ZjJjNmM",
+                "commit": {
+                  "oid": "ed374e4a477fd07d0f8d4f395c6298fd075f2c6c",
+                  "messageHeadline": "DependencyGraph: TanStack Query updates are unavailable once the reco…",
+                  "authoredDate": "2026-11-20T09:00:31Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDYwODllNTFmZTM4ZmU2OWRlZTlhYzczNjk5YTUxNmNkMWY5NDFmOGM",
+                "commit": {
+                  "oid": "6089e51fe38fe69dee9ac73699a516cd1f941f8c",
+                  "messageHeadline": "DependencyGraph: a TanStack Query trigger naming no update lists a ve…",
+                  "authoredDate": "2026-11-20T10:23:11Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGQyYWRiZDk1ZjQ3MThlYTJkN2Q1NzJlN2NiN2IxMjYwNmRkZDFjNTQ",
+                "commit": {
+                  "oid": "d2adbd95f4718ea2d7d572e7cb7b12606ddd1c54",
+                  "messageHeadline": "DependencyGraph: store updates nest; TanStack Query records are cappe…",
+                  "authoredDate": "2026-11-20T15:05:37Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGFkZjRjMjFiMDgyY2JiN2UxNGYzZTM5YjhhNjg4YWZjNmM0NjVmNzM",
+                "commit": {
+                  "oid": "adf4c21b082cbb7e14f3e39b8a688afc6c465f73",
+                  "messageHeadline": "TanStack Query manager: oxfmt",
+                  "authoredDate": "2026-11-20T16:16:51Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDVlNTMyOGM5MTk0ZWRlYWE0YjI2MzA3N2MzOWRhYTBlMDNhYWU4MDM",
+                "commit": {
+                  "oid": "5e5328c9194edeaa4b263077c39daa0e03aae803",
+                  "messageHeadline": "DependencyGraph: TanStack Query runs pair with queueings in queue ord…",
+                  "authoredDate": "2026-11-20T16:40:28Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDExZDNmMmFhYjg2NWJiMWRmZTI4OTJlODU0NTUyODQ0OWEwNzFmZGU",
+                "commit": {
+                  "oid": "11d3f2aab865bb1dfe2892e8545528449a071fde",
+                  "messageHeadline": "DependencyGraph: TanStack Query update path unavailable where a copy …",
+                  "authoredDate": "2026-11-20T16:49:17Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDJkMTM3ZTlhYjNhNmQyMTZlYmM1MmRmOGNlNTk4MzQzZWIzOWI3Mzc",
+                "commit": {
+                  "oid": "2d137e9ab3a6d216ebc52df8ce598343eb39b737",
+                  "messageHeadline": "TanStack Query manager: update-path site ids by role, one list",
+                  "authoredDate": "2026-11-20T16:54:55Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGE0NmVkNGNiZjJkYWQ4OWE1YTgzZTVjYjcyZTNlYmMyNjgzOThiYTQ",
+                "commit": {
+                  "oid": "a46ed4cbf2dad89a5a83e5cb72e3ebc268398ba4",
+                  "messageHeadline": "TanStack Query dispatch box: only a function whose batch notifies the…",
+                  "authoredDate": "2026-11-23T13:23:05Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDk4YTQ5N2Q5YjhlYWY0YjQ5YjNiY2EwNTFkMDI5Yzc1ZTdkMDBiNzQ",
+                "commit": {
+                  "oid": "98a497d9b8eaf4b49b3bca051d029c75e7d00b74",
+                  "messageHeadline": "TanStack Query: a box failing a site of its kind that matches nothing…",
+                  "authoredDate": "2026-11-23T13:24:25Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGYwN2Q5ZTE4ZDU5YTE0MzZhNDVlOWQzZGIzNTlmNWMzYmY3NmY5MWE",
+                "commit": {
+                  "oid": "f07d9e18d59a1436a45e9d3db359f5c3bf76f91a",
+                  "messageHeadline": "TanStack Query: updated events are capped apart from the cache's othe…",
+                  "authoredDate": "2026-11-23T13:25:32Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGM1OGIyZjM2NzNkOWNiODg1NmMwMTM1ZTgyNGM0NDE5OTZkOWMwMzk",
+                "commit": {
+                  "oid": "c58b2f3673d9cb8856c0135e824c441996d9c039",
+                  "messageHeadline": "DependencyGraph store updates: a Redux reducer call without a dispatc…",
+                  "authoredDate": "2026-11-23T13:31:29Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKGJiZGYzZWVmMTk3MjIwZGM0YTFiMWJlNmI0MWJjNzgxZTZjM2NlZDQ",
+                "commit": {
+                  "oid": "bbdf3eef197220dc4a1b1be6b41bc781e6c3ced4",
+                  "messageHeadline": "DependencyGraph: the Redux reducer call gap is in the gap catalog nex…",
+                  "authoredDate": "2026-11-23T13:52:34Z",
+                  "committedDate": "2026-11-24T02:10:18Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDMwZmY1NDg5NjE1ZTQ1MGY0NTU0MmM3MDhlOTY1MjYyZDk3MGY3OTc",
+                "commit": {
+                  "oid": "30ff5489615e450f45542c708e965262d970f797",
+                  "messageHeadline": "DependencyGraph store updates: a Redux notification names the dispatc…",
+                  "authoredDate": "2026-11-23T16:02:38Z",
+                  "committedDate": "2026-11-24T02:10:19Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDVjMjIxYjdmMTkyOTI3ZjY0MTUwYTU1OTI0NmQ2NmJiZGMzODg4Njg",
+                "commit": {
+                  "oid": "5c221b7f192927f64150a559246d66bbdc388868",
+                  "messageHeadline": "Tool result area dependencies: 20, above the continuation credit change",
+                  "authoredDate": "2026-11-23T20:00:30Z",
+                  "committedDate": "2026-11-24T02:10:19Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDdhZjMyNmM3ZGVkZDU4MThjNTRhMWUxOTBjMzZjOTIwNDU4ZTFiMzU",
+                "commit": {
+                  "oid": "7af326c7dedd5818c54a1e190c36c920458e1b35",
+                  "messageHeadline": "DependencyGraph store updates: Redux names the innermost dispatch, ne…",
+                  "authoredDate": "2026-11-24T02:09:46Z",
+                  "committedDate": "2026-11-24T02:10:21Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADODVUEis8AAAABQhQKK9oAKDllNWZkNzIxYWJiOGE2Y2I1ZGY4ZjhjOGY3N2Y3NDFhOWViNTVmNzc",
+                "commit": {
+                  "oid": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77",
+                  "messageHeadline": "Tool result fingerprints regenerated",
+                  "authoredDate": "2026-11-24T02:10:50Z",
+                  "committedDate": "2026-11-24T02:10:50Z",
+                  "author": {
+                    "user": {
+                      "login": "Domiii"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "HeadRefForcePushedEvent",
+                "id": "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIojQH3A",
+                "createdAt": "2026-11-24T02:13:26Z",
+                "actor": {
+                  "login": "Domiii",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "d64691a077e696490e49d6af27d645a4d60fccb7"
+                },
+                "afterCommit": {
+                  "oid": "9e5fd721abb8a6cb5df8f8c8f77f741a9eb55f77"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 1,
+    "remaining": 4994,
+    "resetAt": "2026-11-24T03:34:12.000Z",
+    "gatewayErrors": 0
+  }
+}

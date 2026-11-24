@@ -1,0 +1,292 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: pullRequest(number: 1663) { ...PrCore timelineItems(first: 100) { pageInfo { hasNextPage endCursor } nodes { ...PrItems } } }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment PrCore on PullRequest {\n  id number title state isDraft author { login __typename }\n  baseRefName headRefName baseRefOid headRefOid mergedAt closedAt updatedAt reviewDecision\n  reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } } }\n  latestReviews(first: 20) { nodes { id state author { login } submittedAt } }\n  closingIssuesReferences(first: 5) { nodes { number } }\n  commits(last: 1) { nodes { commit { oid statusCheckRollup { state } } } }\n  \n}\nfragment PrItems on PullRequestTimelineItems {\n  __typename\n  ... on Node { id }\n  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }\n  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }\n  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }\n  ... on ReopenedEvent { createdAt actor { login __typename } }\n  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on LabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on MentionedEvent { createdAt actor { login __typename } }\n  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }\n  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n\n  ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }\n    comments(first: 10) { nodes { id path body author { login } } } }\n  ... on PullRequestCommit { commit { oid messageHeadline authoredDate committedDate author { user { login } } } }\n  ... on HeadRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefForcePushedEvent { createdAt actor { login __typename } beforeCommit { oid } afterCommit { oid } }\n  ... on BaseRefChangedEvent { createdAt actor { login __typename } previousRefName currentRefName }\n  ... on AutomaticBaseChangeSucceededEvent { createdAt oldBase newBase }\n  ... on ReviewRequestedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewRequestRemovedEvent { createdAt actor { login __typename } requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } }\n  ... on ReviewDismissedEvent { createdAt actor { login __typename } previousReviewState dismissalMessage }\n  ... on ReadyForReviewEvent { createdAt actor { login __typename } }\n  ... on ConvertToDraftEvent { createdAt actor { login __typename } }\n  ... on MergedEvent { createdAt actor { login __typename } commit { oid } }\n  ... on AddedToStackEvent { createdAt actor { login __typename } }\n  ... on RemovedFromStackEvent { createdAt actor { login __typename } }\n}\n",
+  "variables": {
+    "owner": "replayio",
+    "name": "chromium",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "replayio/chromium",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "id": "PR_kwDOE2wi2c8AAAABQWiJyg",
+          "number": 1663,
+          "title": "Replay: a diverged replay releases the sync calls it is waiting for replies to",
+          "state": "MERGED",
+          "isDraft": false,
+          "author": {
+            "login": "Andarist",
+            "__typename": "User"
+          },
+          "baseRefName": "rebase/157/working",
+          "headRefName": "andarist/157-repaint-diverged-sync-calls",
+          "baseRefOid": "2372e276b715c18b034d732581be8f7d71f281e8",
+          "headRefOid": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+          "mergedAt": "2026-11-23T14:29:30Z",
+          "closedAt": "2026-11-23T14:29:30Z",
+          "updatedAt": "2026-11-23T14:29:30Z",
+          "reviewDecision": null,
+          "reviewRequests": {
+            "nodes": []
+          },
+          "latestReviews": {
+            "nodes": []
+          },
+          "closingIssuesReferences": {
+            "nodes": []
+          },
+          "commits": {
+            "nodes": [
+              {
+                "commit": {
+                  "oid": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+                  "statusCheckRollup": {
+                    "state": "FAILURE"
+                  }
+                }
+              }
+            ]
+          },
+          "timelineItems": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "Y3Vyc29yOnYyOpPPAAABogjP3RABqzM3MDE4Nzc3NDM1"
+            },
+            "nodes": [
+              {
+                "__typename": "CrossReferencedEvent",
+                "id": "CRE_kwDODVUEis8AAAAFcaCVsQ",
+                "createdAt": "2026-11-19T10:28:51Z",
+                "actor": {
+                  "login": "Andarist",
+                  "__typename": "User"
+                },
+                "willCloseTarget": false,
+                "isCrossRepository": true,
+                "source": {
+                  "__typename": "PullRequest",
+                  "number": 14041,
+                  "title": "chromium-recording: a case for a repaint taken while the compositor waits on the GPU process",
+                  "state": "MERGED",
+                  "repository": {
+                    "nameWithOwner": "replayio/backend"
+                  }
+                }
+              },
+              {
+                "__typename": "HeadRefForcePushedEvent",
+                "id": "HRFPE_lADOE2wi2c8AAAABgqFe288AAAAIiG0DIQ",
+                "createdAt": "2026-11-19T12:30:06Z",
+                "actor": {
+                  "login": "Andarist",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "527ab2493ead2d261acb72391bd4c61e2a8252a5"
+                },
+                "afterCommit": {
+                  "oid": "c0014f107cddd0ab2f7d1eed1c2c62ee3c6939aa"
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDljNTgwMGQ4ZjU4M2MxZjczNzM1YTdkMzQyOThjYzAyMjgyYTE3OTc",
+                "commit": {
+                  "oid": "9c5800d8f583c1f73735a7d34298cc02282a1797",
+                  "messageHeadline": "Replay: a diverged replay releases the sync calls it is waiting for r…",
+                  "authoredDate": "2026-11-18T20:58:04Z",
+                  "committedDate": "2026-11-22T19:47:55Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKGQ3OTI0NjMxYzY4MWFiMzNmOWY5MjY1ZTk1NjlkZDg5MjY2ZGY1MmQ",
+                "commit": {
+                  "oid": "d7924631c681ab33f9f9265e9569dd89266df52d",
+                  "messageHeadline": "Replay: the in-flight sync calls are listed by the fork's own code",
+                  "authoredDate": "2026-11-18T22:33:01Z",
+                  "committedDate": "2026-11-22T19:47:55Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDE1NzIyMDUzMmQyNTcwNWE4OTFiNDA0ZDRlNGI1YTFkNGU5NjMwZjQ",
+                "commit": {
+                  "oid": "157220532d25705a891b404d4e4b5a1d4e9630f4",
+                  "messageHeadline": "Replay: the in-flight sync call lock is never an ordered lock",
+                  "authoredDate": "2026-11-18T23:47:08Z",
+                  "committedDate": "2026-11-22T19:47:56Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDY5ZmVlNThjMWM0MzY1OTA0YzIwYjU2OGIwM2Y4ZDA2Yzg5YzQ0NjI",
+                "commit": {
+                  "oid": "69fee58c1c4365904c20b568b03f8d06c89c4462",
+                  "messageHeadline": "Replay: the sync call release names the callees it is known to mishandle",
+                  "authoredDate": "2026-11-18T23:47:55Z",
+                  "committedDate": "2026-11-22T19:47:57Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDBlN2Y1NmI2NGI1ODBkZDlkZmFhZjdkMzY2ODkwYmUwZjA3NTU4MjI",
+                "commit": {
+                  "oid": "0e7f56b64b580dd9dfaaf7d366890be0f0755822",
+                  "messageHeadline": "Replay: two more limitations of releasing a stranded sync call, in th…",
+                  "authoredDate": "2026-11-18T23:48:51Z",
+                  "committedDate": "2026-11-22T19:47:58Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc2Yjk3YTQwODZhNmIzNmUyZGE2ZWRlZGMxNjU5OGFjZGMyMzRhNzg",
+                "commit": {
+                  "oid": "76b97a4086a6b36e2da6ededc16598acdc234a78",
+                  "messageHeadline": "Replay: the in-flight sync call lock's comment states the invariant, …",
+                  "authoredDate": "2026-11-19T01:33:56Z",
+                  "committedDate": "2026-11-22T19:47:59Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKGU4YjU0YWM4MTEzNmMzODIzMWJlOWZjYTNmNTFlMzhhMWQyMDAxZTc",
+                "commit": {
+                  "oid": "e8b54ac81136c38231be9fca3f51e38a1d2001e7",
+                  "messageHeadline": "Replay: the sync call release's recorded limitations say the right thing",
+                  "authoredDate": "2026-11-19T07:23:29Z",
+                  "committedDate": "2026-11-22T19:48:00Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc0YTJiODhmZjkwZTY5ZTg3OTc3M2MzYzQzZjhiNzJhNjQzOTRlOTE",
+                "commit": {
+                  "oid": "74a2b88ff90e69e879773c3c43f8b72a64394e91",
+                  "messageHeadline": "Replay: trim the sync-call release comments to what a reader needs",
+                  "authoredDate": "2026-11-19T10:07:58Z",
+                  "committedDate": "2026-11-22T19:48:01Z",
+                  "author": {
+                    "user": null
+                  }
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKDc4YWUxODU5MjQ3ODgwZWNkZDc1YzIyYzNkYTgxZDRhZTliMDM1Mjk",
+                "commit": {
+                  "oid": "78ae1859247880ecdd75c22c3da81d4ae9b03529",
+                  "messageHeadline": "Replay: the sync call release's comments say what the release does to…",
+                  "authoredDate": "2026-11-19T10:26:42Z",
+                  "committedDate": "2026-11-22T19:48:02Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "HeadRefForcePushedEvent",
+                "id": "HRFPE_lADOE2wi2c8AAAABgqFe288AAAAImj-sMw",
+                "createdAt": "2026-11-22T21:04:36Z",
+                "actor": {
+                  "login": "Andarist",
+                  "__typename": "User"
+                },
+                "beforeCommit": {
+                  "oid": "c0014f107cddd0ab2f7d1eed1c2c62ee3c6939aa"
+                },
+                "afterCommit": {
+                  "oid": "78ae1859247880ecdd75c22c3da81d4ae9b03529"
+                }
+              },
+              {
+                "__typename": "PullRequestCommit",
+                "id": "PURC_lADOE2wi2c8AAAABQWiJytoAKGRjNTE3MGFlMDMzZTJmNGIzYmRmOGUxZWI5ZWIwMTkwMzZjODE5NTU",
+                "commit": {
+                  "oid": "dc5170ae033e2f4b3bdf8e1eb9eb019036c81955",
+                  "messageHeadline": "Replay: the sync call release's comments say what is blocked and what…",
+                  "authoredDate": "2026-11-23T12:18:40Z",
+                  "committedDate": "2026-11-23T12:18:40Z",
+                  "author": {
+                    "user": {
+                      "login": "Andarist"
+                    }
+                  }
+                }
+              },
+              {
+                "__typename": "MergedEvent",
+                "id": "ME_lADOE2wi2c8AAAABgqFe288AAAAInn22rQ",
+                "createdAt": "2026-11-23T14:29:30Z",
+                "actor": {
+                  "login": "Andarist",
+                  "__typename": "User"
+                },
+                "commit": {
+                  "oid": "0834cffb5afffae2bd09681b4df30dce5c38bdee"
+                }
+              },
+              {
+                "__typename": "ClosedEvent",
+                "id": "CE_lADOE2wi2c8AAAABgqFe288AAAAInn23Ww",
+                "createdAt": "2026-11-23T14:29:30Z",
+                "actor": {
+                  "login": "Andarist",
+                  "__typename": "User"
+                },
+                "stateReason": "COMPLETED",
+                "closer": null
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 1,
+    "remaining": 4993,
+    "resetAt": "2026-11-24T03:34:12.000Z",
+    "gatewayErrors": 0
+  }
+}
