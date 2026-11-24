@@ -1,18 +1,36 @@
 import { useCallback, useEffect } from "react";
-import { POLL_MS, useGetInboxQuery, usePrefetch } from "../store/api.ts";
+import type { InboxRow } from "../../core/index.ts";
+import { markDone, openSnoozeMenu, toggleMute } from "../store/actions.ts";
+import { useGetInboxQuery, usePrefetch } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { SECTION_LABELS } from "../store/types.ts";
-import { inboxArgFor, rowSelected, selectInbox, selectSelectedIndex, selectVisibleRows, selectView } from "../store/view.ts";
+import {
+  inboxArgFor,
+  rowSelected,
+  selectGoneKeys,
+  selectInbox,
+  selectPollInterval,
+  selectSelectedIndex,
+  selectVisibleRows,
+  selectView,
+} from "../store/view.ts";
+import { repoShortName } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
+import { anchorBelow } from "./SnoozeMenu.tsx";
 import { rowDomId, ThreadRow } from "./ThreadRow.tsx";
 import styles from "./ThreadList.module.css";
+
+/** "Done all" asks for confirmation above this many rows. */
+export const CONFIRM_DONE_ALL = 20;
 
 export function ThreadList() {
   const dispatch = useAppDispatch();
   const view = useAppSelector(selectView);
-  const { isError, isLoading } = useGetInboxQuery(inboxArgFor(view.section), { pollingInterval: POLL_MS });
+  const pollingInterval = useAppSelector(selectPollInterval);
+  const { isError, isLoading } = useGetInboxQuery(inboxArgFor(view.section), { pollingInterval });
   const inbox = useAppSelector(selectInbox);
   const rows = useAppSelector(selectVisibleRows);
+  const gone = useAppSelector(selectGoneKeys);
   const selectedIndex = useAppSelector(selectSelectedIndex);
   const prefetchSubject = usePrefetch("getSubject");
   const now = useNow();
@@ -39,6 +57,18 @@ export function ThreadList() {
   }, [prevKey, nextKey, prefetchSubject]);
 
   const onSelect = useCallback((key: string, index: number) => dispatch(rowSelected({ key, index })), [dispatch]);
+  const onDone = useCallback((row: InboxRow) => dispatch(markDone([row.key])), [dispatch]);
+  const onMute = useCallback((row: InboxRow) => dispatch(toggleMute(row)), [dispatch]);
+  const onSnooze = useCallback(
+    (row: InboxRow, button: Element) => dispatch(openSnoozeMenu([row], anchorBelow(button))),
+    [dispatch],
+  );
+
+  const doneAll = () => {
+    const keys = rows.map((row) => row.key);
+    if (keys.length > CONFIRM_DONE_ALL && !window.confirm(`Mark all ${keys.length} items done?`)) return;
+    dispatch(markDone(keys));
+  };
 
   let empty: string | null = null;
   if (isError && !inbox) empty = "Could not load the inbox.";
@@ -47,6 +77,17 @@ export function ThreadList() {
 
   return (
     <section className={styles.list} aria-label="Threads">
+      <header className={styles.header}>
+        <span className={styles.heading}>
+          {SECTION_LABELS[view.section]}
+          {view.repo && <span className={styles.repo}> · {repoShortName(view.repo)}</span>}
+        </span>
+        {view.section !== "hidden" && rows.length > 0 && (
+          <button type="button" className={styles.doneAll} onClick={doneAll}>
+            Done all ({rows.length})
+          </button>
+        )}
+      </header>
       {empty !== null ? (
         <p className={styles.empty}>{empty}</p>
       ) : (
@@ -57,8 +98,12 @@ export function ThreadList() {
               row={row}
               index={index}
               selected={index === selectedIndex}
+              gone={gone.has(row.key)}
               now={now}
               onSelect={onSelect}
+              onDone={onDone}
+              onSnooze={onSnooze}
+              onMute={onMute}
             />
           ))}
         </ul>

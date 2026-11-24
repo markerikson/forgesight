@@ -1,4 +1,5 @@
 .row {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -84,4 +85,46 @@
 .stale {
   flex: none;
   color: var(--warning);
+}
+
+.gone {
+  opacity: 0.55;
+}
+
+.actions {
+  position: absolute;
+  top: 3px;
+  right: 8px;
+  z-index: 1;
+  display: none;
+  gap: 4px;
+}
+
+.actions button {
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  line-height: 17px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  border-color: var(--accent);
+}
+
+.row:hover .actions,
+.row:focus-within .actions {
+  display: flex;
+}
+
+.selected .actions {
+  display: flex;
+}
+
+.selected:not(:hover, :focus-within) .actions button:not(.done) {
+  display: none;
 }

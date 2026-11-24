@@ -40,5 +40,5 @@ export const api = createApi({
 
 export const { useGetInboxQuery, useGetSubjectQuery, useGetStatusQuery, usePrefetch } = api;
 
-/** Until SSE lands, polled queries refresh on this interval and on window focus. */
+/** While the event stream is down, the inbox and status poll on this interval. */
 export const POLL_MS = 60_000;

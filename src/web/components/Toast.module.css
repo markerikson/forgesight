@@ -1,0 +1,37 @@
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 36px;
+  z-index: 15;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 420px;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-raised);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.2);
+}
+
+.error {
+  border-color: var(--error);
+}
+
+.button {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.close {
+  border: 0;
+  background: none;
+  color: var(--fg-mute);
+  font: inherit;
+  cursor: pointer;
+}

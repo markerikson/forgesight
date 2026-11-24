@@ -10,13 +10,98 @@
   color: var(--fg-mute);
 }
 
-.header {
+.top {
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 12px 16px 10px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
+}
+
+.header {
+  padding: 4px 16px 10px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px 4px;
+}
+
+.actions button,
+.button {
+  padding: 1px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.actions button:hover:not(:disabled),
+.button:hover {
+  border-color: var(--accent);
+}
+
+.actions button:disabled {
+  color: var(--fg-fade);
+  cursor: default;
+}
+
+.actions .primary:not(:disabled) {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.split {
+  position: relative;
+  display: inline-flex;
+}
+
+.split > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.split > button:nth-child(2) {
+  margin-left: -1px;
+  padding: 1px 5px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 3;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
+
+.menu button {
+  white-space: nowrap;
+  border: none;
+  background: transparent;
+}
+
+.next {
+  margin-left: auto;
 }
 
 .title {

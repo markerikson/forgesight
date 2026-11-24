@@ -1,6 +1,7 @@
 import { createSelector, createSlice, type PayloadAction, type ThunkAction, type UnknownAction } from "@reduxjs/toolkit";
 import type { InboxPayload, InboxRow, Section } from "../../core/index.ts";
-import { api } from "./api.ts";
+import { api, POLL_MS } from "./api.ts";
+import { compareRows } from "./inbox-cache.ts";
 
 export interface ViewState {
   section: Section;
@@ -14,7 +15,49 @@ export interface ViewState {
   helpOpen: boolean;
   /** Focused round in the preview, 0 = newest. */
   roundIndex: number;
+  /**
+   * Rows read in this list, as they looked when read. They stay listed (dimmed) after a refetch drops
+   * them, until the section or repo filter changes.
+   */
+  lingering: InboxRow[];
+  /** Undoable changes, newest first. */
+  undo: UndoEntry[];
+  toast: Toast | null;
+  /** Increments on every toast so a timer only dismisses the toast it was started for. */
+  toastSeq: number;
+  snoozeMenu: SnoozeMenuState | null;
+  /** Live-update stream state; queries poll while it is not open. */
+  connection: Connection;
 }
+
+export interface UndoEntry {
+  opId: string;
+  label: string;
+  keys: string[];
+  at: string;
+}
+
+export interface Toast {
+  id: number;
+  message: string;
+  kind: "info" | "error";
+  /** Set when the toast offers Undo. */
+  opId?: string;
+}
+
+export interface SnoozeMenuState {
+  keys: string[];
+  /** Highlighted choice. */
+  index: number;
+  draft: boolean;
+  snoozed: boolean;
+  /** Viewport position of the button that opened it; null centers the menu. */
+  anchor: { top: number; left: number } | null;
+}
+
+export type Connection = "open" | "connecting" | "closed";
+
+export const UNDO_LIMIT = 20;
 
 export const initialViewState: ViewState = {
   section: "waiting",
@@ -24,6 +67,12 @@ export const initialViewState: ViewState = {
   expandedGroups: [],
   helpOpen: false,
   roundIndex: 0,
+  lingering: [],
+  undo: [],
+  toast: null,
+  toastSeq: 0,
+  snoozeMenu: null,
+  connection: "closed",
 };
 
 export interface UrlState {
@@ -44,12 +93,63 @@ export const viewSlice = createSlice({
       state.selectedKey = null;
       state.selectedIndex = 0;
       state.roundIndex = 0;
+      state.lingering = [];
+      state.snoozeMenu = null;
     },
     repoSelected(state, action: PayloadAction<string | null>) {
       state.repo = action.payload;
       state.selectedKey = null;
       state.selectedIndex = 0;
       state.roundIndex = 0;
+      state.lingering = [];
+      state.snoozeMenu = null;
+    },
+    /** `row` is the row as it looks once read. */
+    rowRead(state, action: PayloadAction<InboxRow>) {
+      state.lingering = [...state.lingering.filter((r) => r.key !== action.payload.key), action.payload];
+    },
+    lingeringDropped(state, action: PayloadAction<string[]>) {
+      const keys = new Set(action.payload);
+      if (state.lingering.some((r) => keys.has(r.key))) state.lingering = state.lingering.filter((r) => !keys.has(r.key));
+    },
+    undoPushed(state, action: PayloadAction<UndoEntry>) {
+      state.undo = [action.payload, ...state.undo].slice(0, UNDO_LIMIT);
+    },
+    undoRemoved(state, action: PayloadAction<string>) {
+      state.undo = state.undo.filter((entry) => entry.opId !== action.payload);
+      if (state.toast?.opId === action.payload) state.toast = null;
+    },
+    toastShown: {
+      reducer(state, action: PayloadAction<Omit<Toast, "id">>) {
+        state.toastSeq += 1;
+        state.toast = { ...action.payload, id: state.toastSeq };
+      },
+      prepare(message: string, opts: { kind?: Toast["kind"]; opId?: string } = {}) {
+        const toast: Omit<Toast, "id"> = { message, kind: opts.kind ?? "info" };
+        if (opts.opId !== undefined) toast.opId = opts.opId;
+        return { payload: toast };
+      },
+    },
+    /** Dismisses toast `id`, or whatever toast is showing when omitted. */
+    toastDismissed(state, action: PayloadAction<number | undefined>) {
+      if (action.payload === undefined || state.toast?.id === action.payload) state.toast = null;
+    },
+    snoozeMenuOpened(state, action: PayloadAction<Omit<SnoozeMenuState, "index">>) {
+      state.snoozeMenu = { ...action.payload, index: 0 };
+      state.helpOpen = false;
+    },
+    /** Moves the highlight, wrapping within `count` choices. */
+    snoozeMenuMoved(state, action: PayloadAction<{ delta: number; count: number }>) {
+      const menu = state.snoozeMenu;
+      if (!menu || action.payload.count <= 0) return;
+      const { delta, count } = action.payload;
+      menu.index = (((menu.index + delta) % count) + count) % count;
+    },
+    snoozeMenuClosed(state) {
+      state.snoozeMenu = null;
+    },
+    connectionChanged(state, action: PayloadAction<Connection>) {
+      state.connection = action.payload;
     },
     rowSelected(state, action: PayloadAction<{ key: string; index: number }>) {
       if (state.selectedKey !== action.payload.key) state.roundIndex = 0;
@@ -93,6 +193,16 @@ export const {
   helpToggled,
   helpClosed,
   urlStateRestored,
+  rowRead,
+  lingeringDropped,
+  undoPushed,
+  undoRemoved,
+  toastShown,
+  toastDismissed,
+  snoozeMenuOpened,
+  snoozeMenuMoved,
+  snoozeMenuClosed,
+  connectionChanged,
 } = viewSlice.actions;
 
 /** Collapsed groups have no id of their own; the first item's timeline id is stable across refetches. */
@@ -149,10 +259,33 @@ export const selectInbox = (state: ViewRootState): InboxPayload | undefined =>
 
 const emptyRows: InboxRow[] = [];
 
+/** The section's rows plus read rows the inbox no longer lists, each in its sort position. */
+export function withLingering(
+  live: readonly InboxRow[],
+  lingering: readonly InboxRow[],
+  section: Section,
+  repo: string | null,
+): InboxRow[] {
+  const visible = filterRows(live, section, repo);
+  if (lingering.length === 0) return visible;
+  const liveKeys = new Set(live.map((row) => row.key));
+  const extra = filterRows(lingering, section, repo).filter((row) => !liveKeys.has(row.key));
+  return extra.length === 0 ? visible : [...visible, ...extra].sort(compareRows);
+}
+
+const selectLiveRows = (state: ViewRootState) => selectInbox(state)?.rows ?? emptyRows;
+const selectLingering = (state: ViewRootState) => state.view.lingering;
+
 export const selectVisibleRows = createSelector(
-  [(state: ViewRootState) => selectInbox(state)?.rows ?? emptyRows, selectSection, selectRepo],
-  filterRows,
+  [selectLiveRows, selectLingering, selectSection, selectRepo],
+  withLingering,
 );
+
+/** Keys of listed rows the inbox itself no longer has; the list dims them. */
+export const selectGoneKeys = createSelector([selectLiveRows, selectLingering], (live, lingering) => {
+  const liveKeys = new Set(live.map((row) => row.key));
+  return new Set(lingering.filter((row) => !liveKeys.has(row.key)).map((row) => row.key));
+});
 
 export const selectSelectedRow = createSelector(
   [selectVisibleRows, (state: ViewRootState) => state.view.selectedKey, (state: ViewRootState) => state.view.selectedIndex],
@@ -165,7 +298,10 @@ export const selectSelectedIndex = createSelector([selectVisibleRows, selectSele
 
 export const selectRepoCounts = createSelector([selectInbox, selectSection], repoCounts);
 
-type ViewThunk = ThunkAction<void, ViewRootState, unknown, UnknownAction>;
+/** Polling stops while the event stream is open; the stream pushes changes instead. */
+export const selectPollInterval = (state: ViewRootState) => (state.view.connection === "open" ? 0 : POLL_MS);
+
+export type ViewThunk<R = void> = ThunkAction<R, ViewRootState, unknown, UnknownAction>;
 
 export function moveSelection(delta: number): ViewThunk {
   return (dispatch, getState) => {

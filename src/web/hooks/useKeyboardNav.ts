@@ -1,7 +1,18 @@
 import { useEffect } from "react";
 import type { Section, SubjectView } from "../../core/index.ts";
 import { api } from "../store/api.ts";
+import {
+  chooseSnooze,
+  markDone,
+  menuChoices,
+  muteAndUnsubscribe,
+  nextRow,
+  openSnoozeMenu,
+  toggleMute,
+  toggleUnread,
+} from "../store/actions.ts";
 import { useAppStore } from "../store/hooks.ts";
+import { refreshNow, undoLatest } from "../store/state-api.ts";
 import {
   groupId,
   groupsToggled,
@@ -11,6 +22,8 @@ import {
   roundFocused,
   sectionSelected,
   selectSelectedRow,
+  snoozeMenuClosed,
+  snoozeMenuMoved,
 } from "../store/view.ts";
 
 export interface KeyInput {
@@ -29,7 +42,19 @@ export type KeyAction =
   | { type: "prefix" }
   | { type: "section"; section: Section }
   | { type: "help" }
-  | { type: "closeHelp" };
+  | { type: "closeHelp" }
+  | { type: "done" }
+  | { type: "mute" }
+  | { type: "unsubscribe" }
+  | { type: "snooze" }
+  | { type: "toggleUnread" }
+  | { type: "undo" }
+  | { type: "next" }
+  | { type: "refresh" }
+  | { type: "menuMove"; delta: number }
+  | { type: "menuPick"; index: number }
+  | { type: "menuChoose" }
+  | { type: "menuClose" };
 
 const NON_TEXT_INPUTS = new Set(["checkbox", "radio", "button", "submit", "reset", "range", "color", "file"]);
 
@@ -50,11 +75,33 @@ function activatesOnEnter(target: EventTarget | null): boolean {
 
 const SECTION_KEYS: Record<string, Section> = { w: "waiting", u: "updates", s: "snoozed", h: "hidden" };
 
-/** Maps a keydown to an inbox action. `afterG` is true when the previous key was the `g` prefix. */
-export function keyAction(e: KeyInput, afterG: boolean): KeyAction | null {
+function menuKeyAction(key: string): KeyAction | null {
+  if (/^[1-9]$/.test(key)) return { type: "menuPick", index: Number(key) - 1 };
+  switch (key) {
+    case "j":
+    case "ArrowDown":
+      return { type: "menuMove", delta: 1 };
+    case "k":
+    case "ArrowUp":
+      return { type: "menuMove", delta: -1 };
+    case "Enter":
+      return { type: "menuChoose" };
+    case "Escape":
+      return { type: "menuClose" };
+    default:
+      return null;
+  }
+}
+
+/**
+ * Maps a keydown to an inbox action. `afterG` is true when the previous key was the `g` prefix.
+ * While the snooze menu is open, keys only drive the menu.
+ */
+export function keyAction(e: KeyInput, afterG: boolean, menuOpen = false): KeyAction | null {
   if (e.ctrlKey || e.metaKey || e.altKey) return null;
   if (isEditable(e.target)) return null;
-  if (e.key === "Enter" && activatesOnEnter(e.target)) return null;
+  if (menuOpen) return menuKeyAction(e.key);
+  if ((e.key === "Enter" || e.key === " ") && activatesOnEnter(e.target)) return null;
   if (afterG) {
     const section = SECTION_KEYS[e.key];
     return section ? { type: "section", section } : null;
@@ -81,6 +128,23 @@ export function keyAction(e: KeyInput, afterG: boolean): KeyAction | null {
       return { type: "help" };
     case "Escape":
       return { type: "closeHelp" };
+    case "e":
+      return { type: "done" };
+    case "m":
+      return { type: "mute" };
+    case "M":
+      return { type: "unsubscribe" };
+    case "s":
+    case "z":
+      return { type: "snooze" };
+    case "u":
+      return { type: "toggleUnread" };
+    case "Z":
+      return { type: "undo" };
+    case " ":
+      return { type: "next" };
+    case "R":
+      return { type: "refresh" };
     default:
       return null;
   }
@@ -105,8 +169,29 @@ export function useKeyboardNav(): void {
     let afterG = false;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      const action = keyAction(e, afterG);
+      const menu = store.getState().view.snoozeMenu;
+      const action = keyAction(e, afterG, menu !== null);
       afterG = action?.type === "prefix";
+      if (menu) {
+        // Swallow every key while the menu is open so nothing else reacts behind it.
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key !== "Tab") e.preventDefault();
+        if (!action) return;
+        switch (action.type) {
+          case "menuMove":
+            store.dispatch(snoozeMenuMoved({ delta: action.delta, count: menuChoices(menu, new Date()).length }));
+            break;
+          case "menuPick":
+            store.dispatch(chooseSnooze(action.index));
+            break;
+          case "menuChoose":
+            store.dispatch(chooseSnooze());
+            break;
+          case "menuClose":
+            store.dispatch(snoozeMenuClosed());
+            break;
+        }
+        return;
+      }
       if (!action) return;
 
       const state = store.getState();
@@ -144,7 +229,35 @@ export function useKeyboardNav(): void {
         case "closeHelp":
           store.dispatch(helpClosed());
           break;
+        case "done":
+          if (row) store.dispatch(markDone([row.key]));
+          break;
+        case "mute":
+          if (row) store.dispatch(toggleMute(row));
+          break;
+        case "unsubscribe":
+          if (row) store.dispatch(muteAndUnsubscribe(row));
+          break;
+        case "snooze":
+          if (row) store.dispatch(openSnoozeMenu([row]));
+          break;
+        case "toggleUnread":
+          if (row) store.dispatch(toggleUnread(row));
+          break;
+        case "undo":
+          store.dispatch(undoLatest());
+          break;
+        case "next":
+          store.dispatch(nextRow());
+          break;
+        case "refresh":
+          store.dispatch(refreshNow());
+          break;
         case "prefix":
+        case "menuMove":
+        case "menuPick":
+        case "menuChoose":
+        case "menuClose":
           break;
       }
     };

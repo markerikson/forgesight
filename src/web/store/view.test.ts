@@ -1,75 +1,31 @@
 import { describe, expect, test } from "bun:test";
-import { configureStore } from "@reduxjs/toolkit";
-import type { InboxPayload, InboxRow, Section } from "../../core/index.ts";
 import { api } from "./api.ts";
+import { payload, row, storeWith } from "./__fixtures__/inbox.ts";
 import {
   filterRows,
   groupsToggled,
+  lingeringDropped,
   moveSelection,
   repoCounts,
   repoSelected,
   resolveSelection,
+  rowRead,
   rowSelected,
   sectionSelected,
+  selectGoneKeys,
   selectRepoCounts,
   selectSelectedRow,
   selectVisibleRows,
+  snoozeMenuMoved,
+  snoozeMenuOpened,
+  toastDismissed,
+  toastShown,
+  UNDO_LIMIT,
+  undoPushed,
+  undoRemoved,
   viewSlice,
+  withLingering,
 } from "./view.ts";
-
-function row(key: string, section: Section, repo = "acme/app"): InboxRow {
-  return {
-    key,
-    repo,
-    number: 1,
-    kind: "pr",
-    title: key,
-    url: null,
-    author: null,
-    state: "OPEN",
-    draft: false,
-    merged: false,
-    ciState: null,
-    reviewDecision: null,
-    latestActor: null,
-    section,
-    reasons: [],
-    summaryLine: "",
-    newMeaningfulCount: 0,
-    hiddenStats: { pushes: 0, merged: 0, closed: 0 },
-    sortAt: "2026-11-01T00:00:00Z",
-    snoozeUntil: null,
-    unread: false,
-    enrichError: null,
-    findings: [],
-  };
-}
-
-function payload(rows: InboxRow[]): InboxPayload {
-  return {
-    rows,
-    sidebar: {
-      sections: { waiting: 0, updates: 0, snoozed: 0, hidden: 0 },
-      repos: [
-        { repo: "acme/app", waiting: 2, updates: 0 },
-        { repo: "acme/lib", waiting: 1, updates: 1 },
-      ],
-    },
-    countLines: [],
-    generatedAt: "2026-11-01T00:00:00Z",
-  };
-}
-
-function storeWith(rows: InboxRow[], includeHidden = false) {
-  const store = configureStore({
-    reducer: { [api.reducerPath]: api.reducer, view: viewSlice.reducer },
-    middleware: (gDM) => gDM().concat(api.middleware),
-  });
-  store.dispatch(
-    api.util.upsertQueryEntries([{ endpointName: "getInbox", arg: { includeHidden }, value: payload(rows) }]),
-  );
-  return store;
-}
 
 const rows = [
   row("acme/app#1", "waiting"),
@@ -174,4 +130,92 @@ describe("groupsToggled", () => {
     state = viewSlice.reducer(state, groupsToggled(["a", "b"]));
     expect(state.expandedGroups).toEqual([]);
   });
+});
+
+describe("lingering rows", () => {
+  const live = [
+    row("acme/app#1", "updates", "acme/app", { sortAt: "2026-11-03T00:00:00Z" }),
+    row("acme/app#3", "updates", "acme/app", { sortAt: "2026-11-01T00:00:00Z" }),
+  ];
+  const read = row("acme/app#2", "updates", "acme/app", { sortAt: "2026-11-02T00:00:00Z" });
+
+  test("withLingering keeps read rows in their sort position", () => {
+    expect(withLingering(live, [read], "updates", null).map((r) => r.key)).toEqual([
+      "acme/app#1",
+      "acme/app#2",
+      "acme/app#3",
+    ]);
+  });
+
+  test("withLingering prefers the live row and respects the section and repo filter", () => {
+    expect(withLingering(live, [{ ...live[0]!, title: "old" }], "updates", null)[0]?.title).toBe("acme/app#1");
+    expect(withLingering(live, [read], "waiting", null)).toEqual([]);
+    expect(withLingering(live, [read], "updates", "acme/lib")).toEqual([]);
+  });
+
+  test("a read row stays listed and dimmed after the inbox drops it", () => {
+    const store = storeWith([...live, read]);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(rowRead(read));
+    store.dispatch(api.util.upsertQueryEntries([{ endpointName: "getInbox", arg: { includeHidden: false }, value: payload(live) }]));
+    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toContain("acme/app#2");
+    expect([...selectGoneKeys(store.getState())]).toEqual(["acme/app#2"]);
+  });
+
+  test("changing section or repo clears lingering rows", () => {
+    let state = viewSlice.reducer(undefined, rowRead(read));
+    state = viewSlice.reducer(state, repoSelected("acme/app"));
+    expect(state.lingering).toEqual([]);
+    state = viewSlice.reducer(state, rowRead(read));
+    state = viewSlice.reducer(state, sectionSelected("snoozed"));
+    expect(state.lingering).toEqual([]);
+  });
+
+  test("lingeringDropped removes only the given keys", () => {
+    let state = viewSlice.reducer(undefined, rowRead(read));
+    state = viewSlice.reducer(state, rowRead(live[0]!));
+    state = viewSlice.reducer(state, lingeringDropped(["acme/app#2"]));
+    expect(state.lingering.map((r) => r.key)).toEqual(["acme/app#1"]);
+  });
+});
+
+describe("undo stack and toast", () => {
+  const entry = (n: number) => ({ opId: `op${n}`, label: "Done", keys: [`acme/app#${n}`], at: "2026-11-01T00:00:00Z" });
+
+  test("keeps the newest entries first, up to the limit", () => {
+    let state = viewSlice.reducer(undefined, undoPushed(entry(0)));
+    for (let n = 1; n <= UNDO_LIMIT; n++) state = viewSlice.reducer(state, undoPushed(entry(n)));
+    expect(state.undo).toHaveLength(UNDO_LIMIT);
+    expect(state.undo[0]?.opId).toBe(`op${UNDO_LIMIT}`);
+    expect(state.undo.some((e) => e.opId === "op0")).toBe(false);
+  });
+
+  test("removing an entry also closes its toast", () => {
+    let state = viewSlice.reducer(undefined, undoPushed(entry(1)));
+    state = viewSlice.reducer(state, toastShown("Done", { opId: "op1" }));
+    state = viewSlice.reducer(state, undoRemoved("op1"));
+    expect(state.undo).toEqual([]);
+    expect(state.toast).toBeNull();
+  });
+
+  test("a stale timer does not dismiss a newer toast", () => {
+    let state = viewSlice.reducer(undefined, toastShown("first"));
+    const firstId = state.toast!.id;
+    state = viewSlice.reducer(state, toastShown("second", { kind: "error" }));
+    state = viewSlice.reducer(state, toastDismissed(firstId));
+    expect(state.toast).toMatchObject({ message: "second", kind: "error" });
+    state = viewSlice.reducer(state, toastDismissed(undefined));
+    expect(state.toast).toBeNull();
+  });
+});
+
+test("snoozeMenuMoved wraps around the choices", () => {
+  let state = viewSlice.reducer(
+    undefined,
+    snoozeMenuOpened({ keys: ["acme/app#1"], draft: false, snoozed: false, anchor: null }),
+  );
+  state = viewSlice.reducer(state, snoozeMenuMoved({ delta: -1, count: 5 }));
+  expect(state.snoozeMenu?.index).toBe(4);
+  state = viewSlice.reducer(state, snoozeMenuMoved({ delta: 1, count: 5 }));
+  expect(state.snoozeMenu?.index).toBe(0);
 });

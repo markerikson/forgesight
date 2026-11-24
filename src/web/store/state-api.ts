@@ -1,0 +1,177 @@
+import { current, type Draft } from "@reduxjs/toolkit";
+import type { InboxPayload, InboxRow, SubjectKey } from "../../core/index.ts";
+import { patchInbox, type StateOp } from "../../core/state.ts";
+import { opLabel } from "../ops.ts";
+import { api, type InboxArg } from "./api.ts";
+import { replaceRows } from "./inbox-cache.ts";
+import {
+  lingeringDropped,
+  resolveSelection,
+  rowSelected,
+  selectSelectedRow,
+  selectVisibleRows,
+  toastShown,
+  undoPushed,
+  undoRemoved,
+  type ViewRootState,
+  type ViewThunk,
+} from "./view.ts";
+
+export interface ApplyStateArg {
+  keys: SubjectKey[];
+  op: StateOp;
+}
+
+export interface ApplyStateResponse {
+  opId: string;
+  outboxIds: number[];
+  /** Every changed row, including ones now in Hidden. */
+  rows: Record<SubjectKey, InboxRow>;
+}
+
+export interface UndoStateResponse {
+  result: "undone";
+  /** Outbox writes GitHub already applied, which undo cannot take back. */
+  githubApplied: number;
+  rows: Record<SubjectKey, InboxRow>;
+}
+
+export type UndoRefusal = "superseded" | "alreadyUndone" | "notFound";
+
+function refusalOf(error: unknown): UndoRefusal | null {
+  if (typeof error !== "object" || error === null || !("error" in error)) return null;
+  const inner = (error as { error: unknown }).error;
+  if (typeof inner !== "object" || inner === null || !("data" in inner)) return null;
+  const data = (inner as { data: unknown }).data;
+  if (typeof data !== "object" || data === null || !("result" in data)) return null;
+  const result = (data as { result: unknown }).result;
+  return result === "superseded" || result === "alreadyUndone" || result === "notFound" ? result : null;
+}
+
+const asPayload = (draft: Draft<InboxPayload>) => current(draft) as InboxPayload;
+
+function cachedInboxArgs(state: ViewRootState): InboxArg[] {
+  return api.util.selectCachedArgsForQuery(state, "getInbox");
+}
+
+export const stateApi = api.injectEndpoints({
+  endpoints: (build) => ({
+    applyState: build.mutation<ApplyStateResponse, ApplyStateArg>({
+      query: (body) => ({ url: "state", method: "POST", body }),
+      async onQueryStarted({ keys, op }, { dispatch, getState, queryFulfilled }) {
+        const before = getState() as ViewRootState;
+        const selected = selectSelectedRow(before);
+        const selectedIndex = selected ? selectVisibleRows(before).indexOf(selected) : 0;
+        const now = new Date().toISOString();
+
+        if (op.kind !== "read" && op.kind !== "unread") dispatch(lingeringDropped(keys));
+        const patches = cachedInboxArgs(before).map((arg) =>
+          dispatch(api.util.updateQueryData("getInbox", arg, (draft) => patchInbox(asPayload(draft), keys, op, now))),
+        );
+
+        // Pin the selection on the row that took the place of one that left the list.
+        if (op.kind !== "read" && selected) {
+          const after = getState() as ViewRootState;
+          const visible = selectVisibleRows(after);
+          if (!visible.some((row) => row.key === selected.key)) {
+            const next = resolveSelection(visible, null, selectedIndex);
+            if (next) dispatch(rowSelected({ key: next.key, index: visible.indexOf(next) }));
+          }
+        }
+
+        const label = opLabel(op, keys.length);
+        try {
+          const { data } = await queryFulfilled;
+          for (const arg of cachedInboxArgs(getState() as ViewRootState)) {
+            dispatch(
+              api.util.updateQueryData("getInbox", arg, (draft) =>
+                replaceRows(asPayload(draft), data.rows, arg.includeHidden),
+              ),
+            );
+          }
+          if (op.kind === "read") return;
+          dispatch(undoPushed({ opId: data.opId, label, keys, at: now }));
+          dispatch(toastShown(label, { opId: data.opId }));
+        } catch {
+          for (const patch of patches) patch.undo();
+          if (op.kind !== "read") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
+        }
+      },
+    }),
+    undoState: build.mutation<UndoStateResponse, { opId: string }>({
+      query: (body) => ({ url: "state/undo", method: "POST", body }),
+      async onQueryStarted({ opId }, { dispatch, getState, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          for (const arg of cachedInboxArgs(getState() as ViewRootState)) {
+            dispatch(
+              api.util.updateQueryData("getInbox", arg, (draft) =>
+                replaceRows(asPayload(draft), data.rows, arg.includeHidden),
+              ),
+            );
+          }
+          const entry = (getState() as ViewRootState).view.undo.find((e) => e.opId === opId);
+          dispatch(undoRemoved(opId));
+          dispatch(
+            toastShown(
+              data.githubApplied > 0
+                ? "Undone here. GitHub already marked it done."
+                : `Undone: ${entry?.label ?? "last change"}`,
+            ),
+          );
+        } catch (error) {
+          const refusal = refusalOf(error);
+          if (refusal) dispatch(undoRemoved(opId));
+          const message =
+            refusal === "superseded"
+              ? "A newer change on this item; undo that first"
+              : refusal === "alreadyUndone"
+                ? "Already undone"
+                : refusal === "notFound"
+                  ? "That change can no longer be undone"
+                  : "Could not undo";
+          dispatch(toastShown(message, { kind: "error" }));
+        }
+      },
+    }),
+    refresh: build.mutation<void, void>({
+      query: () => ({ url: "refresh", method: "POST" }),
+    }),
+  }),
+});
+
+/** Applies `op` to `keys`, optimistically; does nothing for an empty list. */
+export function applyState(keys: SubjectKey[], op: StateOp): ViewThunk {
+  return (dispatch) => {
+    if (keys.length === 0) return;
+    // Results live in the inbox cache and the undo stack, so drop each mutation entry once it settles.
+    const request = dispatch(stateApi.endpoints.applyState.initiate({ keys, op }));
+    void request.then(() => request.reset());
+  };
+}
+
+export function undoOp(opId: string): ViewThunk {
+  return (dispatch) => {
+    const request = dispatch(stateApi.endpoints.undoState.initiate({ opId }));
+    void request.then(() => request.reset());
+  };
+}
+
+export function undoLatest(): ViewThunk {
+  return (dispatch, getState) => {
+    const latest = getState().view.undo[0];
+    if (latest) dispatch(undoOp(latest.opId));
+    else dispatch(toastShown("Nothing to undo"));
+  };
+}
+
+export function refreshNow(): ViewThunk {
+  return (dispatch) => {
+    dispatch(toastShown("Checking GitHub for new notifications…"));
+    const request = dispatch(stateApi.endpoints.refresh.initiate());
+    request
+      .unwrap()
+      .catch(() => dispatch(toastShown("Could not request a refresh", { kind: "error" })))
+      .finally(() => request.reset());
+  };
+}
