@@ -1,6 +1,7 @@
 import { current, type Draft } from "@reduxjs/toolkit";
-import type { InboxPayload, InboxRow, SubjectKey } from "../../core/index.ts";
+import type { InboxPayload, SubjectKey } from "../../core/index.ts";
 import { patchInbox, type StateOp } from "../../core/state.ts";
+import type { StateRequest, StateResponse, UndoResponse } from "../../server/handlers/state.ts";
 import { opLabel } from "../ops.ts";
 import { api, type InboxArg } from "./api.ts";
 import { replaceRows } from "./inbox-cache.ts";
@@ -17,26 +18,8 @@ import {
   type ViewThunk,
 } from "./view.ts";
 
-export interface ApplyStateArg {
-  keys: SubjectKey[];
-  op: StateOp;
-}
-
-export interface ApplyStateResponse {
-  opId: string;
-  outboxIds: number[];
-  /** Every changed row, including ones now in Hidden. */
-  rows: Record<SubjectKey, InboxRow>;
-}
-
-export interface UndoStateResponse {
-  result: "undone";
-  /** Outbox writes GitHub already applied, which undo cannot take back. */
-  githubApplied: number;
-  rows: Record<SubjectKey, InboxRow>;
-}
-
-export type UndoRefusal = "superseded" | "alreadyUndone" | "notFound";
+type UndoStateResponse = Extract<UndoResponse, { result: "undone" }>;
+type UndoRefusal = Exclude<UndoResponse["result"], "undone">;
 
 function refusalOf(error: unknown): UndoRefusal | null {
   if (typeof error !== "object" || error === null || !("error" in error)) return null;
@@ -56,7 +39,7 @@ function cachedInboxArgs(state: ViewRootState): InboxArg[] {
 
 export const stateApi = api.injectEndpoints({
   endpoints: (build) => ({
-    applyState: build.mutation<ApplyStateResponse, ApplyStateArg>({
+    applyState: build.mutation<StateResponse, StateRequest>({
       query: (body) => ({ url: "state", method: "POST", body }),
       async onQueryStarted({ keys, op }, { dispatch, getState, queryFulfilled }) {
         const before = getState() as ViewRootState;
@@ -66,7 +49,10 @@ export const stateApi = api.injectEndpoints({
 
         if (op.kind !== "read" && op.kind !== "unread") dispatch(lingeringDropped(keys));
         const patches = cachedInboxArgs(before).map((arg) =>
-          dispatch(api.util.updateQueryData("getInbox", arg, (draft) => patchInbox(asPayload(draft), keys, op, now))),
+          dispatch(api.util.updateQueryData("getInbox", arg, (draft) =>
+            patchInbox(asPayload(draft), keys, op, now, { includeHidden: arg.includeHidden }),
+          ),
+        ),
         );
 
         // Pin the selection on the row that took the place of one that left the list.
@@ -98,7 +84,7 @@ export const stateApi = api.injectEndpoints({
         }
       },
     }),
-    undoState: build.mutation<UndoStateResponse, { opId: string }>({
+    undoState: build.mutation<UndoStateResponse, { opId: number }>({
       query: (body) => ({ url: "state/undo", method: "POST", body }),
       async onQueryStarted({ opId }, { dispatch, getState, queryFulfilled }) {
         try {
@@ -150,7 +136,7 @@ export function applyState(keys: SubjectKey[], op: StateOp): ViewThunk {
   };
 }
 
-export function undoOp(opId: string): ViewThunk {
+export function undoOp(opId: number): ViewThunk {
   return (dispatch) => {
     const request = dispatch(stateApi.endpoints.undoState.initiate({ opId }));
     void request.then(() => request.reset());

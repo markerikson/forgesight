@@ -22,7 +22,7 @@ export function Toast() {
   return (
     <div className={`${styles.toast} ${toast.kind === "error" ? styles.error : ""}`} role="status">
       <span>{toast.message}</span>
-      {opId && (
+      {opId !== undefined && (
         <button type="button" className={styles.button} onClick={() => dispatch(undoOp(opId))}>
           Undo
         </button>

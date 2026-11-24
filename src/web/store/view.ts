@@ -1,7 +1,7 @@
 import { createSelector, createSlice, type PayloadAction, type ThunkAction, type UnknownAction } from "@reduxjs/toolkit";
 import type { InboxPayload, InboxRow, Section } from "../../core/index.ts";
 import { api, POLL_MS } from "./api.ts";
-import { compareRows } from "./inbox-cache.ts";
+import { compareRows } from "../../core/inbox.ts";
 
 export interface ViewState {
   section: Section;
@@ -31,7 +31,7 @@ export interface ViewState {
 }
 
 export interface UndoEntry {
-  opId: string;
+  opId: number;
   label: string;
   keys: string[];
   at: string;
@@ -42,7 +42,7 @@ export interface Toast {
   message: string;
   kind: "info" | "error";
   /** Set when the toast offers Undo. */
-  opId?: string;
+  opId?: number;
 }
 
 export interface SnoozeMenuState {
@@ -115,7 +115,7 @@ export const viewSlice = createSlice({
     undoPushed(state, action: PayloadAction<UndoEntry>) {
       state.undo = [action.payload, ...state.undo].slice(0, UNDO_LIMIT);
     },
-    undoRemoved(state, action: PayloadAction<string>) {
+    undoRemoved(state, action: PayloadAction<number>) {
       state.undo = state.undo.filter((entry) => entry.opId !== action.payload);
       if (state.toast?.opId === action.payload) state.toast = null;
     },
@@ -124,7 +124,7 @@ export const viewSlice = createSlice({
         state.toastSeq += 1;
         state.toast = { ...action.payload, id: state.toastSeq };
       },
-      prepare(message: string, opts: { kind?: Toast["kind"]; opId?: string } = {}) {
+      prepare(message: string, opts: { kind?: Toast["kind"]; opId?: number } = {}) {
         const toast: Omit<Toast, "id"> = { message, kind: opts.kind ?? "info" };
         if (opts.opId !== undefined) toast.opId = opts.opId;
         return { payload: toast };

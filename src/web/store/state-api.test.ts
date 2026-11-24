@@ -51,7 +51,7 @@ describe("applyState", () => {
     const store = storeWith(rows);
     store.dispatch(rowSelected({ key: "acme/app#2", index: 1 }));
     const doneRow: InboxRow = { ...rows[1]!, section: "hidden" };
-    replies.push({ status: 200, body: { opId: "op1", outboxIds: [1], rows: { "acme/app#2": doneRow } } });
+    replies.push({ status: 200, body: { opId: 1, outboxIds: [1], rows: { "acme/app#2": doneRow } } });
 
     store.dispatch(applyState(["acme/app#2"], { kind: "done" }));
     expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#1", "acme/app#3"]);
@@ -60,8 +60,8 @@ describe("applyState", () => {
     await settle();
     expect(sent).toEqual([{ url: "/api/state", body: { keys: ["acme/app#2"], op: { kind: "done" } } }]);
     expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 1 });
-    expect(store.getState().view.undo).toMatchObject([{ opId: "op1", label: "Done", keys: ["acme/app#2"] }]);
-    expect(store.getState().view.toast).toMatchObject({ message: "Done", opId: "op1" });
+    expect(store.getState().view.undo).toMatchObject([{ opId: 1, label: "Done", keys: ["acme/app#2"] }]);
+    expect(store.getState().view.toast).toMatchObject({ message: "Done", opId: 1 });
   });
 
   test("restores the rows and shows an error when the server refuses", async () => {
@@ -79,7 +79,7 @@ describe("applyState", () => {
 
   test("marking read records no undo and shows no toast", async () => {
     const store = storeWith([row("acme/app#1", "updates", "acme/app", { unread: true, newMeaningfulCount: 2 })]);
-    replies.push({ status: 200, body: { opId: "op2", outboxIds: [], rows: {} } });
+    replies.push({ status: 200, body: { opId: 2, outboxIds: [], rows: {} } });
 
     store.dispatch(applyState(["acme/app#1"], { kind: "read" }));
     expect(cached(store).rows[0]).toMatchObject({ unread: false, newMeaningfulCount: 0 });
@@ -94,7 +94,7 @@ describe("undoLatest", () => {
   test("puts the server's rows back and drops the undo entry", async () => {
     const store = storeWith(rows);
     replies.push(
-      { status: 200, body: { opId: "op1", outboxIds: [], rows: { "acme/app#1": { ...rows[0]!, section: "hidden" } } } },
+      { status: 200, body: { opId: 1, outboxIds: [], rows: { "acme/app#1": { ...rows[0]!, section: "hidden" } } } },
       { status: 200, body: { result: "undone", githubApplied: 0, rows: { "acme/app#1": rows[0] } } },
     );
     store.dispatch(applyState(["acme/app#1"], { kind: "done" }));
@@ -102,7 +102,7 @@ describe("undoLatest", () => {
 
     store.dispatch(undoLatest());
     await settle();
-    expect(sent[1]).toEqual({ url: "/api/state/undo", body: { opId: "op1" } });
+    expect(sent[1]).toEqual({ url: "/api/state/undo", body: { opId: 1 } });
     expect(selectVisibleRows(store.getState())).toHaveLength(3);
     expect(cached(store).sidebar.sections).toMatchObject({ waiting: 3, hidden: 0 });
     expect(store.getState().view.undo).toEqual([]);
@@ -112,7 +112,7 @@ describe("undoLatest", () => {
   test("a superseded undo explains why and drops the entry", async () => {
     const store = storeWith(rows);
     replies.push(
-      { status: 200, body: { opId: "op1", outboxIds: [], rows: {} } },
+      { status: 200, body: { opId: 1, outboxIds: [], rows: {} } },
       { status: 409, body: { result: "superseded" } },
     );
     store.dispatch(applyState(["acme/app#1"], { kind: "done" }));

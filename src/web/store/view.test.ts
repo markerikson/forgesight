@@ -180,20 +180,20 @@ describe("lingering rows", () => {
 });
 
 describe("undo stack and toast", () => {
-  const entry = (n: number) => ({ opId: `op${n}`, label: "Done", keys: [`acme/app#${n}`], at: "2026-11-01T00:00:00Z" });
+  const entry = (n: number) => ({ opId: n, label: "Done", keys: [`acme/app#${n}`], at: "2026-11-01T00:00:00Z" });
 
   test("keeps the newest entries first, up to the limit", () => {
     let state = viewSlice.reducer(undefined, undoPushed(entry(0)));
     for (let n = 1; n <= UNDO_LIMIT; n++) state = viewSlice.reducer(state, undoPushed(entry(n)));
     expect(state.undo).toHaveLength(UNDO_LIMIT);
-    expect(state.undo[0]?.opId).toBe(`op${UNDO_LIMIT}`);
-    expect(state.undo.some((e) => e.opId === "op0")).toBe(false);
+    expect(state.undo[0]?.opId).toBe(UNDO_LIMIT);
+    expect(state.undo.some((e) => e.opId === 0)).toBe(false);
   });
 
   test("removing an entry also closes its toast", () => {
     let state = viewSlice.reducer(undefined, undoPushed(entry(1)));
-    state = viewSlice.reducer(state, toastShown("Done", { opId: "op1" }));
-    state = viewSlice.reducer(state, undoRemoved("op1"));
+    state = viewSlice.reducer(state, toastShown("Done", { opId: 1 }));
+    state = viewSlice.reducer(state, undoRemoved(1));
     expect(state.undo).toEqual([]);
     expect(state.toast).toBeNull();
   });
