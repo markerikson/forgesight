@@ -1,4 +1,5 @@
 import { type ApiSpend, resourceSpendSince, spendSince } from "../../store/api-calls.ts";
+import { type OutboxSummary, outboxSummary } from "../../store/state-ops.ts";
 import type { ServerCtx } from "../ctx.ts";
 import { type EnrichQueue, enrichQueue, readWorkerMeta } from "../queries.ts";
 
@@ -25,6 +26,8 @@ export interface StatusPayload {
   enrichQueue: EnrichQueue;
   /** Last hour. `graphql` is summed point cost, `rest` is calls excluding 304s (the budget caps' units). */
   spend: { since: string; graphql: number; rest: number; byClass: ApiSpend[] };
+  /** GitHub writes waiting to be sent, given up on, and the newest error among unsent rows. */
+  outbox: OutboxSummary;
   configError: string | null;
 }
 
@@ -60,6 +63,7 @@ export function readStatus(ctx: ServerCtx): StatusPayload {
       rest: resourceSpendSince(ctx.db, "rest", since),
       byClass: spendSince(ctx.db, since),
     },
+    outbox: outboxSummary(ctx.db),
     configError: ctx.configError,
   };
 }

@@ -144,6 +144,12 @@ export function createGitHubClient(
       await run("writeback", `mark thread ${threadId} done`, () => gh.notifications.markDone(threadRef(threadId)));
     },
 
+    async markRead(threadId) {
+      await run("writeback", `mark thread ${threadId} read`, () =>
+        gh.request("PATCH", `/notifications/threads/${encodeURIComponent(threadId)}`, { mutates: true }),
+      );
+    },
+
     async unsubscribe(threadId) {
       await run("writeback", `unsubscribe thread ${threadId}`, () =>
         gh.notifications.unsubscribe(threadRef(threadId)),

@@ -113,14 +113,41 @@ function unsubscribedThreads(db: Database, key: string): Set<string> {
   return new Set(rows.filter((r) => r.op === "unsubscribe").map((r) => r.thread_id));
 }
 
+/**
+ * Threads of `key` whose newest live write of `op`'s family is an unsent `op` row. Unsubscribe
+ * and resubscribe form one family, so a pending opposite write queued later is not skipped.
+ */
+function queuedThreads(db: Database, key: string, op: OutboxOp): Set<string> {
+  const subscription = op === "unsubscribe" || op === "resubscribe";
+  const [a, b] = subscription ? (["unsubscribe", "resubscribe"] as const) : [op, op];
+  const counts = (alias: string) =>
+    `${alias}.failed_at IS NULL AND ${alias}.op IN (?, ?)
+     AND (${alias}.completed_at IS NOT NULL OR ${liveOp(alias)})`;
+  const rows = db
+    .query<{ thread_id: string }, [string, string, string, string, string, string]>(
+      `SELECT thread_id FROM outbox o
+       WHERE o.subject_key = ? AND o.op = ? AND o.completed_at IS NULL AND ${counts("o")}
+         AND o.id = (SELECT MAX(id) FROM outbox p WHERE p.thread_id = o.thread_id AND ${counts("p")})`,
+    )
+    .all(key, op, a, b, a, b);
+  return new Set(rows.map((r) => r.thread_id));
+}
+
+/**
+ * Threads that get an `op` row. A thread that already has the same write waiting is skipped,
+ * so repeating an op before the outbox sends it does not queue the write twice.
+ */
 function outboxTargets(db: Database, key: string, op: OutboxOp): string[] {
   const unsubscribed = op === "resubscribe" ? unsubscribedThreads(db, key) : new Set<string>();
-  const threads: OutboxThread[] = threadsForSubject(db, key).map((t) => ({
-    threadId: t.threadId,
-    unread: t.unread,
-    ghDoneAt: t.ghDoneAt,
-    unsubscribed: unsubscribed.has(t.threadId),
-  }));
+  const queued = queuedThreads(db, key, op);
+  const threads: OutboxThread[] = threadsForSubject(db, key)
+    .filter((t) => !queued.has(t.threadId))
+    .map((t) => ({
+      threadId: t.threadId,
+      unread: t.unread,
+      ghDoneAt: t.ghDoneAt,
+      unsubscribed: unsubscribed.has(t.threadId),
+    }));
   return outboxThreads(op, threads);
 }
 
@@ -250,6 +277,18 @@ export function retryOutbox(db: Database, id: number, error: string, runAfter: s
     `UPDATE outbox SET attempts = attempts + 1, last_error = ?, run_after = ?, claimed_at = NULL
      WHERE id = ?`,
   ).run(error, runAfter, id);
+}
+
+/**
+ * Releases the claim and pushes the row out to `runAfter` without counting an attempt
+ * (network failure or timeout), so one row that keeps timing out does not block the rest.
+ */
+export function deferOutbox(db: Database, id: number, error: string, runAfter: string): void {
+  db.query("UPDATE outbox SET last_error = ?, run_after = ?, claimed_at = NULL WHERE id = ?").run(
+    error,
+    runAfter,
+    id,
+  );
 }
 
 /** Gives up on a row; it stays for the status panel until a later cleanup. */

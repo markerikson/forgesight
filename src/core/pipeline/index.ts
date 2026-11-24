@@ -19,7 +19,7 @@ export { describe } from "./rank.ts";
 export { toInboxRow, toViewRecord } from "./row.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
-export const PIPELINE_VERSION = 3;
+export const PIPELINE_VERSION = 4;
 
 export interface DeriveInput {
   subject: SubjectRecord;
@@ -41,14 +41,20 @@ const THREAD_WAITING: Record<string, RankReason> = {
 };
 
 /**
+ * Unread on GitHub and updated after the last local read or done. A local read clears the
+ * row right away, before the outbox marks the thread read on GitHub.
+ */
+function isFreshUnread(thread: ThreadRecord, state: ItemState): boolean {
+  return thread.unread && (state.dismissedAt === null || isAfter(thread.updatedAt, state.dismissedAt));
+}
+
+/**
  * Rank for a subject enrichment has not reached yet: only the notification threads are
  * known, so an unread thread newer than the last visit counts as an update.
  */
 function rankFromThreads(input: DeriveInput): Rank {
   const { threads, state } = input;
-  const fresh = threads.filter(
-    (t) => t.unread && (state.dismissedAt === null || isAfter(t.updatedAt, state.dismissedAt)),
-  );
+  const fresh = threads.filter((t) => isFreshUnread(t, state));
   const newest = fresh.toSorted((a, b) => (isAfter(a.updatedAt, b.updatedAt) ? -1 : 1))[0];
   const reasons: RankReason[] = [];
   let section: Section = "hidden";
@@ -125,7 +131,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     hiddenStats: r.hiddenStats,
     sortAt: r.sortAt,
     snoozeUntil: state.snoozeUntil,
-    unread: threads.some((t) => t.unread) || state.keepUnread,
+    unread: threads.some((t) => isFreshUnread(t, state)) || state.keepUnread,
   };
 }
 

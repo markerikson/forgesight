@@ -331,6 +331,12 @@ describe("rank", () => {
     expect(view.unread).toBe(true);
   });
 
+  test("an unread thread counts as read once it is read locally", () => {
+    expect(derive({}).unread).toBe(true);
+    expect(derive({ itemState: { dismissedAt: "2026-11-21T00:00:00Z" } }).unread).toBe(false);
+    expect(derive({ enriched: false, itemState: { dismissedAt: "2026-11-22T00:00:00Z" } }).unread).toBe(false);
+  });
+
   test("snooze until a human event ignores bots and my own comments", () => {
     const itemState = { snoozeUntilHumanEvent: true, snoozedAt: "2026-11-20T12:00:00Z" };
     const botOnly = derive({ itemState, items: [comment("ci-bot", "2026-11-21T00:00:00Z", "green", true)] });

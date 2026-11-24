@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { parseConfigText } from "../../config/load.ts";
 import { recordApiCall } from "../../store/api-calls.ts";
 import { setMeta } from "../../store/meta.ts";
 import { ensureSubjects, markDirty } from "../../store/subjects.ts";
-import { memoryDb } from "../../store/test-db.ts";
 import type { ServerCtx } from "../ctx.ts";
+import { testCtx } from "../test-ctx.ts";
 import { type StatusPayload, statusHandler } from "./status.ts";
 
 const NOW = new Date("2026-11-23T12:00:00.000Z");
 
 function ctx(): ServerCtx {
-  return { db: memoryDb(), config: parseConfigText("{}"), configError: null, now: () => NOW };
+  return testCtx(NOW);
 }
 
 async function status(c: ServerCtx): Promise<StatusPayload> {
@@ -33,6 +32,7 @@ describe("statusHandler", () => {
     expect(s.backfill.inProgress).toBe(false);
     expect(s.enrichQueue).toEqual({ pending: 0, failing: 0 });
     expect(s.spend).toEqual({ since: "2026-11-23T11:00:00.000Z", graphql: 0, rest: 0, byClass: [] });
+    expect(s.outbox).toEqual({ pending: 0, failed: 0, lastError: null });
     expect(s.configError).toBeNull();
   });
 

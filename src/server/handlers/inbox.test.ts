@@ -1,18 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import type { InboxPayload, Section, SubjectView } from "../../core/index.ts";
-import { parseConfigText } from "../../config/load.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
-import { memoryDb } from "../../store/test-db.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
+import { testCtx } from "../test-ctx.ts";
 import { inboxHandler } from "./inbox.ts";
 import { subjectHandler, subjectKeyFromPath } from "./subject.ts";
 
 const NOW = new Date("2026-11-24T12:00:00.000Z");
 
 function ctx(): ServerCtx {
-  return { db: memoryDb(), config: parseConfigText("{}"), configError: null, now: () => NOW };
+  return testCtx(NOW);
 }
 
 function view(key: string, section: Section, number: number | null): SubjectView {
