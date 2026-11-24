@@ -1,10 +1,14 @@
 import type { Database } from "bun:sqlite";
 import initialSql from "./migrations/001-initial.sql" with { type: "text" };
+import outboxSql from "./migrations/002-outbox.sql" with { type: "text" };
 import { userVersion } from "./schema-version.ts";
 
 export type Migration = { version: number; name: string; sql: string };
 
-export const migrations: Migration[] = [{ version: 1, name: "initial", sql: initialSql }];
+export const migrations: Migration[] = [
+  { version: 1, name: "initial", sql: initialSql },
+  { version: 2, name: "outbox", sql: outboxSql },
+];
 
 export function latest(list: Migration[]): number {
   return list.reduce((max, m) => Math.max(max, m.version), 0);

@@ -267,9 +267,12 @@ describe("item state", () => {
     const db = memoryDb();
     expect(getItemState(db, "o/r#1")).toEqual({
       dismissedAt: null,
+      doneAt: null,
       keepUnread: false,
       snoozeUntil: null,
       snoozeUntilHumanEvent: false,
+      snoozeUntilReady: false,
+      snoozedAt: null,
       muted: false,
     });
     expect(getItemStates(db, ["o/r#1"]).size).toBe(0);
