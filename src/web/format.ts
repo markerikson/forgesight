@@ -61,7 +61,7 @@ export const REASON_LABELS: Record<RankReason, string> = {
   reviewRequested: "review requested",
   mentioned: "mentioned",
   assigned: "assigned",
-  onMyPr: "my PR",
+  onMine: "mine",
   onMyReview: "I reviewed",
   participating: "participating",
   newActivity: "new activity",
@@ -71,6 +71,8 @@ export const REASON_LABELS: Record<RankReason, string> = {
   muted: "muted",
   notEnriched: "not loaded yet",
   closedByOthers: "closed by others",
+  closedByAuthor: "closed by author",
+  keptUnread: "kept unread",
   staleReviewRequest: "old review request",
   nothingNew: "nothing new",
 };

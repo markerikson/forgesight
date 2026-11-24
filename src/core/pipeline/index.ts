@@ -13,13 +13,13 @@ import { applyOverrides, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
 import { buildHeader, buildLinks } from "./row.ts";
 import { isAfter } from "./time.ts";
-import type { RankReason, Section, SubjectView } from "./types.ts";
+import type { RankReason, Round, Section, SubjectView, ViewEvent } from "./types.ts";
 
 export { describe } from "./rank.ts";
 export { toInboxRow, toViewRecord } from "./row.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
-export const PIPELINE_VERSION = 2;
+export const PIPELINE_VERSION = 3;
 
 export interface DeriveInput {
   subject: SubjectRecord;
@@ -82,7 +82,7 @@ function rankFromThreads(input: DeriveInput): Rank {
  */
 export function deriveSubjectView(input: DeriveInput): SubjectView {
   const { subject, threads, state, config, me, now } = input;
-  const events = classify(normalize({ repo: subject.repo, items: input.items, stickies: input.stickies }), {
+  const classified = classify(normalize({ repo: subject.repo, items: input.items, stickies: input.stickies }), {
     config,
     me,
     mode: repoConfig(config, subject.repo).mode,
@@ -90,7 +90,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     mySubject: isMe(subject.author ?? undefined, me),
     dismissedAt: state.dismissedAt,
   });
-  const rounds = buildRounds(events);
+  const { events, rounds } = onlyNewestRoundIfUnvisited(subject, state, classified);
   const enriched = subject.timelineSyncedUntil !== null || events.length > 0;
   const r = applyOverrides(
     enriched
@@ -107,6 +107,8 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
       : rankFromThreads(input),
     state,
     now,
+    events,
+    me,
   );
 
   return {
@@ -123,6 +125,25 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     hiddenStats: r.hiddenStats,
     sortAt: r.sortAt,
     snoozeUntil: state.snoozeUntil,
-    unread: threads.some((t) => t.unread),
+    unread: threads.some((t) => t.unread) || state.keepUnread,
   };
+}
+
+/**
+ * On a PR I have never visited, only the newest round counts as new, so a long-running PR
+ * does not show its whole history as unread.
+ */
+function onlyNewestRoundIfUnvisited(
+  subject: SubjectRecord,
+  state: ItemState,
+  events: ViewEvent[],
+): { events: ViewEvent[]; rounds: Round[] } {
+  const rounds = buildRounds(events);
+  const newest = rounds[0];
+  if (subject.kind !== "pr" || state.dismissedAt !== null || rounds.length < 2 || !newest) {
+    return { events, rounds };
+  }
+  const cutoff = newest.startedAt;
+  const trimmed = events.map((e) => (e.isNew && isAfter(cutoff, e.at) ? { ...e, isNew: false } : e));
+  return { events: trimmed, rounds: buildRounds(trimmed) };
 }

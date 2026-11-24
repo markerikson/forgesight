@@ -121,15 +121,24 @@ function mentionsMe(e: ViewEvent, me: string | null): boolean {
   return e.body !== undefined && mentions(e.body, me);
 }
 
-/** True when a review request for me is open and I have not reviewed since it was made. */
-function openReviewRequest(subject: SubjectRecord, events: ViewEvent[], me: string | null): boolean {
+/**
+ * True when a review request for me is open, was made after my last Done, and I have not
+ * reviewed since it was made. Reading the subject does not clear it.
+ */
+function openReviewRequest(
+  subject: SubjectRecord,
+  events: ViewEvent[],
+  me: string | null,
+  doneAt: string | null,
+): boolean {
   if (me === null || subject.state !== "OPEN") return false;
   const requested = nodes(obj(subject.raw)?.reviewRequests).some((n) =>
     isMe(obj(n.requestedReviewer)?.login as string | undefined, me),
   );
   if (!requested) return false;
   const lastRequest = last(events.filter((e) => e.kind === "reviewRequested" && isMe(e.data.target, me)));
-  if (!lastRequest) return true;
+  if (!lastRequest) return doneAt === null;
+  if (doneAt !== null && !isAfter(lastRequest.at, doneAt)) return false;
   return !events.some((e) => e.kind === "review" && isMe(e.actor?.login, me) && isAfter(e.at, lastRequest.at));
 }
 
@@ -137,6 +146,18 @@ function iReviewed(subject: SubjectRecord, events: ViewEvent[], me: string | nul
   if (me === null) return false;
   if (events.some((e) => e.kind === "review" && isMe(e.actor?.login, me))) return true;
   return nodes(obj(subject.raw)?.latestReviews).some((n) => isMe(obj(n.author)?.login as string | undefined, me));
+}
+
+const BODY_KINDS = new Set(["comment", "review", "reviewComment"]);
+
+/** A PR its author closed without merging, where the close is new and I never reviewed or commented. */
+function isClosedByAuthor(subject: SubjectRecord, events: ViewEvent[], me: string | null): boolean {
+  if (subject.kind !== "pr" || subject.state !== "CLOSED" || subject.author === null) return false;
+  if (isMe(subject.author, me)) return false;
+  const close = last(events.filter((e) => e.kind === "closed"));
+  if (!close?.isNew || close.actor?.login !== subject.author) return false;
+  if (iReviewed(subject, events, me)) return false;
+  return !events.some((e) => BODY_KINDS.has(e.kind) && isMe(e.actor?.login, me));
 }
 
 function assignedToMe(subject: SubjectRecord, me: string | null): boolean {
@@ -169,8 +190,11 @@ const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
 /**
  * Picks the inbox section. Waiting: an open review request for me, a new mention of me, or
  * new human comments on something I authored, reviewed, was assigned or am participating in.
- * Updates: anything else new and shown. Hidden: nothing new and shown, or a PR someone else
- * merged or closed with no new human comment. Snooze and mute are applied by `applyOverrides`.
+ * Once something I authored is closed, only a new mention or review request makes it waiting.
+ * Updates: anything else new and shown. Hidden: nothing new and shown, a PR someone else
+ * merged or closed with no new human comment, or a PR its author closed unmerged that I never
+ * reviewed or commented on (counted per repo instead). Keep-unread, snooze and mute are
+ * applied by `applyOverrides`.
  */
 export function rank(input: RankInput): Rank {
   const { subject, threads, events, rounds, state, me, now } = input;
@@ -188,23 +212,33 @@ export function rank(input: RankInput): Rank {
   const cutoff = new Date(now.getTime() - input.reviewRequestMaxAgeDays * 86_400_000).toISOString();
   const staleRequest =
     lastRequest !== undefined && !isAfter(lastRequest.at, cutoff) && (!newest || !isAfter(newest.at, cutoff));
-  if (isPr && openReviewRequest(subject, events, me)) add(staleRequest ? "staleReviewRequest" : "reviewRequested");
+  if (isPr && openReviewRequest(subject, events, me, state.doneAt ?? null)) {
+    add(staleRequest ? "staleReviewRequest" : "reviewRequested");
+  }
   if (shown.some((e) => mentionsMe(e, me))) add("mentioned");
   if (!isPr && fresh.some((e) => e.kind === "assigned" && e.data.added !== false && isMe(e.data.target, me))) {
     add("assigned");
   }
+  const mine = isMe(subject.author ?? undefined, me);
   if (human.length > 0) {
-    if (isMe(subject.author ?? undefined, me)) add("onMyPr");
+    if (mine) add("onMine");
     if (isPr && iReviewed(subject, events, me)) add("onMyReview");
     if (!isPr && assignedToMe(subject, me)) add("assigned");
     if (threads.some((t) => PARTICIPATING_REASONS.has(t.reason))) add("participating");
   }
-  let section: Section = reasons.some((r) => r !== "staleReviewRequest") ? "waiting" : "updates";
+  const closed = subject.state === "MERGED" || subject.state === "CLOSED";
+  // Once my own PR or issue is closed, only a new mention or review request keeps it waiting.
+  const waits = closed && mine
+    ? reasons.some((r) => r === "mentioned" || r === "reviewRequested")
+    : reasons.some((r) => r !== "staleReviewRequest");
+  let section: Section = waits ? "waiting" : "updates";
 
-  const closedByOthers =
-    (subject.state === "MERGED" || subject.state === "CLOSED") && !isMe(subject.author ?? undefined, me);
+  const closedByOthers = closed && !mine;
   if (section === "updates") {
-    if (isPr && closedByOthers && human.length === 0) {
+    if (isClosedByAuthor(subject, events, me)) {
+      section = "hidden";
+      add("closedByAuthor");
+    } else if (isPr && closedByOthers && human.length === 0) {
       section = "hidden";
       add("closedByOthers");
     } else if (shown.length > 0) {
@@ -222,7 +256,8 @@ export function rank(input: RankInput): Rank {
   else if (reasons.includes("reviewRequested") || reasons.includes("staleReviewRequest")) {
     summaryLine = lastRequest ? describe(lastRequest) : "review requested";
   } else {
-    const fallback = last(events.filter((e) => e.level !== "hidden" && e.kind !== "unknown")) ?? last(events);
+    const dated = events.filter((e) => e.undated !== true);
+    const fallback = last(dated.filter((e) => e.level !== "hidden" && e.kind !== "unknown")) ?? last(dated);
     if (fallback) summaryLine = describe(fallback);
   }
 
@@ -247,16 +282,44 @@ export function rank(input: RankInput): Rank {
 }
 
 /**
- * Local state that overrides any rank: mute hides the subject unless I am asked for review
- * or mentioned, and an active snooze moves it to Snoozed.
+ * True while a snooze holds. It ends at the first of: its time passing, a human comment or
+ * review by someone else after it started (when snoozed until a human event), or the PR being
+ * marked ready for review after it started (when snoozed until ready). Bot comments and my own
+ * never wake it. A snooze without a time has no time limit.
  */
-export function applyOverrides(r: Rank, state: ItemState, now: Date): Rank {
+function snoozeActive(state: ItemState, events: ViewEvent[], me: string | null, now: Date): boolean {
+  const untilReady = state.snoozeUntilReady === true;
+  if (state.snoozeUntil === null && !state.snoozeUntilHumanEvent && !untilReady) return false;
+  if (state.snoozeUntil !== null && !isAfter(state.snoozeUntil, now.toISOString())) return false;
+  const since = state.snoozedAt ?? state.dismissedAt;
+  const after = events.filter((e) => e.undated !== true && (since === null || isAfter(e.at, since)));
+  if (state.snoozeUntilHumanEvent && after.some((e) => isHumanText(e) && !isMe(e.actor?.login, me))) return false;
+  if (untilReady && after.some((e) => e.kind === "readyForReview")) return false;
+  return true;
+}
+
+/**
+ * Local state that overrides any rank: keep-unread lifts a hidden subject into Updates, mute
+ * hides the subject unless I am asked for review or mentioned, and an active snooze moves it
+ * to Snoozed.
+ */
+export function applyOverrides(
+  r: Rank,
+  state: ItemState,
+  now: Date,
+  events: ViewEvent[],
+  me: string | null,
+): Rank {
   let { section, reasons } = r;
+  if (state.keepUnread && section === "hidden") {
+    section = "updates";
+    reasons = [...reasons, "keptUnread"];
+  }
   if (state.muted && !reasons.includes("reviewRequested") && !reasons.includes("mentioned")) {
     section = "hidden";
     if (!reasons.includes("muted")) reasons = [...reasons, "muted"];
   }
-  if (state.snoozeUntil !== null && isAfter(state.snoozeUntil, now.toISOString())) {
+  if (snoozeActive(state, events, me, now)) {
     section = "snoozed";
     if (!reasons.includes("snoozed")) reasons = ["snoozed", ...reasons];
   }

@@ -20,7 +20,10 @@ export interface InboxPayload {
   /** Sorted by section order, then `sortAt` newest first. */
   rows: InboxRow[];
   sidebar: { sections: SectionCounts; repos: RepoCounts[] };
-  /** Per-repo summaries of hidden activity, e.g. "backend: 38 pushed, 12 merged". */
+  /**
+   * Per-repo summaries of hidden activity, e.g. "backend: 38 pushed, 12 merged", followed by
+   * one "backend: 3 closed by author" line per repo for PRs their authors closed unmerged.
+   */
   countLines: string[];
   generatedAt: string;
 }
@@ -87,8 +90,13 @@ export function buildInboxPayload(
   opts: { includeHidden: boolean; now: Date },
 ): InboxPayload {
   const hidden = new Map<string, { pushes: number; merged: number; closed: number }>();
+  const closedByAuthor = new Map<string, number>();
   for (const row of allRows) {
     if (row.section !== "hidden") continue;
+    if (row.reasons.includes("closedByAuthor")) {
+      closedByAuthor.set(row.repo, (closedByAuthor.get(row.repo) ?? 0) + 1);
+      continue;
+    }
     const stats = hidden.get(row.repo) ?? { pushes: 0, merged: 0, closed: 0 };
     stats.pushes += row.hiddenStats.pushes;
     stats.merged += row.hiddenStats.merged;
@@ -103,6 +111,9 @@ export function buildInboxPayload(
   const countLines = allLines.slice(0, MAX_COUNT_LINES);
   const rest = allLines.length - countLines.length;
   if (rest > 0) countLines.push(`and ${rest} more ${rest === 1 ? "repo" : "repos"}`);
+  for (const [repo, count] of [...closedByAuthor].sort(([ra, a], [rb, b]) => b - a || (ra < rb ? -1 : 1))) {
+    countLines.push(`${shortName(repo)}: ${count} closed by author`);
+  }
   const rows = allRows.filter((row) => opts.includeHidden || row.section !== "hidden").toSorted(compareRows);
   return {
     rows,

@@ -170,7 +170,7 @@ describe("rank", () => {
   test("a human comment on my PR is waiting", () => {
     const view = derive({ author: ME, items: [comment("alice", "2026-11-21T00:00:00Z", "nit")] });
     expect(view.section).toBe("waiting");
-    expect(view.reasons).toEqual(["onMyPr"]);
+    expect(view.reasons).toEqual(["onMine"]);
   });
 
   test("a human comment on a subscribed PR is an update", () => {
@@ -315,6 +315,117 @@ describe("rank", () => {
   test("agent notes posted under a human login are collapsed", () => {
     const note = comment("alice", "2026-11-21T00:00:00Z", "🤖 Done. Build is green.");
     expect(derive({ items: [note] }).section).toBe("hidden");
+  });
+
+  test("agent approve verdicts are hidden", () => {
+    const verdict = comment("alice", "2026-11-21T00:00:00Z", "🤖 Approve: no issues found");
+    const view = derive({ author: ME, items: [verdict] });
+    expect(view.section).toBe("hidden");
+    expect(view.rounds[0]?.hiddenCount).toBe(1);
+  });
+
+  test("keep unread moves a hidden item to updates and marks it unread", () => {
+    const view = derive({ itemState: { keepUnread: true } });
+    expect(view.section).toBe("updates");
+    expect(view.reasons).toEqual(["nothingNew", "keptUnread"]);
+    expect(view.unread).toBe(true);
+  });
+
+  test("snooze until a human event ignores bots and my own comments", () => {
+    const itemState = { snoozeUntilHumanEvent: true, snoozedAt: "2026-11-20T12:00:00Z" };
+    const botOnly = derive({ itemState, items: [comment("ci-bot", "2026-11-21T00:00:00Z", "green", true)] });
+    expect(botOnly.section).toBe("snoozed");
+    const mine = derive({ itemState, items: [comment(ME, "2026-11-21T00:00:00Z", "pushed a fix")] });
+    expect(mine.section).toBe("snoozed");
+    const before = derive({ itemState, items: [comment("alice", "2026-11-20T06:00:00Z", "older")] });
+    expect(before.section).toBe("snoozed");
+    const human = derive({ itemState, items: [comment("alice", "2026-11-21T00:00:00Z", "question")] });
+    expect(human.section).toBe("updates");
+  });
+
+  test("snooze until ready wakes on ready for review, not on pushes", () => {
+    const itemState = { snoozeUntilReady: true, snoozedAt: "2026-11-20T12:00:00Z" };
+    const pushed = derive({ itemState, items: [forcePush("2026-11-21T00:00:00Z")] });
+    expect(pushed.section).toBe("snoozed");
+    const ready = item("ReadyForReviewEvent", "2026-11-21T01:00:00Z", { actor: user("bob") });
+    expect(derive({ itemState, items: [ready] }).section).not.toBe("snoozed");
+    const earlier = item("ReadyForReviewEvent", "2026-11-20T06:00:00Z", { actor: user("bob") });
+    expect(derive({ itemState, items: [earlier] }).section).toBe("snoozed");
+  });
+
+  test("snooze with a time and a wake condition ends at whichever comes first", () => {
+    const itemState = {
+      snoozeUntilHumanEvent: true,
+      snoozedAt: "2026-11-20T12:00:00Z",
+      snoozeUntil: "2026-11-21T00:00:00Z",
+    };
+    expect(derive({ itemState }).section).not.toBe("snoozed");
+  });
+
+  test("a review request stays waiting after reading, but not after Done or my review", () => {
+    const raw = { reviewRequests: { nodes: [{ requestedReviewer: user(ME) }] } };
+    const request = item("ReviewRequestedEvent", "2026-11-19T00:00:00Z", {
+      actor: user("bob"),
+      requestedReviewer: user(ME),
+    });
+    const read = derive({ raw, items: [request], itemState: { dismissedAt: "2026-11-21T00:00:00Z" } });
+    expect(read.reasons).toContain("reviewRequested");
+    const done = derive({
+      raw,
+      items: [request],
+      itemState: { dismissedAt: "2026-11-21T00:00:00Z", doneAt: "2026-11-21T00:00:00Z" },
+    });
+    expect(done.reasons).not.toContain("reviewRequested");
+    const again = item("ReviewRequestedEvent", "2026-11-21T06:00:00Z", {
+      actor: user("bob"),
+      requestedReviewer: user(ME),
+    });
+    const rerequested = derive({
+      raw,
+      items: [request, again],
+      itemState: { dismissedAt: "2026-11-21T00:00:00Z", doneAt: "2026-11-21T00:00:00Z" },
+    });
+    expect(rerequested.reasons).toContain("reviewRequested");
+  });
+
+  test("a PR closed by its author collapses unless I took part", () => {
+    const closed = item("ClosedEvent", "2026-11-21T00:00:00Z", { actor: user("bob") });
+    const view = derive({ state: "CLOSED", items: [closed] });
+    expect(view.section).toBe("hidden");
+    expect(view.reasons).toEqual(["closedByAuthor"]);
+
+    const myComment = comment(ME, "2026-11-19T00:00:00Z", "thoughts");
+    expect(derive({ state: "CLOSED", items: [myComment, closed] }).reasons).not.toContain("closedByAuthor");
+
+    const byOther = item("ClosedEvent", "2026-11-21T00:00:00Z", { actor: user("alice") });
+    expect(derive({ state: "CLOSED", items: [byOther] }).reasons).toEqual(["closedByOthers"]);
+  });
+
+  test("activity on my closed PR goes to updates unless it mentions me", () => {
+    const merged = item("MergedEvent", "2026-11-20T12:00:00Z", { actor: user("bob"), commit: { oid: "x" } });
+    const thanks = comment("alice", "2026-11-21T00:00:00Z", "thanks!");
+    const view = derive({ author: ME, state: "MERGED", items: [merged, thanks] });
+    expect(view.section).toBe("updates");
+    expect(view.reasons).toContain("onMine");
+    const ping = comment("alice", "2026-11-21T00:00:00Z", "@markerikson follow-up?");
+    expect(derive({ author: ME, state: "MERGED", items: [merged, ping] }).section).toBe("waiting");
+    const issue = derive({ kind: "issue", author: ME, state: "CLOSED", items: [thanks] });
+    expect(issue.section).toBe("updates");
+  });
+
+  test("on a never-visited PR only the newest round is new", () => {
+    const view = derive({
+      itemState: { dismissedAt: null },
+      items: [
+        comment("alice", "2026-11-19T00:00:00Z", "first"),
+        forcePush("2026-11-20T00:00:00Z"),
+        comment("alice", "2026-11-20T01:00:00Z", "second"),
+        forcePush("2026-11-21T00:00:00Z"),
+        comment("alice", "2026-11-21T01:00:00Z", "third"),
+      ],
+    });
+    expect(view.rounds.map((r) => r.isNew)).toEqual([true, false, false]);
+    expect(view.newMeaningfulCount).toBe(1);
   });
 });
 

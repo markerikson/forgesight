@@ -150,6 +150,20 @@ describe("buildInboxPayload", () => {
       "and 2 more repos",
     ]);
   });
+
+  test("adds one closed-by-author line per repo after the hidden activity lines", () => {
+    const closed = { hiddenStats: { pushes: 0, merged: 0, closed: 1 }, reasons: ["closedByAuthor" as const] };
+    const { countLines } = buildInboxPayload(
+      [
+        row("acme/app#1", "hidden", { hiddenStats: { pushes: 2, merged: 0, closed: 0 } }),
+        row("acme/app#2", "hidden", closed),
+        row("acme/lib#3", "hidden", { ...closed, repo: "acme/lib" }),
+        row("acme/lib#4", "hidden", { ...closed, repo: "acme/lib" }),
+      ],
+      { includeHidden: false, now: NOW },
+    );
+    expect(countLines).toEqual(["app: 2 pushed", "lib: 2 closed by author", "app: 1 closed by author"]);
+  });
 });
 
 describe("buildSubjectDetail", () => {
