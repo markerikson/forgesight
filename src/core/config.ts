@@ -45,7 +45,11 @@ export interface Config {
   repos: Record<string, RepoConfig>;
   bots: ContentRule[];
   contentRules: ContentRule[];
-  ranking: { waiting: string[] };
+  ranking: {
+    waiting: string[];
+    /** A review request older than this, with nothing since, stops counting as waiting. */
+    reviewRequestMaxAgeDays: number;
+  };
   polling: {
     backfillDays: number;
     fullRefreshMinutes: number;

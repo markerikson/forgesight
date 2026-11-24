@@ -84,6 +84,7 @@ export const defaultConfig = {
   contentRules,
   ranking: {
     waiting: ["reviewRequested", "humanActivity", "newFindings", "socketCaution", "ownCiFailure"],
+    reviewRequestMaxAgeDays: 7,
   },
   polling: {
     backfillDays: 90,

@@ -12,6 +12,9 @@ export interface RankInput {
   rounds: Round[];
   state: ItemState;
   me: string | null;
+  now: Date;
+  /** A review request older than this, with nothing shown since, no longer counts as waiting. */
+  reviewRequestMaxAgeDays: number;
 }
 
 export interface Rank {
@@ -170,7 +173,7 @@ const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
  * merged or closed with no new human comment. Snooze and mute are applied by `applyOverrides`.
  */
 export function rank(input: RankInput): Rank {
-  const { subject, threads, events, rounds, state, me } = input;
+  const { subject, threads, events, rounds, state, me, now } = input;
   const isPr = subject.kind === "pr";
   const fresh = events.filter((e) => e.isNew);
   const shown = fresh.filter((e) => e.level === "show");
@@ -180,7 +183,12 @@ export function rank(input: RankInput): Rank {
     if (!reasons.includes(r)) reasons.push(r);
   };
 
-  if (isPr && openReviewRequest(subject, events, me)) add("reviewRequested");
+  const newest = last(shown);
+  const lastRequest = last(events.filter((e) => e.kind === "reviewRequested" && isMe(e.data.target, me)));
+  const cutoff = new Date(now.getTime() - input.reviewRequestMaxAgeDays * 86_400_000).toISOString();
+  const staleRequest =
+    lastRequest !== undefined && !isAfter(lastRequest.at, cutoff) && (!newest || !isAfter(newest.at, cutoff));
+  if (isPr && openReviewRequest(subject, events, me)) add(staleRequest ? "staleReviewRequest" : "reviewRequested");
   if (shown.some((e) => mentionsMe(e, me))) add("mentioned");
   if (!isPr && fresh.some((e) => e.kind === "assigned" && e.data.added !== false && isMe(e.data.target, me))) {
     add("assigned");
@@ -191,7 +199,7 @@ export function rank(input: RankInput): Rank {
     if (!isPr && assignedToMe(subject, me)) add("assigned");
     if (threads.some((t) => PARTICIPATING_REASONS.has(t.reason))) add("participating");
   }
-  let section: Section = reasons.length > 0 ? "waiting" : "updates";
+  let section: Section = reasons.some((r) => r !== "staleReviewRequest") ? "waiting" : "updates";
 
   const closedByOthers =
     (subject.state === "MERGED" || subject.state === "CLOSED") && !isMe(subject.author ?? undefined, me);
@@ -209,11 +217,9 @@ export function rank(input: RankInput): Rank {
     }
   }
 
-  const newest = last(shown);
-  const lastRequest = last(events.filter((e) => e.kind === "reviewRequested" && isMe(e.data.target, me)));
   let summaryLine = "";
   if (newest) summaryLine = describe(newest);
-  else if (reasons.includes("reviewRequested")) {
+  else if (reasons.includes("reviewRequested") || reasons.includes("staleReviewRequest")) {
     summaryLine = lastRequest ? describe(lastRequest) : "review requested";
   } else {
     const fallback = last(events.filter((e) => e.level !== "hidden" && e.kind !== "unknown")) ?? last(events);

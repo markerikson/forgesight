@@ -115,6 +115,10 @@ export function resolveConfig(user: UserConfig, defaults: UserConfig = defaultCo
     contentRules: resolveRules(user.contentRules, defaults.contentRules, "contentRules"),
     ranking: {
       waiting: required(user.ranking?.waiting ?? d.ranking.waiting, "ranking.waiting"),
+      reviewRequestMaxAgeDays: required(
+        user.ranking?.reviewRequestMaxAgeDays ?? d.ranking.reviewRequestMaxAgeDays,
+        "ranking.reviewRequestMaxAgeDays",
+      ),
     },
     polling: {
       backfillDays: required(

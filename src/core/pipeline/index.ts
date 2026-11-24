@@ -93,7 +93,18 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
   const rounds = buildRounds(events);
   const enriched = subject.timelineSyncedUntil !== null || events.length > 0;
   const r = applyOverrides(
-    enriched ? rank({ subject, threads, events, rounds, state, me }) : rankFromThreads(input),
+    enriched
+      ? rank({
+          subject,
+          threads,
+          events,
+          rounds,
+          state,
+          me,
+          now,
+          reviewRequestMaxAgeDays: config.ranking.reviewRequestMaxAgeDays,
+        })
+      : rankFromThreads(input),
     state,
     now,
   );

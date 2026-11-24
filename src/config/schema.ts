@@ -35,7 +35,7 @@ export const userConfigSchema = type({
   "repos?": type({ "[string]": repoEntry }),
   "bots?": rule.array(),
   "contentRules?": rule.array(),
-  "ranking?": { "+": "reject", "waiting?": "string[]" },
+  "ranking?": { "+": "reject", "waiting?": "string[]", "reviewRequestMaxAgeDays?": positiveInt },
   "polling?": {
     "+": "reject",
     "backfillDays?": positiveInt,

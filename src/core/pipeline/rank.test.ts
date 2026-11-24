@@ -200,6 +200,24 @@ describe("rank", () => {
     expect(theirs.section).toBe("hidden");
   });
 
+  test("a review request older than the cutoff with nothing since is not waiting", () => {
+    const request = (at: string) =>
+      item("ReviewRequestedEvent", at, { actor: user("bob"), requestedReviewer: user(ME) });
+    const raw = { reviewRequests: { nodes: [{ requestedReviewer: user(ME) }] } };
+    const fresh = derive({ raw, items: [request("2026-11-19T00:00:00Z")] });
+    expect(fresh.section).toBe("waiting");
+    expect(fresh.reasons).toContain("reviewRequested");
+    const old = derive({ raw, items: [request("2026-11-10T00:00:00Z")] });
+    expect(old.section).toBe("hidden");
+    expect(old.reasons).toContain("staleReviewRequest");
+    const revived = derive({
+      raw,
+      items: [request("2026-11-10T00:00:00Z"), comment("alice", "2026-11-21T00:00:00Z", "any thoughts?")],
+    });
+    expect(revived.section).toBe("waiting");
+    expect(revived.reasons).toContain("reviewRequested");
+  });
+
   test("events without a GitHub timestamp are never new", () => {
     const deleted = item("HeadRefDeletedEvent", "2026-11-21T00:00:00Z", {});
     delete (deleted.raw as Record<string, unknown>).createdAt;

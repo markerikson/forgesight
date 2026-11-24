@@ -191,6 +191,7 @@ export type RankReason =
   | "muted"
   | "notEnriched"
   | "closedByOthers"
+  | "staleReviewRequest"
   | "nothingNew";
 
 /** Counts the inbox sums into per-repo lines like "backend: 38 PRs pushed, 12 merged". */
