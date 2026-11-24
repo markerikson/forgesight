@@ -193,6 +193,11 @@ function latestVersion(versions: StickyCommentVersion[]): StickyCommentVersion |
   return latest;
 }
 
+/** The raw node carries its own time; otherwise the stored time is the fetch time. */
+function hasTimestamp(raw: Record<string, unknown>): boolean {
+  return str(raw.createdAt) !== undefined || str(obj(raw.commit)?.committedDate) !== undefined;
+}
+
 function compareEvents(a: Event, b: Event): number {
   const diff = ms(a.at) - ms(b.at);
   if (diff !== 0) return diff;
@@ -231,6 +236,7 @@ export function normalize(input: {
       data: withoutUndefined({ typename: item.typename, ...p.data }),
     };
     if (p.body !== undefined) event.body = p.body;
+    if (p.at === undefined && !hasTimestamp(raw)) event.undated = true;
     events.push(event);
   }
 

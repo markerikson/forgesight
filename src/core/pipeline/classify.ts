@@ -91,7 +91,9 @@ export function classify(events: Event[], ctx: ClassifyContext): ViewEvent[] {
       ...e,
       ...classifyOne(e, ctx),
       // A MentionedEvent's actor is the mentioned user, so it is exempt from the "by me" rule.
+      // Undated events carry the fetch time, so comparing it with the last visit means nothing.
       isNew:
+        e.undated !== true &&
         (ctx.dismissedAt === null || isAfter(e.at, ctx.dismissedAt)) &&
         (e.kind === "mentioned" || !isMe(e.actor?.login, ctx.me)),
     };

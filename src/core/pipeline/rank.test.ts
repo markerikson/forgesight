@@ -199,6 +199,14 @@ describe("rank", () => {
     expect(caution.rounds[0]?.entries[0]).toMatchObject({ type: "event", event: { ruleId: "socket", level: "show" } });
   });
 
+  test("events without a GitHub timestamp are never new", () => {
+    const deleted = item("HeadRefDeletedEvent", "2026-11-21T00:00:00Z", {});
+    delete (deleted.raw as Record<string, unknown>).createdAt;
+    const view = derive({ items: [deleted] });
+    expect(view.section).toBe("hidden");
+    expect(view.rounds.flatMap((r) => r.entries).every((e) => e.type === "group" && !e.group.isNew)).toBe(true);
+  });
+
   test("an unknown bot comment is collapsed, never hidden", () => {
     const view = derive({ items: [comment("some-new-bot", "2026-11-21T00:00:00Z", "hello", true)] });
     expect(view.section).toBe("hidden");

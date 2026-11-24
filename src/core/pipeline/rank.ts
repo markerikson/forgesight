@@ -223,7 +223,7 @@ export function rank(input: RankInput): Rank {
     newest?.at ??
     lastRequest?.at ??
     last(fresh)?.at ??
-    last(events)?.at ??
+    last(events.filter((e) => e.undated !== true))?.at ??
     subject.updatedAt ??
     last(threads.map((t) => t.updatedAt).sort()) ??
     "1970-01-01T00:00:00Z";

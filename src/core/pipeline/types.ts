@@ -93,6 +93,8 @@ export interface Event {
   id: string;
   /** ISO 8601. */
   at: string;
+  /** GitHub gave no timestamp; `at` is the fetch time. Such events are never new. */
+  undated?: true;
   actor: Actor | null;
   kind: EventKind;
   /** Markdown body for comments and reviews. */
