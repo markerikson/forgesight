@@ -49,6 +49,19 @@ export function spendSince(db: Database, since: string): ApiSpend[] {
     .map((r) => ({ resource: r.resource, workClass: r.work_class, calls: r.calls, cost: r.cost }));
 }
 
+/**
+ * What `resource` has spent against our hourly cap since `since` (inclusive):
+ * summed cost for GraphQL, request count excluding 304s for REST.
+ */
+export function resourceSpendSince(db: Database, resource: string, since: string): number {
+  const sql =
+    resource === "graphql"
+      ? "SELECT COALESCE(SUM(cost), 0) AS spend FROM api_calls WHERE resource = ? AND at >= ?"
+      : `SELECT COUNT(*) AS spend FROM api_calls
+         WHERE resource = ? AND at >= ? AND (status IS NULL OR status <> 304)`;
+  return db.query<{ spend: number }, [string, string]>(sql).get(resource, since)?.spend ?? 0;
+}
+
 export function pruneApiCalls(db: Database, before: string): number {
   return db.query("DELETE FROM api_calls WHERE at < ?").run(before).changes;
 }
