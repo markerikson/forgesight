@@ -1,7 +1,6 @@
 import { createSelector, createSlice, type PayloadAction, type ThunkAction, type UnknownAction } from "@reduxjs/toolkit";
-import type { InboxRow, Section } from "../../core/index.ts";
+import type { InboxPayload, InboxRow, Section } from "../../core/index.ts";
 import { api } from "./api.ts";
-import type { InboxPayload } from "./types.ts";
 
 export interface ViewState {
   section: Section;

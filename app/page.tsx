@@ -6,7 +6,7 @@ export default async function Page() {
   if (!shell.ready) return <main id="not-ready">{shell.message}</main>;
   return (
     <main>
-      <InboxApp initialStatus={shell.status} />
+      <InboxApp initialStatus={shell.status} initialInbox={shell.inbox} />
     </main>
   );
 }

@@ -1,13 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
+import type { InboxPayload } from "../../core/index.ts";
 import type { StatusPayload } from "../../server/handlers/status.ts";
 import { api } from "./api.ts";
-import type { InboxPayload } from "./types.ts";
 import { viewSlice } from "./view.ts";
 
 export interface InitialData {
   status: StatusPayload;
-  /** Rendered by the server for `{ includeHidden: false }`; absent until the inbox query exists server-side. */
+  /** Rendered by the server for `{ includeHidden: false }`. */
   inbox?: InboxPayload | undefined;
 }
 

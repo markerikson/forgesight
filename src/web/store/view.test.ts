@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { configureStore } from "@reduxjs/toolkit";
-import type { InboxRow, Section } from "../../core/index.ts";
+import type { InboxPayload, InboxRow, Section } from "../../core/index.ts";
 import { api } from "./api.ts";
-import type { InboxPayload } from "./types.ts";
 import {
   filterRows,
   groupsToggled,

@@ -1,10 +1,9 @@
 import { Fragment, useEffect } from "react";
-import type { SubjectHeader } from "../../core/index.ts";
+import type { SubjectDetail, SubjectHeader } from "../../core/index.ts";
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { useGetSubjectQuery } from "../store/api.ts";
 import { useAppSelector } from "../store/hooks.ts";
-import type { SubjectDetail } from "../store/types.ts";
 import { selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";

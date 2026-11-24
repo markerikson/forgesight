@@ -11,7 +11,7 @@ import { ThreadList } from "./components/ThreadList.tsx";
 import { useKeyboardNav } from "./hooks/useKeyboardNav.ts";
 import { useUrlState } from "./hooks/useUrlState.ts";
 import { makeStore, setupListeners } from "./store/index.ts";
-import type { InboxPayload } from "./store/types.ts";
+import type { InboxPayload } from "../core/index.ts";
 import styles from "./InboxApp.module.css";
 
 interface Props {

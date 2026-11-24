@@ -5,3 +5,4 @@ export * from "./budget.ts";
 export * from "./keys.ts";
 export * from "./notifications.ts";
 export * from "./pipeline/index.ts";
+export * from "./inbox.ts";

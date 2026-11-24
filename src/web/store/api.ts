@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { InboxPayload, SubjectDetail } from "../../core/index.ts";
 import type { StatusPayload } from "../../server/handlers/status.ts";
-import type { InboxPayload, SubjectDetail } from "./types.ts";
 
 export interface InboxArg {
   includeHidden: boolean;
