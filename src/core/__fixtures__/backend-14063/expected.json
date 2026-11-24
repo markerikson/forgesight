@@ -23,10 +23,10 @@
     },
     {
       "start": null,
-      "isNew": true,
+      "isNew": false,
       "hidden": 0,
       "entries": [
-        "[1 stack change, 1 assignment] (new)"
+        "[1 stack change, 1 assignment]"
       ]
     }
   ]

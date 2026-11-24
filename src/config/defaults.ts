@@ -69,6 +69,7 @@ const bots: UserRule[] = [
 /** Human-posted comments that are really agent or automation output. */
 const contentRules: UserRule[] = [
   { id: "agent-superseded", match: { bodyRegex: "^\\s*🤖 Superseded" }, level: "collapsed" },
+  { id: "agent-verdict", match: { bodyRegex: "^\\s*🤖 Approve" }, level: "hidden" },
   { id: "agent-note", match: { bodyRegex: "^\\s*🤖" }, level: "collapsed" },
   { id: "vehicle-done", match: { bodyRegex: "^\\s*Vehicle done" }, level: "collapsed" },
   { id: "evals-fix-report", match: { htmlMarker: "<!-- replay-evals-fix-report -->" }, level: "collapsed" },

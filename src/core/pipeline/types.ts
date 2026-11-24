@@ -181,7 +181,7 @@ export type RankReason =
   | "reviewRequested"
   | "mentioned"
   | "assigned"
-  | "onMyPr"
+  | "onMine"
   | "onMyReview"
   | "participating"
   | "newActivity"
@@ -191,6 +191,8 @@ export type RankReason =
   | "muted"
   | "notEnriched"
   | "closedByOthers"
+  | "closedByAuthor"
+  | "keptUnread"
   | "staleReviewRequest"
   | "nothingNew";
 
