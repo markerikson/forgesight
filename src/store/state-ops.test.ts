@@ -114,6 +114,34 @@ describe("applyStateOps", () => {
     expect(getItemState(db, "acme/app#1")).toEqual({ ...DEFAULT_ITEM_STATE, dismissedAt: T0, keepUnread: true });
   });
 
+  test("unread after a later done keeps the done's dismissedAt", () => {
+    const db = seeded();
+    putItemState(db, "acme/app#1", { ...DEFAULT_ITEM_STATE, dismissedAt: T0 }, T0);
+    applyStateOps(db, ["acme/app#1"], { kind: "read" }, T0);
+    applyStateOps(db, ["acme/app#1"], { kind: "done" }, T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "unread" }, T2);
+    expect(getItemState(db, "acme/app#1")).toMatchObject({ dismissedAt: T1, keepUnread: true });
+  });
+
+  test("unmute still resubscribes after the sent unsubscribe rows are pruned", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    for (const row of dueOutbox(db, DUE, 10)) completeOutbox(db, row.id, T1);
+    pruneStateOps(db, T2);
+    applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T2);
+    expect(outboxRows(db).filter((r) => r.op === "resubscribe")).toHaveLength(2);
+  });
+
+  test("unmute ignores unsubscribe rows of an undone op that never went out", () => {
+    const db = seeded();
+    const { opId, outboxIds } = applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    claimOutbox(db, outboxIds[0] ?? 0, DUE);
+    undoStateOp(db, opId, T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "mute" }, T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T2);
+    expect(outboxRows(db).filter((r) => r.op === "resubscribe")).toEqual([]);
+  });
+
   test("unmute resubscribes only the threads an unsubscribe reached", () => {
     const db = seeded();
     applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
@@ -148,6 +176,18 @@ describe("undoStateOp", () => {
     expect(undoStateOp(db, opId, T1)).toEqual({ kind: "undone", githubApplied: 1 });
     expect(getItemState(db, "acme/app#1")).toEqual(DEFAULT_ITEM_STATE);
     expect(claimOutbox(db, unclaimed, DUE)).toBe(false);
+  });
+
+  test("a claimed row of an undone op is never due or claimable again", () => {
+    const db = seeded();
+    const { opId, outboxIds } = applyStateOps(db, ["acme/app#1"], { kind: "done" }, T0);
+    const [claimed = 0] = outboxIds;
+    claimOutbox(db, claimed, DUE);
+    undoStateOp(db, opId, T1);
+    const stale = new Date(Date.parse(DUE) + STALE_CLAIM_MS).toISOString();
+    expect(dueOutbox(db, stale, 10)).toEqual([]);
+    expect(claimOutbox(db, claimed, stale)).toBe(false);
+    expect(outboxSummary(db).pending).toBe(0);
   });
 
   test("refuses when a newer op touched one of the keys", () => {

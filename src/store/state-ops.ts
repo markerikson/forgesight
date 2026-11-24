@@ -72,26 +72,42 @@ function outboxFromRow(r: OutboxTableRow): OutboxRow {
   };
 }
 
-/** `dismissedAt` from before the newest live `read` op on `key`; undefined when there is none. */
-function dismissedBeforeRead(db: Database, key: string): string | null | undefined {
-  const found = db
-    .query<{ state: string }, [string]>(
-      `SELECT e.value AS state FROM state_ops s, json_each(s.prev_json) e
-       WHERE s.undone_at IS NULL AND json_extract(s.op_json, '$.kind') = 'read' AND e.key = ?
-       ORDER BY s.id DESC LIMIT 1`,
-    )
-    .get(key);
-  return found ? (JSON.parse(found.state) as ItemState).dismissedAt : undefined;
+/** SQL condition on an outbox row (aliased `alias`): its op has not been undone. */
+function liveOp(alias: string): string {
+  return `NOT EXISTS (SELECT 1 FROM state_ops s WHERE s.id = ${alias}.state_op_id AND s.undone_at IS NOT NULL)`;
 }
 
-/** Threads whose newest unsubscribe/resubscribe outbox row is an unsubscribe that did not fail. */
+/**
+ * `dismissedAt` from before the newest live op on `key` that set it, when that op is a
+ * `read`. Undefined otherwise, so a later done or unread is not rolled back.
+ */
+function dismissedBeforeRead(db: Database, key: string, beforeOpId: number): string | null | undefined {
+  const found = db
+    .query<{ kind: string; state: string }, [number, string]>(
+      `SELECT json_extract(s.op_json, '$.kind') AS kind, e.value AS state
+       FROM state_ops s, json_each(s.prev_json) e
+       WHERE s.id < ? AND s.undone_at IS NULL AND e.key = ?
+         AND json_extract(s.op_json, '$.kind') IN ('read', 'done', 'unread')
+       ORDER BY s.id DESC LIMIT 1`,
+    )
+    .get(beforeOpId, key);
+  if (found?.kind !== "read") return undefined;
+  return (JSON.parse(found.state) as ItemState).dismissedAt;
+}
+
+/**
+ * Threads whose newest unsubscribe/resubscribe outbox row is an unsubscribe that did not
+ * fail. Unsent rows of undone ops never go out, so they don't count.
+ */
 function unsubscribedThreads(db: Database, key: string): Set<string> {
+  const counts = (alias: string) =>
+    `${alias}.failed_at IS NULL AND ${alias}.op IN ('unsubscribe', 'resubscribe')
+     AND (${alias}.completed_at IS NOT NULL OR ${liveOp(alias)})`;
   const rows = db
     .query<{ thread_id: string; op: string }, [string]>(
       `SELECT thread_id, op FROM outbox o
-       WHERE subject_key = ? AND failed_at IS NULL AND op IN ('unsubscribe', 'resubscribe')
-         AND id = (SELECT MAX(id) FROM outbox p WHERE p.thread_id = o.thread_id
-                   AND p.failed_at IS NULL AND p.op IN ('unsubscribe', 'resubscribe'))`,
+       WHERE o.subject_key = ? AND ${counts("o")}
+         AND o.id = (SELECT MAX(id) FROM outbox p WHERE p.thread_id = o.thread_id AND ${counts("p")})`,
     )
     .all(key);
   return new Set(rows.filter((r) => r.op === "unsubscribe").map((r) => r.thread_id));
@@ -133,7 +149,7 @@ export function applyStateOps(db: Database, keys: SubjectKey[], op: StateOp, now
     const outboxIds: number[] = [];
     for (const key of unique) {
       const before = prev[key] ?? { ...DEFAULT_ITEM_STATE };
-      const opts = op.kind === "unread" ? { dismissedBeforeRead: dismissedBeforeRead(db, key) } : {};
+      const opts = op.kind === "unread" ? { dismissedBeforeRead: dismissedBeforeRead(db, key, opId) } : {};
       putItemState(db, key, applyStateOp(before, op, now, opts), now);
       const outboxOp = outboxOpFor(op, before);
       if (outboxOp === null) continue;
@@ -184,15 +200,15 @@ export function undoStateOp(db: Database, opId: number, now: string): UndoResult
 }
 
 /**
- * Rows ready to send, oldest `run_after` first: not completed or failed, and unclaimed or
- * claimed longer than `STALE_CLAIM_MS` ago.
+ * Rows ready to send, oldest `run_after` first: not completed or failed, op not undone,
+ * and unclaimed or claimed longer than `STALE_CLAIM_MS` ago.
  */
 export function dueOutbox(db: Database, now: string, limit: number): OutboxRow[] {
   return db
     .query<OutboxTableRow, [string, string, number]>(
       `SELECT * FROM outbox
        WHERE completed_at IS NULL AND failed_at IS NULL AND run_after <= ?
-         AND (claimed_at IS NULL OR claimed_at <= ?)
+         AND (claimed_at IS NULL OR claimed_at <= ?) AND ${liveOp("outbox")}
        ORDER BY run_after, id LIMIT ?`,
     )
     .all(now, addMs(now, -STALE_CLAIM_MS), limit)
@@ -200,7 +216,7 @@ export function dueOutbox(db: Database, now: string, limit: number): OutboxRow[]
 }
 
 /**
- * Claims a row just before its GitHub call. False when undo deleted it, it finished, or
+ * Claims a row just before its GitHub call. False when its op was undone, it finished, or
  * another live claim holds it; the caller then skips the row.
  */
 export function claimOutbox(db: Database, id: number, now: string): boolean {
@@ -208,7 +224,7 @@ export function claimOutbox(db: Database, id: number, now: string): boolean {
     .query(
       `UPDATE outbox SET claimed_at = ?
        WHERE id = ? AND completed_at IS NULL AND failed_at IS NULL
-         AND (claimed_at IS NULL OR claimed_at <= ?)`,
+         AND (claimed_at IS NULL OR claimed_at <= ?) AND ${liveOp("outbox")}`,
     )
     .run(now, id, addMs(now, -STALE_CLAIM_MS));
   return result.changes > 0;
@@ -249,7 +265,7 @@ export function outboxSummary(db: Database): OutboxSummary {
   const counts = db
     .query<{ pending: number; failed: number }, []>(
       `SELECT
-         COALESCE(SUM(completed_at IS NULL AND failed_at IS NULL), 0) AS pending,
+         COALESCE(SUM(completed_at IS NULL AND failed_at IS NULL AND ${liveOp("outbox")}), 0) AS pending,
          COALESCE(SUM(failed_at IS NOT NULL), 0) AS failed
        FROM outbox`,
     )
@@ -264,13 +280,23 @@ export function outboxSummary(db: Database): OutboxSummary {
 }
 
 /**
- * Deletes completed outbox rows and state ops created before `before`. Failed rows stay,
- * and so do the ops they belong to.
+ * Deletes outbox rows created before `before` that were sent or belong to an undone op,
+ * then state ops with no rows left. Failed rows stay, and so do the ops they belong to.
+ * Each thread's newest sent unsubscribe/resubscribe row stays too: unmute reads it to
+ * decide whether to resubscribe.
  */
 export function pruneStateOps(db: Database, before: string): { outbox: number; stateOps: number } {
   return db.transaction(() => {
     const outbox = db
-      .query("DELETE FROM outbox WHERE completed_at IS NOT NULL AND created_at < ?")
+      .query(
+        `DELETE FROM outbox
+         WHERE created_at < ? AND failed_at IS NULL
+           AND (completed_at IS NOT NULL OR NOT ${liveOp("outbox")})
+           AND NOT (op IN ('unsubscribe', 'resubscribe') AND completed_at IS NOT NULL
+                    AND id = (SELECT MAX(id) FROM outbox p
+                              WHERE p.thread_id = outbox.thread_id AND p.completed_at IS NOT NULL
+                                AND p.failed_at IS NULL AND p.op IN ('unsubscribe', 'resubscribe')))`,
+      )
       .run(before).changes;
     const stateOps = db
       .query(

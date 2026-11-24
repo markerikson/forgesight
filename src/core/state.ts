@@ -125,6 +125,7 @@ function keepsSection(row: InboxRow): boolean {
 /**
  * The optimistic version of a list row after `op`, or null when the row leaves the list.
  * A row that moves to Hidden is returned with section `hidden` when `includeHidden` is set.
+ * Mute keeps a snoozed row in Snoozed, matching `applyOverrides`.
  */
 export function patchRow(
   row: InboxRow,
@@ -138,7 +139,7 @@ export function patchRow(
       return toHidden();
     case "mute":
     case "unsubscribe":
-      return keepsSection(row) ? { ...row } : toHidden();
+      return keepsSection(row) || row.section === "snoozed" ? { ...row } : toHidden();
     case "snooze":
       return { ...row, section: "snoozed", snoozeUntil: op.until };
     case "read":

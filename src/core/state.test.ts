@@ -183,6 +183,11 @@ describe("patchRow", () => {
     expect(patchRow(direct, { kind: "mute" }, NOW)).toEqual(direct);
   });
 
+  test("mute keeps a snoozed row in Snoozed", () => {
+    const snoozed = row("acme/app#1", "snoozed");
+    expect(patchRow(snoozed, { kind: "mute" }, NOW)).toEqual(snoozed);
+  });
+
   test("snooze moves the row to snoozed", () => {
     expect(patchRow(waiting, SNOOZE, NOW)).toEqual({ ...waiting, section: "snoozed", snoozeUntil: LATER });
   });
