@@ -176,16 +176,39 @@ describe("outboxJob", () => {
     expect(await outboxJob.run(ctx)).toBe("worked");
   });
 
-  test("a network failure releases the claim without counting an attempt", async () => {
+  test("a network failure defers the row without counting an attempt", async () => {
     applyStateOps(db, [KEY], { kind: "done" }, now.toISOString());
     advance(10_000);
     for (let i = 0; i < MAX_ATTEMPTS + 1; i++) {
       gh.nextError = new GitHubApiError("mark thread T1 done: fetch failed", 0);
       // oxlint-disable-next-line no-await-in-loop -- each run depends on the previous one
       await expect(outboxJob.run(ctx)).rejects.toBeInstanceOf(GitHubApiError);
+      expect(outboxRow()).toMatchObject({
+        attempts: 0,
+        claimed_at: null,
+        failed_at: null,
+        last_error: "mark thread T1 done: fetch failed",
+        run_after: new Date(now.getTime() + backoffMs(0)).toISOString(),
+      });
+      // oxlint-disable-next-line no-await-in-loop -- each run depends on the previous one
+      expect(await outboxJob.run(ctx)).toBe("idle");
+      advance(backoffMs(0));
     }
-    expect(outboxRow()).toMatchObject({ attempts: 0, claimed_at: null, failed_at: null });
     expect(await outboxJob.run(ctx)).toBe("worked");
+  });
+
+  test("a row that keeps timing out does not block rows behind it", async () => {
+    applyStateOps(db, [KEY], { kind: "done" }, now.toISOString());
+    advance(1_000);
+    applyStateOps(db, [KEY], { kind: "unsubscribe" }, now.toISOString());
+    advance(10_000);
+    gh.nextError = new GitHubApiError("mark thread T1 done: timed out", 0);
+    await expect(outboxJob.run(ctx)).rejects.toBeInstanceOf(GitHubApiError);
+    expect(await outboxJob.run(ctx)).toBe("worked");
+    expect(gh.calls).toEqual([
+      { method: "markDone", threadId: "T1" },
+      { method: "unsubscribe", threadId: "T1" },
+    ]);
   });
 
   test("still sends when the hourly REST cap is spent", async () => {

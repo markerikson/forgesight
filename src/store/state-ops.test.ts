@@ -104,6 +104,21 @@ describe("applyStateOps", () => {
     expect(applyStateOps(db, ["acme/app#1"], { kind: "read" }, T2).outboxIds).toHaveLength(1);
   });
 
+  test("an opposite write queued in between does not count as the same write waiting", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T2);
+    expect(outboxRows(db).map((r) => [r.op, r.thread_id])).toEqual([
+      ["unsubscribe", "10"],
+      ["unsubscribe", "11"],
+      ["resubscribe", "10"],
+      ["resubscribe", "11"],
+      ["unsubscribe", "10"],
+      ["unsubscribe", "11"],
+    ]);
+  });
+
   test("ops without a GitHub write queue nothing", () => {
     const db = seeded();
     const result = applyStateOps(

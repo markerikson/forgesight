@@ -5,6 +5,7 @@ import type { GitHubClient } from "../github/types.ts";
 import {
   claimOutbox,
   completeOutbox,
+  deferOutbox,
   dueOutbox,
   failOutbox,
   type OutboxRow,
@@ -77,9 +78,14 @@ export const outboxJob: Job = {
           continue;
         }
         // Status 0 is a network failure or timeout, not a rejection of this row, so it does
-        // not count toward MAX_ATTEMPTS; the scheduler backs the job off instead.
-        const offline = error instanceof GitHubApiError && error.status === 0;
-        if (offline || error instanceof RateLimitedError || error instanceof TokenError) {
+        // not count toward MAX_ATTEMPTS. The row still moves back in the queue so one row
+        // that keeps timing out does not block the others, and the scheduler backs off.
+        if (error instanceof GitHubApiError && error.status === 0) {
+          const runAfter = new Date(failedAt.getTime() + backoffMs(0)).toISOString();
+          deferOutbox(db, row.id, message(error), runAfter);
+          throw error;
+        }
+        if (error instanceof RateLimitedError || error instanceof TokenError) {
           releaseOutbox(db, row.id);
           throw error;
         }
