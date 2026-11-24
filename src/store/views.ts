@@ -103,6 +103,14 @@ export function listViews(
   return db.query<SubjectViewRow, []>(sql).all().map(viewFromRow);
 }
 
+/** Number of rows `listViews` would return without `includeHidden`. */
+export function countViews(db: Database): number {
+  const row = db
+    .query<{ n: number }, []>("SELECT COUNT(*) AS n FROM subject_views WHERE section <> 'hidden'")
+    .get();
+  return row?.n ?? 0;
+}
+
 export function getView(db: Database, key: string): SubjectViewRecord | undefined {
   const row = db
     .query<SubjectViewRow, [string]>("SELECT * FROM subject_views WHERE subject_key = ?")

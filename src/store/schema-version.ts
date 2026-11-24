@@ -18,6 +18,6 @@ export function assertCurrent(db: Database, expected: number = SCHEMA_VERSION): 
     throw new Error(`Database is at version ${current}, code expects ${expected}. Run the worker or \`bun run db:migrate\`.`);
   }
   if (current > expected) {
-    throw new Error(`Database is at version ${current}, newer than this code (${expected}).`);
+    throw new Error(`Database is at version ${current}, newer than this code (${expected}). Deploy the current code.`);
   }
 }

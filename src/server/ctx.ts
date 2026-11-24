@@ -39,7 +39,7 @@ export function openServerDb(path: string): Database {
     assertCurrent(db);
   } catch (err) {
     db.close();
-    throw new NotReadyError(`${(err as Error).message}. Run \`bun run db:migrate\` or restart the worker.`);
+    throw new NotReadyError((err as Error).message);
   }
   return db;
 }
@@ -56,9 +56,11 @@ async function createCtx(): Promise<ServerCtx> {
 
 /**
  * The per-process server context. A failed open is not cached, so the next request
- * retries once migrations have run.
+ * retries once migrations have run. The schema version is re-checked on every call
+ * (one PRAGMA read), so a worker that migrates under a running web process drops the
+ * cached connection instead of serving queries against the new schema.
  */
-export function getCtx(): Promise<ServerCtx> {
+export async function getCtx(): Promise<ServerCtx> {
   if (!ctxPromise) {
     const pending = createCtx();
     ctxPromise = pending;
@@ -66,5 +68,16 @@ export function getCtx(): Promise<ServerCtx> {
       if (ctxPromise === pending) ctxPromise = undefined;
     });
   }
-  return ctxPromise;
+  const current = ctxPromise;
+  const ctx = await current;
+  try {
+    assertCurrent(ctx.db);
+  } catch (err) {
+    if (ctxPromise === current) {
+      ctxPromise = undefined;
+      ctx.db.close();
+    }
+    throw new NotReadyError((err as Error).message);
+  }
+  return ctx;
 }

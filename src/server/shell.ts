@@ -1,4 +1,4 @@
-import { listViews } from "../store/views.ts";
+import { countViews } from "../store/views.ts";
 import { NotReadyError, getCtx } from "./ctx.ts";
 import { type StatusPayload, readStatus } from "./handlers/status.ts";
 
@@ -10,7 +10,7 @@ export type ShellData =
 export async function loadShell(): Promise<ShellData> {
   try {
     const ctx = await getCtx();
-    return { ready: true, status: readStatus(ctx), viewCount: listViews(ctx.db).length };
+    return { ready: true, status: readStatus(ctx), viewCount: countViews(ctx.db) };
   } catch (err) {
     if (err instanceof NotReadyError) return { ready: false, message: err.message };
     throw err;

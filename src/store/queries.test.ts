@@ -17,6 +17,7 @@ import { reviewThreadsFor, stickiesFor, stickyNodeIds, timelineFor } from "./tim
 import {
   appendChange,
   changesAfter,
+  countViews,
   getView,
   listViews,
   pruneChanges,
@@ -313,7 +314,7 @@ describe("views", () => {
     expect(getView(db, "o/r#1")?.row).toEqual({ title: "b" });
   });
 
-  test("listViews hides the hidden section unless asked", () => {
+  test("listViews and countViews hide the hidden section unless asked", () => {
     const db = memoryDb();
     putViews(
       db,
@@ -325,6 +326,7 @@ describe("views", () => {
       T3,
     );
     expect(listViews(db).map((v) => v.subjectKey)).toEqual(["o/r#2", "o/r#1"]);
+    expect(countViews(db)).toBe(2);
     expect(listViews(db, { includeHidden: true }).map((v) => v.subjectKey)).toEqual([
       "o/r#3",
       "o/r#2",

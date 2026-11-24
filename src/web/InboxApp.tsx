@@ -17,7 +17,8 @@ export function InboxApp({ initialStatus }: { initialStatus: StatusPayload }) {
 }
 
 function StatusLine() {
-  const { data } = useGetStatusQuery(undefined, { pollingInterval: POLL_MS });
+  const { data, isError } = useGetStatusQuery(undefined, { pollingInterval: POLL_MS });
+  if (isError) return <p id="status-line">Status unavailable: the last status check failed.</p>;
   if (!data) return null;
   const { worker, viewer, poll } = data;
   const workerText =
