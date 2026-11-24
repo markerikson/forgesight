@@ -113,14 +113,33 @@ function unsubscribedThreads(db: Database, key: string): Set<string> {
   return new Set(rows.filter((r) => r.op === "unsubscribe").map((r) => r.thread_id));
 }
 
+/** Threads of `key` that already have an unsent `op` row from a live op. */
+function queuedThreads(db: Database, key: string, op: OutboxOp): Set<string> {
+  const rows = db
+    .query<{ thread_id: string }, [string, string]>(
+      `SELECT thread_id FROM outbox o
+       WHERE o.subject_key = ? AND o.op = ? AND o.completed_at IS NULL AND o.failed_at IS NULL
+         AND ${liveOp("o")}`,
+    )
+    .all(key, op);
+  return new Set(rows.map((r) => r.thread_id));
+}
+
+/**
+ * Threads that get an `op` row. A thread that already has the same write waiting is skipped,
+ * so repeating an op before the outbox sends it does not queue the write twice.
+ */
 function outboxTargets(db: Database, key: string, op: OutboxOp): string[] {
   const unsubscribed = op === "resubscribe" ? unsubscribedThreads(db, key) : new Set<string>();
-  const threads: OutboxThread[] = threadsForSubject(db, key).map((t) => ({
-    threadId: t.threadId,
-    unread: t.unread,
-    ghDoneAt: t.ghDoneAt,
-    unsubscribed: unsubscribed.has(t.threadId),
-  }));
+  const queued = queuedThreads(db, key, op);
+  const threads: OutboxThread[] = threadsForSubject(db, key)
+    .filter((t) => !queued.has(t.threadId))
+    .map((t) => ({
+      threadId: t.threadId,
+      unread: t.unread,
+      ghDoneAt: t.ghDoneAt,
+      unsubscribed: unsubscribed.has(t.threadId),
+    }));
   return outboxThreads(op, threads);
 }
 
