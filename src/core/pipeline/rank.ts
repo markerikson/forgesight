@@ -84,6 +84,7 @@ export function describe(e: ViewEvent): string {
     case "baseForcePush":
       return act("force-pushed the base branch");
     case "baseChanged":
+      if (e.actor === null) return truncate(`base changed automatically to ${e.data.to ?? "another branch"} (old base ${e.data.from ?? "gone"})`);
       return truncate(act(`changed the base to ${e.data.to ?? "another branch"}`));
     case "crossReference":
     case "connected":

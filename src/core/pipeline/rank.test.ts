@@ -207,6 +207,14 @@ describe("rank", () => {
     expect(view.rounds.flatMap((r) => r.entries).every((e) => e.type === "group" && !e.group.isNew)).toBe(true);
   });
 
+  test("an automatic base change reads without an actor", () => {
+    const view = derive({
+      state: "CLOSED",
+      items: [item("AutomaticBaseChangeSucceededEvent", "2026-11-19T00:00:00Z", { oldBase: "feat", newBase: "main" })],
+    });
+    expect(view.summaryLine).toBe("base changed automatically to main (old base feat)");
+  });
+
   test("an unknown bot comment is collapsed, never hidden", () => {
     const view = derive({ items: [comment("some-new-bot", "2026-11-21T00:00:00Z", "hello", true)] });
     expect(view.section).toBe("hidden");

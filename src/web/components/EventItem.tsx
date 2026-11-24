@@ -18,7 +18,7 @@ export function EventItem({ event, now, withBody }: Props) {
     <div className={`${styles.event} ${event.isNew ? styles.new : ""}`}>
       <div className={styles.line}>
         <span className={styles.actor}>
-          {event.actor?.login ?? "someone"}
+          {event.actor?.login ?? (event.kind === "baseChanged" ? "GitHub" : "someone")}
           {event.actor?.isBot && <span className={styles.bot}>bot</span>}
         </span>
         <span className={styles.what}>{describeEvent(event)}</span>

@@ -3,7 +3,7 @@
   "reasons": [
     "nothingNew"
   ],
-  "summaryLine": "changed the base to master",
+  "summaryLine": "base changed automatically to master (old base dominik/rebase-157-runtime)",
   "newMeaningfulCount": 0,
   "hiddenStats": {
     "pushes": 9,

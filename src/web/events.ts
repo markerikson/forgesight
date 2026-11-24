@@ -61,7 +61,7 @@ export function describeEvent(event: Event): string {
     case "renamed":
       return `renamed from “${d.from ?? ""}” to “${d.to ?? ""}”`;
     case "baseChanged":
-      return `changed the base from ${d.from ?? "?"} to ${d.to ?? "?"}`;
+      return `changed the base from ${d.from ?? "?"} to ${d.to ?? "?"}${event.actor === null ? " automatically" : ""}`;
     case "labeled":
       return `${d.added === false ? "removed" : "added"} label ${d.label ?? ""}`;
     case "assigned":
