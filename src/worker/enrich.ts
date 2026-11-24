@@ -8,7 +8,14 @@ import { getMeta, setMeta } from "../store/meta.ts";
 import { clearDirty, dirtyKeysOfKind, nextDirtyBatch } from "../store/subjects.ts";
 import { latestThreadUpdates } from "../store/threads.ts";
 import { stickyNodeIds } from "../store/timeline.ts";
-import { applyEnrichOutcomes, type EnrichSubject, enrichRepoBatch, enrichSubjectFor } from "./enrich-batch.ts";
+import {
+  applyEnrichOutcomes,
+  EnrichAbortedError,
+  type EnrichBatchResult,
+  type EnrichSubject,
+  enrichRepoBatch,
+  enrichSubjectFor,
+} from "./enrich-batch.ts";
 import type { Job, JobContext } from "./scheduler.ts";
 
 /** Stored batch state for a repo, clamped to the configured maximum. */
@@ -78,25 +85,36 @@ export const enrichJob: Job = {
     if (skipped.length > 0) clearDirty(db, skipped);
     if (subjects.length === 0) return "worked";
 
-    const result = await enrichRepoBatch(
-      { graphql: ctx.gh.graphql.bind(ctx.gh), clock },
-      {
-        repo,
-        mode: rc.mode,
-        subjects,
-        stickyIds: stickyNodeIds(
-          db,
-          subjects.map((s) => s.subjectKey),
-        ),
-        state,
-        maxSize: rc.batchSize,
-        markers: stickyMarkers(config),
-        workClass: first.workClass,
-      },
-    );
-    const doneAt = clock().toISOString();
-    applyEnrichOutcomes(db, result.outcomes, doneAt);
-    setMeta(db, batchMetaKey(repo), JSON.stringify(result.state), doneAt);
+    const save = (result: EnrichBatchResult) => {
+      const doneAt = clock().toISOString();
+      applyEnrichOutcomes(db, result.outcomes, doneAt);
+      setMeta(db, batchMetaKey(repo), JSON.stringify(result.state), doneAt);
+    };
+    let result: EnrichBatchResult;
+    try {
+      result = await enrichRepoBatch(
+        { graphql: ctx.gh.graphql.bind(ctx.gh), clock },
+        {
+          repo,
+          mode: rc.mode,
+          subjects,
+          stickyIds: stickyNodeIds(
+            db,
+            subjects.map((s) => s.subjectKey),
+          ),
+          state,
+          maxSize: rc.batchSize,
+          markers: stickyMarkers(config),
+          workClass: first.workClass,
+        },
+      );
+    } catch (error) {
+      if (!(error instanceof EnrichAbortedError)) throw error;
+      // Keep what finished before the failure; the scheduler handles the cause (backoff, stop on auth).
+      save(error.partial);
+      throw error.cause;
+    }
+    save(result);
 
     const counts = { ok: 0, notFound: 0, error: 0 };
     for (const o of result.outcomes) counts[o.kind]++;

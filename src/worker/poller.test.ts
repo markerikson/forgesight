@@ -115,6 +115,17 @@ describe("first run", () => {
     });
     expect(getSubject(db, "octo/repo#2")?.dirtyAt).not.toBeNull();
   });
+
+  test("a poll before backfill applies the 14-day rule to page 1", async () => {
+    const { db, gh, poller, ctx } = setup();
+    gh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR) }), fakeThread({ id: "2", updatedAt: ago(20 * DAY) }));
+
+    expect(await poller.pollJob.run(ctx)).toBe("worked");
+
+    expect(getSubject(db, "octo/repo#1")?.dirtyAt).not.toBeNull();
+    expect(getSubject(db, "octo/repo#2")?.dirtyAt).toBeNull();
+    expect(getItemState(db, "octo/repo#2").dismissedAt).toBe(ago(20 * DAY));
+  });
 });
 
 describe("poll", () => {

@@ -85,8 +85,32 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** Errors that a smaller query may avoid: 502s, 503/504s and timeouts. */
 function isShrinkable(error: unknown): error is GqlError {
-  return error instanceof GqlError && (error.kind === "gateway" || error.kind === "timeout");
+  return error instanceof GqlError && (error.kind === "gateway" || error.kind === "server" || error.kind === "timeout");
+}
+
+/** Errors that say the subject itself is gone, as opposed to the sticky lookup or a field inside it. */
+function isSubjectNotFound(errors: GqlErrorEntry[]): boolean {
+  return errors.some((e) => {
+    if (e.type !== "NOT_FOUND") return false;
+    const path = e.path ?? [];
+    return path.length === 0 || path[0] === "repository";
+  });
+}
+
+/**
+ * Thrown when a fatal error (rate limit, auth, bad query) stops a run part way. `partial` holds
+ * the outcomes and batch state gathered before it, so the caller can still save them.
+ */
+export class EnrichAbortedError extends Error {
+  readonly partial: EnrichBatchResult;
+
+  constructor(cause: unknown, partial: EnrichBatchResult) {
+    super(errorText(cause), { cause });
+    this.name = "EnrichAbortedError";
+    this.partial = partial;
+  }
 }
 
 /** Errors that stop the whole run instead of failing one subject. */
@@ -99,7 +123,8 @@ function isFatal(error: unknown): boolean {
  * Enriches one repo's subjects with SubjectBatch queries, `state.size` subjects per query.
  * Gateway errors and timeouts shrink the batch and retry; a subject that still fails at size 1
  * with the reduced field set gets an error outcome. Timelines with more pages are fetched one
- * subject at a time. Other errors (rate limits, auth, bad queries) are thrown.
+ * subject at a time. Other errors (rate limits, auth, bad queries) stop the run with an
+ * `EnrichAbortedError` that carries the results gathered so far.
  */
 export async function enrichRepoBatch(deps: EnrichBatchDeps, input: EnrichBatchInput): Promise<EnrichBatchResult> {
   const clock = deps.clock ?? (() => new Date());
@@ -150,75 +175,82 @@ export async function enrichRepoBatch(deps: EnrichBatchDeps, input: EnrichBatchI
     return merged;
   };
 
-  while (queue.length) {
-    const chunk = queue.slice(0, Math.max(1, state.size));
-    const stickyIds = chunk.flatMap((s) => input.stickyIds.get(s.subjectKey) ?? []);
-    const startedAt = clock().toISOString();
-    let result: GqlResult<BatchData>;
-    try {
-      // oxlint-disable-next-line no-await-in-loop
-      result = await query(chunk, stickyIds);
-    } catch (error) {
-      if (!isShrinkable(error)) throw error;
-      if (isExhausted(state)) {
-        const [failed] = queue.splice(0, 1);
-        if (failed) outcomes.push({ kind: "error", subjectKey: failed.subjectKey, error: errorText(error) });
-        continue;
-      }
-      state = nextBatchSize(state, error.kind === "timeout" ? "timeout" : "gateway", input.maxSize);
-      continue;
-    }
-    queue.splice(0, chunk.length);
-    const shrink = result.gatewayErrors > 0 && state.size > 1;
-    state = nextBatchSize(state, shrink ? "gateway" : "ok", input.maxSize);
-
-    const byAlias = errorsByAlias(result.errors);
-    const general = byAlias.get("") ?? [];
-    let freshStickies: Map<string, ParsedSticky>;
-    try {
-      freshStickies = parseStickies(result.data?.stickies);
-    } catch {
-      freshStickies = new Map();
-    }
-
-    for (const [i, subject] of chunk.entries()) {
-      const alias = `s${i}`;
-      const raw = result.data?.repository?.[alias];
-      const errors = byAlias.get(alias) ?? [];
-      if (raw == null) {
-        if ([...errors, ...general].some((e) => e.type === "NOT_FOUND")) {
-          outcomes.push({ kind: "notFound", subjectKey: subject.subjectKey });
-        } else {
-          const error = messageOf([...errors, ...general]) || "subject missing from response";
-          outcomes.push({ kind: "error", subjectKey: subject.subjectKey, error });
-        }
-        continue;
-      }
+  const drainQueue = async (): Promise<void> => {
+    while (queue.length) {
+      const chunk = queue.slice(0, Math.max(1, state.size));
+      const stickyIds = chunk.flatMap((s) => input.stickyIds.get(s.subjectKey) ?? []);
+      const startedAt = clock().toISOString();
+      let result: GqlResult<BatchData>;
       try {
-        const ctx = { fetchedAt: startedAt, markers: input.markers };
         // oxlint-disable-next-line no-await-in-loop
-        const parsed = await restOfTimeline(subject, parseSubjectAlias(raw, subject.kind, ctx), startedAt);
-        const stickies = new Map(parsed.stickies.map((s) => [s.commentNodeId, s]));
-        for (const id of input.stickyIds.get(subject.subjectKey) ?? []) {
-          const fresh = freshStickies.get(id);
-          if (fresh) stickies.set(id, fresh);
-        }
-        const enrichment: EnrichmentResult = {
-          subjectKey: subject.subjectKey,
-          subject: parsed.subject,
-          timelineItems: parsed.items,
-          stickies: [...stickies.values()],
-          timelineSyncedUntil: startedAt,
-        };
-        if (parsed.reviewThreads) enrichment.reviewThreads = parsed.reviewThreads;
-        outcomes.push({ kind: "ok", subjectKey: subject.subjectKey, result: enrichment });
+        result = await query(chunk, stickyIds);
       } catch (error) {
-        if (isFatal(error)) throw error;
-        outcomes.push({ kind: "error", subjectKey: subject.subjectKey, error: errorText(error) });
+        if (!isShrinkable(error)) throw error;
+        if (isExhausted(state)) {
+          const [failed] = queue.splice(0, 1);
+          if (failed) outcomes.push({ kind: "error", subjectKey: failed.subjectKey, error: errorText(error) });
+          continue;
+        }
+        state = nextBatchSize(state, error.kind === "timeout" ? "timeout" : "gateway", input.maxSize);
+        continue;
+      }
+      queue.splice(0, chunk.length);
+      const shrink = result.gatewayErrors > 0 && state.size > 1;
+      state = nextBatchSize(state, shrink ? "gateway" : "ok", input.maxSize);
+
+      const byAlias = errorsByAlias(result.errors);
+      const general = byAlias.get("") ?? [];
+      let freshStickies: Map<string, ParsedSticky>;
+      try {
+        freshStickies = parseStickies(result.data?.stickies);
+      } catch {
+        freshStickies = new Map();
+      }
+
+      for (const [i, subject] of chunk.entries()) {
+        const alias = `s${i}`;
+        const raw = result.data?.repository?.[alias];
+        const errors = byAlias.get(alias) ?? [];
+        if (raw == null) {
+          if (isSubjectNotFound([...errors, ...general])) {
+            outcomes.push({ kind: "notFound", subjectKey: subject.subjectKey });
+          } else {
+            const error = messageOf([...errors, ...general]) || "subject missing from response";
+            outcomes.push({ kind: "error", subjectKey: subject.subjectKey, error });
+          }
+          continue;
+        }
+        try {
+          const ctx = { fetchedAt: startedAt, markers: input.markers };
+          // oxlint-disable-next-line no-await-in-loop
+          const parsed = await restOfTimeline(subject, parseSubjectAlias(raw, subject.kind, ctx), startedAt);
+          const stickies = new Map(parsed.stickies.map((s) => [s.commentNodeId, s]));
+          for (const id of input.stickyIds.get(subject.subjectKey) ?? []) {
+            const fresh = freshStickies.get(id);
+            if (fresh) stickies.set(id, fresh);
+          }
+          const enrichment: EnrichmentResult = {
+            subjectKey: subject.subjectKey,
+            subject: parsed.subject,
+            timelineItems: parsed.items,
+            stickies: [...stickies.values()],
+            timelineSyncedUntil: startedAt,
+          };
+          if (parsed.reviewThreads) enrichment.reviewThreads = parsed.reviewThreads;
+          outcomes.push({ kind: "ok", subjectKey: subject.subjectKey, result: enrichment });
+        } catch (error) {
+          if (isFatal(error)) throw error;
+          outcomes.push({ kind: "error", subjectKey: subject.subjectKey, error: errorText(error) });
+        }
       }
     }
-  }
+  };
 
+  try {
+    await drainQueue();
+  } catch (error) {
+    throw new EnrichAbortedError(error, { outcomes, state, cost, queries });
+  }
   return { outcomes, state, cost, queries };
 }
 

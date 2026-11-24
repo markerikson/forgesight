@@ -71,11 +71,16 @@ export interface HourlySpend extends ApiSpend {
   hour: string;
 }
 
-/** Call count and summed cost per UTC hour, resource and work class since `since` (inclusive). */
+/**
+ * Call count and summed cost per UTC hour, resource and work class since `since` (inclusive).
+ * REST 304s are left out of the count, matching what the governor charges.
+ */
 export function hourlySpendSince(db: Database, since: string): HourlySpend[] {
   return db
     .query<{ hour: string; resource: string; work_class: string; calls: number; cost: number }, [string]>(
-      `SELECT substr(at, 1, 13) AS hour, resource, work_class, COUNT(*) AS calls, COALESCE(SUM(cost), 0) AS cost
+      `SELECT substr(at, 1, 13) AS hour, resource, work_class,
+         SUM(CASE WHEN resource = 'rest' AND status = 304 THEN 0 ELSE 1 END) AS calls,
+         COALESCE(SUM(cost), 0) AS cost
        FROM api_calls WHERE at >= ?
        GROUP BY hour, resource, work_class ORDER BY hour, resource, work_class`,
     )

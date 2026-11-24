@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { EnrichmentResult, SubjectViewRecord, ThreadUpsert } from "../core/types.ts";
-import { pruneApiCalls, recordApiCall, spendSince } from "./api-calls.ts";
+import { hourlySpendSince, pruneApiCalls, recordApiCall, spendSince } from "./api-calls.ts";
 import { getItemState, getItemStates, initDismissedAt, putItemState } from "./item-state.ts";
 import {
   ensureSubjects,
@@ -383,5 +383,29 @@ describe("api calls", () => {
     ]);
     expect(pruneApiCalls(db, T1)).toBe(1);
     expect(spendSince(db, T0)).toHaveLength(2);
+  });
+
+  test("hourlySpendSince leaves REST 304s out of the call count", () => {
+    const db = memoryDb();
+    const call = (resource: string, status: number, cost: number | null) => ({
+      at: "2026-11-23T12:05:00.000Z",
+      resource,
+      workClass: "notifications",
+      request: "GET /notifications",
+      status,
+      cost,
+      remaining: null,
+      resetAt: null,
+      durationMs: null,
+    });
+    recordApiCall(db, call("rest", 200, null));
+    recordApiCall(db, call("rest", 304, null));
+    recordApiCall(db, call("rest", 304, null));
+    recordApiCall(db, call("graphql", 200, 3));
+
+    expect(hourlySpendSince(db, "2026-11-23T00:00:00.000Z")).toEqual([
+      { hour: "2026-11-23T12", resource: "graphql", workClass: "notifications", calls: 1, cost: 3 },
+      { hour: "2026-11-23T12", resource: "rest", workClass: "notifications", calls: 1, cost: 0 },
+    ]);
   });
 });

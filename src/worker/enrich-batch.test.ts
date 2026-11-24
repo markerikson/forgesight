@@ -6,7 +6,13 @@ import type { GqlErrorEntry, GqlResult } from "../github/types.ts";
 import { clearDirty, ensureSubjects, getSubject, markDirty } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { stickiesFor, stickyNodeIds, timelineFor } from "../store/timeline.ts";
-import { applyEnrichOutcomes, type EnrichBatchInput, enrichRepoBatch, enrichSubjectFor } from "./enrich-batch.ts";
+import {
+  applyEnrichOutcomes,
+  EnrichAbortedError,
+  type EnrichBatchInput,
+  enrichRepoBatch,
+  enrichSubjectFor,
+} from "./enrich-batch.ts";
 
 const REPO = "octo/repo";
 const NOW = new Date("2026-11-23T12:00:00Z");
@@ -170,6 +176,17 @@ describe("enrichRepoBatch", () => {
     });
   });
 
+  test("a NOT_FOUND from the sticky lookup does not mark a missing subject not found", async () => {
+    const gh = new FakeGitHubClient(clock);
+    const errors: GqlErrorEntry[] = [
+      { message: "Could not resolve to a node", type: "NOT_FOUND", path: ["stickies", 0] },
+      { message: "Something broke" },
+    ];
+    gh.graphqlHandler = () => ok({ repository: { s0: null }, stickies: [null] }, { errors });
+    const out = await enrichRepoBatch({ graphql: gh.graphql.bind(gh), clock }, input([[1, "pr"]]));
+    expect(out.outcomes).toEqual([expect.objectContaining({ kind: "error", subjectKey: `${REPO}#1` })]);
+  });
+
   test("a subject that fails to parse gets an error outcome", async () => {
     const gh = new FakeGitHubClient(clock);
     gh.graphqlHandler = () =>
@@ -302,6 +319,29 @@ describe("enrichRepoBatch", () => {
     expect(out.state).toEqual({ size: 2, successes: 3, reduced: false });
   });
 
+  test("503 and 504 responses shrink the batch like 502s", async () => {
+    const gh = new FakeGitHubClient(clock);
+    const sizes: number[] = [];
+    gh.graphqlHandler = (query) => {
+      const asked = requested(query);
+      sizes.push(asked.length);
+      if (asked.length > 1) throw new GqlError("503 Service Unavailable", "server", 503);
+      return ok({ repository: { s0: pr(asked[0]?.number ?? 0, []) }, stickies: [] });
+    };
+    const out = await enrichRepoBatch(
+      { graphql: gh.graphql.bind(gh), clock },
+      input(
+        [
+          [1, "pr"],
+          [2, "pr"],
+        ],
+        { state: { size: 2, successes: 0, reduced: false } },
+      ),
+    );
+    expect(sizes).toEqual([2, 1, 1]);
+    expect(out.outcomes.map((o) => o.kind)).toEqual(["ok", "ok"]);
+  });
+
   test("a success that needed gateway retries still shrinks the batch", async () => {
     const gh = new FakeGitHubClient(clock);
     gh.graphqlHandler = () => ok({ repository: { s0: pr(1, []), s1: pr(2, []) }, stickies: [] }, { gatewayErrors: 2 });
@@ -345,18 +385,45 @@ describe("enrichRepoBatch", () => {
 
   test("rate limits and query errors stop the run", async () => {
     const gh = new FakeGitHubClient(clock);
+    const run = () => enrichRepoBatch({ graphql: gh.graphql.bind(gh), clock }, input([[1, "pr"]]));
     gh.graphqlHandler = () => {
       throw new RateLimitedError("limited", null, false);
     };
-    await expect(enrichRepoBatch({ graphql: gh.graphql.bind(gh), clock }, input([[1, "pr"]]))).rejects.toBeInstanceOf(
-      RateLimitedError,
-    );
+    const limited = await run().catch((e: unknown) => e);
+    expect(limited).toBeInstanceOf(EnrichAbortedError);
+    expect((limited as EnrichAbortedError).cause).toBeInstanceOf(RateLimitedError);
     gh.graphqlHandler = () => {
       throw new GqlError("Field 'x' doesn't exist", "graphql", 200);
     };
-    await expect(enrichRepoBatch({ graphql: gh.graphql.bind(gh), clock }, input([[1, "pr"]]))).rejects.toBeInstanceOf(
-      GqlError,
-    );
+    const bad = await run().catch((e: unknown) => e);
+    expect((bad as EnrichAbortedError).cause).toBeInstanceOf(GqlError);
+  });
+
+  test("a stopped run keeps the outcomes and batch state gathered before it", async () => {
+    const gh = new FakeGitHubClient(clock);
+    gh.graphqlHandler = (query) => {
+      const asked = requested(query);
+      if (asked[0]?.number === 3) throw new RateLimitedError("limited", null, false);
+      return ok({
+        repository: Object.fromEntries(asked.map((a) => [a.alias, pr(a.number, [])])),
+        stickies: [],
+      });
+    };
+    const error = await enrichRepoBatch(
+      { graphql: gh.graphql.bind(gh), clock },
+      input(
+        [1, 2, 3].map((n) => [n, "pr"] as [number, "pr"]),
+        { state: { size: 2, successes: 0, reduced: false } },
+      ),
+    ).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(EnrichAbortedError);
+    const partial = (error as EnrichAbortedError).partial;
+    expect(partial.outcomes.map((o) => [o.kind, o.subjectKey])).toEqual([
+      ["ok", `${REPO}#1`],
+      ["ok", `${REPO}#2`],
+    ]);
+    expect(partial.state).toEqual({ size: 2, successes: 1, reduced: false });
+    expect(partial.queries).toBe(2);
   });
 });
 

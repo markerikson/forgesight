@@ -96,9 +96,12 @@ export function createPoller(): Poller {
           threads.push(...page);
         }
       }
+      // Until backfill finishes, a poll can be the first to store an old thread (the first poll
+      // runs before backfill starts), so it gets the same first-run rules backfill uses.
+      const firstRunAt = backfillDone(ctx) ? null : (metaDate(ctx, POLL_META.backfillStartedAt) ?? now);
       const { written, dirtied } = ingest(ctx, newestById(threads), {
-        firstRunAt: backfillDone(ctx) ? null : metaDate(ctx, POLL_META.backfillStartedAt),
-        dirty: () => true,
+        firstRunAt,
+        dirty: (t) => firstRunAt === null || isRecent(t.updatedAt, firstRunAt),
       });
       setMeta(db, POLL_META.etag, result.etag, nowIso);
       setMeta(db, POLL_META.lastPollStartedAt, nowIso, nowIso);

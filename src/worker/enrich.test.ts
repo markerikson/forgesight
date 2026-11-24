@@ -4,6 +4,7 @@ import { resolveConfig } from "../config/load.ts";
 import { batchMetaKey, openPullsMetaKey } from "../core/meta-keys.ts";
 import type { SubjectKind, SubjectOrigin } from "../core/types.ts";
 import { Governor, MemoryApiCallLog } from "../github/budget.ts";
+import { RateLimitedError } from "../github/errors.ts";
 import { FakeGitHubClient } from "../github/fake.ts";
 import type { GqlResult } from "../github/types.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
@@ -152,6 +153,30 @@ describe("enrichJob", () => {
     }
     expect(JSON.parse(getMeta(t.db, batchMetaKey(REPO)) ?? "null")).toMatchObject({ size: 10, successes: 1 });
     expect(await enrichJob.run(t.ctx)).toBe("idle");
+  });
+
+  test("a rate limit mid-run saves what was fetched and rethrows the rate limit", async () => {
+    const t = setup([
+      { number: 1, threadAgeDays: 1 },
+      { number: 2, threadAgeDays: 1 },
+    ]);
+    let calls = 0;
+    t.gh.graphqlHandler = (query) => {
+      calls += 1;
+      if (calls > 1) throw new RateLimitedError("secondary limit", new Date(START.getTime() + 60_000), true);
+      const repository: Record<string, unknown> = {};
+      for (const r of requested(query)) {
+        const node = pr(r.number);
+        const morePages = { ...node.timelineItems, pageInfo: { hasNextPage: true, endCursor: "c1" } };
+        repository[r.alias] = r.number === 2 ? { ...node, timelineItems: morePages } : node;
+      }
+      return ok({ repository, stickies: [] });
+    };
+
+    await expect(enrichJob.run(t.ctx)).rejects.toBeInstanceOf(RateLimitedError);
+    expect(isDirty(t.db, `${REPO}#1`)).toBe(false);
+    expect(isDirty(t.db, `${REPO}#2`)).toBe(true);
+    expect(JSON.parse(getMeta(t.db, batchMetaKey(REPO)) ?? "null")).toMatchObject({ size: 10, successes: 1 });
   });
 
   test("uses the stored batch size for the repo", async () => {
