@@ -1,16 +1,12 @@
 import type { Database } from "bun:sqlite";
 import initialSql from "./migrations/001-initial.sql" with { type: "text" };
+import { userVersion } from "./schema-version.ts";
 
 export type Migration = { version: number; name: string; sql: string };
 
 export const migrations: Migration[] = [{ version: 1, name: "initial", sql: initialSql }];
 
-function userVersion(db: Database): number {
-  const row = db.query<{ user_version: number }, []>("PRAGMA user_version").get();
-  return row?.user_version ?? 0;
-}
-
-function latest(list: Migration[]): number {
+export function latest(list: Migration[]): number {
   return list.reduce((max, m) => Math.max(max, m.version), 0);
 }
 
@@ -32,16 +28,4 @@ export function runMigrations(
     })();
   }
   return { from, to: userVersion(db) };
-}
-
-/** For the web process, which never migrates: throws unless the database matches the code. */
-export function assertCurrent(db: Database, list: Migration[] = migrations): void {
-  const current = userVersion(db);
-  const target = latest(list);
-  if (current < target) {
-    throw new Error(`Database is at version ${current}, code expects ${target}. Run the worker or \`bun run db:migrate\`.`);
-  }
-  if (current > target) {
-    throw new Error(`Database is at version ${current}, newer than this code (${target}).`);
-  }
 }

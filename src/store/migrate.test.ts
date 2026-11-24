@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDb } from "./db.ts";
 import { getMeta, setMeta } from "./meta.ts";
-import { assertCurrent, type Migration, migrations, runMigrations } from "./migrate.ts";
+import { latest, migrations, runMigrations } from "./migrate.ts";
+import { assertCurrent, SCHEMA_VERSION } from "./schema-version.ts";
 
 function tableNames(db: ReturnType<typeof openDb>): string[] {
   return db
@@ -46,8 +47,11 @@ describe("migrations", () => {
     const db = openDb(":memory:");
     expect(() => assertCurrent(db)).toThrow(/version 0/);
     runMigrations(db);
-    const ahead: Migration[] = [...migrations, { version: 2, name: "next", sql: "SELECT 1" }];
-    expect(() => assertCurrent(db, ahead)).toThrow(/expects 2/);
+    expect(() => assertCurrent(db, SCHEMA_VERSION + 1)).toThrow(/expects 2/);
+  });
+
+  test("SCHEMA_VERSION matches the newest migration", () => {
+    expect(latest(migrations)).toBe(SCHEMA_VERSION);
   });
 
   test("refuses to run against a newer database", () => {
