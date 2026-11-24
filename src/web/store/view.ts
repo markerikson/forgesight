@@ -35,6 +35,8 @@ export interface UndoEntry {
   label: string;
   keys: string[];
   at: string;
+  /** Read rows the change took out of the list; undo puts them back. */
+  lingering?: InboxRow[];
 }
 
 export interface Toast {

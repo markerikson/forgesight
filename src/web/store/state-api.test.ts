@@ -3,7 +3,7 @@ import type { InboxRow } from "../../core/index.ts";
 import { api } from "./api.ts";
 import { row, storeWith } from "./__fixtures__/inbox.ts";
 import { applyState, undoLatest } from "./state-api.ts";
-import { rowSelected, selectSelectedRow, selectVisibleRows } from "./view.ts";
+import { rowRead, rowSelected, selectSelectedRow, selectVisibleRows } from "./view.ts";
 
 type Reply = { status: number; body: unknown };
 
@@ -107,6 +107,25 @@ describe("undoLatest", () => {
     expect(cached(store).sidebar.sections).toMatchObject({ waiting: 3, hidden: 0 });
     expect(store.getState().view.undo).toEqual([]);
     expect(store.getState().view.toast?.message).toBe("Undone: Done");
+  });
+
+  test("brings back a read row that Done took out of the list", async () => {
+    const store = storeWith(rows);
+    const readRow: InboxRow = { ...rows[0]!, unread: false };
+    const hiddenRow: InboxRow = { ...readRow, section: "hidden" };
+    store.dispatch(rowRead(readRow));
+    replies.push(
+      { status: 200, body: { opId: 1, outboxIds: [], rows: { "acme/app#1": hiddenRow } } },
+      { status: 200, body: { result: "undone", githubApplied: 0, rows: { "acme/app#1": hiddenRow } } },
+    );
+    store.dispatch(applyState(["acme/app#1"], { kind: "done" }));
+    await settle();
+    expect(store.getState().view.lingering).toEqual([]);
+
+    store.dispatch(undoLatest());
+    await settle();
+    expect(store.getState().view.lingering).toEqual([readRow]);
+    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toContain("acme/app#1");
   });
 
   test("a superseded undo explains why and drops the entry", async () => {

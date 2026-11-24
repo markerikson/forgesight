@@ -125,6 +125,11 @@
   display: flex;
 }
 
+/* Keep the title and badges clear of the Done button that stays on the selected row. */
+.selected .line:first-child {
+  padding-right: 52px;
+}
+
 .selected:not(:hover, :focus-within) .actions button:not(.done) {
   display: none;
 }

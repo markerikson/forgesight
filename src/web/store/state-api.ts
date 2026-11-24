@@ -8,6 +8,7 @@ import { replaceRows } from "./inbox-cache.ts";
 import {
   lingeringDropped,
   resolveSelection,
+  rowRead,
   rowSelected,
   selectSelectedRow,
   selectVisibleRows,
@@ -46,6 +47,8 @@ export const stateApi = api.injectEndpoints({
         const selected = selectSelectedRow(before);
         const selectedIndex = selected ? selectVisibleRows(before).indexOf(selected) : 0;
         const now = new Date().toISOString();
+        const keySet = new Set<string>(keys);
+        const lingering = before.view.lingering.filter((row) => keySet.has(row.key));
 
         if (op.kind !== "read" && op.kind !== "unread") dispatch(lingeringDropped(keys));
         const patches = cachedInboxArgs(before).map((arg) =>
@@ -76,7 +79,15 @@ export const stateApi = api.injectEndpoints({
             );
           }
           if (op.kind === "read") return;
-          dispatch(undoPushed({ opId: data.opId, label, keys, at: now }));
+          dispatch(
+            undoPushed({
+              opId: data.opId,
+              label,
+              keys,
+              at: now,
+              ...(lingering.length > 0 && op.kind !== "unread" ? { lingering } : {}),
+            }),
+          );
           dispatch(toastShown(label, { opId: data.opId }));
         } catch {
           for (const patch of patches) patch.undo();
@@ -98,6 +109,7 @@ export const stateApi = api.injectEndpoints({
           }
           const entry = (getState() as ViewRootState).view.undo.find((e) => e.opId === opId);
           dispatch(undoRemoved(opId));
+          for (const row of entry?.lingering ?? []) dispatch(rowRead(row));
           dispatch(
             toastShown(
               data.githubApplied > 0
