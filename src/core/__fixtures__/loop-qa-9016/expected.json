@@ -1,0 +1,25 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "nothingNew"
+  ],
+  "summaryLine": "pushed: Bug Report #24583: Fetch the bug report with `curl -fsS \"...",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 1,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-23T19:06:15Z",
+  "links": [],
+  "rounds": [
+    {
+      "start": "pushed 2 commits",
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "[3 bot comments, 1 comment] (new)"
+      ]
+    }
+  ]
+}

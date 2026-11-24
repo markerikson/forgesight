@@ -1,0 +1,75 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "nothingNew"
+  ],
+  "summaryLine": "changed the base to master",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 9,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-23T15:10:04Z",
+  "links": [],
+  "rounds": [
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "[2 cross-references, 1 rename, 1 base change] (new)"
+      ]
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "[1 cross-reference, 1 bot comment] (new)"
+      ]
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 2 commits",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 27 commits",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    }
+  ]
+}

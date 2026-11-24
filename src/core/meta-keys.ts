@@ -14,6 +14,10 @@ export const META = {
   backfillStartedAt: "backfill.startedAt",
   backfillCursor: "backfill.cursor",
   backfillCompletedAt: "backfill.completedAt",
+  /** Highest `changes.seq` the derive job has consumed. */
+  deriveSeq: "derive.seq",
+  /** Time of the last derive run; snoozes that ended since then are re-derived. */
+  deriveAt: "derive.at",
 } as const;
 
 /** Adaptive SubjectBatch state for one repo, stored as JSON `BatchState`. */

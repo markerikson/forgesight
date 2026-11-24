@@ -28,6 +28,18 @@ export function getItemStates(db: Database, keys: string[]): Map<string, ItemSta
   return new Map(rows.map((r) => [r.subject_key, itemStateFromRow(r)]));
 }
 
+/** Subjects whose snooze ended in `(after, until]`; `after` null means any time up to `until`. */
+export function snoozesEndedBetween(db: Database, after: string | null, until: string): string[] {
+  return db
+    .query<{ subject_key: string }, [string, string]>(
+      `SELECT subject_key FROM item_state
+       WHERE snooze_until IS NOT NULL AND snooze_until > ? AND snooze_until <= ?
+       ORDER BY subject_key`,
+    )
+    .all(after ?? "", until)
+    .map((r) => r.subject_key);
+}
+
 /** Replaces a subject's state and appends a `state` change in the same transaction. */
 export function putItemState(db: Database, key: string, state: ItemState, now: string): void {
   db.transaction(() => {

@@ -10,9 +10,10 @@ import { TokenError } from "../github/errors.ts";
 import { resolveToken } from "../github/token.ts";
 import type { GitHubClient } from "../github/types.ts";
 import { defaultDbPath, openDb } from "../store/db.ts";
-import { setMeta } from "../store/meta.ts";
+import { getMeta, setMeta } from "../store/meta.ts";
 import { runMigrations } from "../store/migrate.ts";
 import { SqliteApiCallLog } from "./api-call-log.ts";
+import { deriveJob, deriveViews } from "./derive.ts";
 import { enrichJob } from "./enrich.ts";
 import { startHeartbeat } from "./heartbeat.ts";
 import { openPullsJob } from "./open-pulls.ts";
@@ -39,9 +40,12 @@ const db = openDb(dbPath);
 runMigrations(db);
 
 if (args["no-github"]) {
-  log.info("--no-github: re-deriving views is not implemented yet; nothing to do.");
+  const me = config.me ?? getMeta(db, META.viewerLogin) ?? null;
+  if (!me) log.warn("--no-github: no `me` in config and no stored viewer login");
+  const summary = deriveViews(db, { ...config, me }, clock(), log);
+  log.info(`--no-github finished: ${summary.derived} views derived in ${summary.ms}ms`);
   db.close();
-  process.exit(0);
+  process.exit(summary.failed > 0 ? 1 : 0);
 }
 
 const governor = new Governor(new SqliteApiCallLog(db), config.budget, clock);
@@ -66,10 +70,11 @@ log.info(`Signed in as ${viewer}`);
 
 const stopHeartbeat = startHeartbeat(db, clock);
 const poller = createPoller();
-// A tick runs jobs in this order until one does work, so enrichment waits for poll and backfill.
+// A tick runs jobs in this order until one does work, so enrichment waits for poll and
+// backfill, and derive runs once fetching is idle.
 const scheduler = new Scheduler(
   { db, gh, governor, config: effectiveConfig, clock, log },
-  [poller.pollJob, poller.backfillJob, openPullsJob, enrichJob],
+  [poller.pollJob, poller.backfillJob, openPullsJob, enrichJob, deriveJob],
 );
 
 if (args.once) {

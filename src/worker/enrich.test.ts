@@ -226,6 +226,30 @@ describe("enrichJob", () => {
     expect(await enrichJob.run(t.ctx)).toBe("idle");
     expect(isDirty(t.db, `${REPO}#1`)).toBe(true);
   });
+
+  test("moves on to the next repo when the governor blocks every subject in the top one", async () => {
+    const t = setup([
+      { number: 1, threadAgeDays: 30, repo: "a/old" },
+      { number: 2, threadAgeDays: 1 },
+    ]);
+    t.apiLog.append({
+      at: START,
+      resource: "graphql",
+      workClass: "enrich",
+      request: "graphql octo/repo",
+      status: 200,
+      cost: 900,
+      remaining: null,
+      resetAt: null,
+      durationMs: 1,
+    });
+    expect(await enrichJob.run(t.ctx)).toBe("worked");
+    const [call] = t.graphqlCalls();
+    expect(call?.method === "graphql" && call.variables).toMatchObject({ owner: "octo", name: "repo" });
+    expect(isDirty(t.db, `${REPO}#2`)).toBe(false);
+    expect(isDirty(t.db, "a/old#1")).toBe(true);
+    expect(await enrichJob.run(t.ctx)).toBe("idle");
+  });
 });
 
 describe("loadBatchState", () => {

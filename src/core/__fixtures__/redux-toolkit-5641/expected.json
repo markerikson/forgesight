@@ -1,0 +1,68 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "nothingNew"
+  ],
+  "summaryLine": "markerikson merged",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 0,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-24T02:35:04.017Z",
+  "links": [
+    {
+      "label": "netlify",
+      "url": "https://deploy-preview-5641--redux-starter-kit-docs.netlify.app"
+    },
+    {
+      "label": "pkg-pr-new",
+      "url": "https://pkg.pr.new/template/72dd7d40-0f9b-4624-b97b-73c3e92e8b43"
+    }
+  ],
+  "rounds": [
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "closed markerikson CE_lADOB2ACAs8AAAABhnY1vc8AAAAIogL2FA",
+        "merged markerikson ME_lADOB2ACAs8AAAABhnY1vc8AAAAIogL1Zg",
+        "[1 other event] (new)"
+      ]
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": false,
+      "hidden": 0,
+      "entries": [
+        "[1 bot review]"
+      ]
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": false,
+      "hidden": 0,
+      "entries": [
+        "[1 assignment, 1 label change]"
+      ]
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": false,
+      "hidden": 0,
+      "entries": [
+        "[1 bot review]"
+      ]
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": false,
+      "hidden": 3,
+      "entries": [
+        "[2 bot comments, 1 bot review]"
+      ]
+    }
+  ]
+}

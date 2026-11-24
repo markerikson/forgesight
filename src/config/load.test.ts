@@ -39,7 +39,8 @@ describe("resolveConfig", () => {
     expect(config.repos).toEqual({ "*": { mode: "normal", batchSize: 10, branchRules: [] } });
     expect(config.server.port).toBe(4630);
     expect(config.polling.enrichIssues).toBe(true);
-    expect(config.contentRules).toEqual([]);
+    expect(config.bots.map((b) => b.id)).toEqual((defaultConfig.bots ?? []).map((b) => b.id));
+    expect(config.contentRules.map((r) => r.id)).toEqual((defaultConfig.contentRules ?? []).map((r) => r.id));
   });
 
   test("user values override defaults field by field", () => {
@@ -119,9 +120,10 @@ describe("resolveConfig", () => {
       ],
       contentRules: [{ id: "lgtm", match: { bodyRegex: "^LGTM$" }, level: "collapsed" }],
     });
-    expect(config.bots[0]?.override[0]?.bodyRegex).toBeInstanceOf(RegExp);
-    expect(config.bots[0]?.extract["url"]?.test("https://x.netlify.app")).toBe(true);
-    expect(config.contentRules[0]?.match.bodyRegex?.test("LGTM")).toBe(true);
+    const bot = config.bots.find((b) => b.id === socket.id);
+    expect(bot?.override[0]?.bodyRegex).toBeInstanceOf(RegExp);
+    expect(bot?.extract["url"]?.test("https://x.netlify.app")).toBe(true);
+    expect(config.contentRules.find((r) => r.id === "lgtm")?.match.bodyRegex?.test("LGTM")).toBe(true);
   });
 
   test("an invalid regex throws ConfigError naming the field", () => {

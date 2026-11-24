@@ -1,0 +1,92 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "nothingNew"
+  ],
+  "summaryLine": "Domiii force-pushed the base branch",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 0,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-23T21:07:13Z",
+  "links": [],
+  "rounds": [
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 2,
+      "entries": [
+        "comment socket-security IC_kwDODVUEis8AAAABp3GzxA",
+        "[8 base force-pushes] (new)"
+      ]
+    },
+    {
+      "start": "pushed 35 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 1 commit",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 10 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 13 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 3 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 5 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 14 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 18 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 18 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 35 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 97 commits",
+      "isNew": false,
+      "hidden": 0,
+      "entries": []
+    }
+  ]
+}

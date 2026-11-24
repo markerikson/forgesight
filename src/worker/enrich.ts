@@ -1,11 +1,12 @@
 import type { Database } from "bun:sqlite";
-import { repoConfig } from "../core/config.ts";
+import type { WorkClass } from "../core/budget.ts";
+import { type RepoConfig, repoConfig } from "../core/config.ts";
 import { type BatchState, enrichWorkClass, initialBatchState, stickyMarkers } from "../core/enrich-plan.ts";
 import { batchMetaKey } from "../core/meta-keys.ts";
-import type { SubjectKind } from "../core/types.ts";
+import type { SubjectKind, SubjectRecord } from "../core/types.ts";
 import { getItemStates } from "../store/item-state.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
-import { clearDirty, dirtyKeysOfKind, nextDirtyBatch } from "../store/subjects.ts";
+import { clearDirty, dirtyKeysOfKind, dirtyRepos, nextDirtyBatch } from "../store/subjects.ts";
 import { latestThreadUpdates } from "../store/threads.ts";
 import { stickyNodeIds } from "../store/timeline.ts";
 import {
@@ -45,36 +46,60 @@ function clearUnenrichable(ctx: JobContext): number {
   return keys.length;
 }
 
+interface BatchPlan {
+  repo: string;
+  rc: RepoConfig;
+  state: BatchState;
+  workClass: WorkClass;
+  picked: SubjectRecord[];
+}
+
 /**
- * Enriches one batch from the dirty queue per run: the repo of the highest-priority subject,
- * up to that repo's current batch size, all of one budget class. Kind `other` subjects (and
- * issues when `enrichIssues` is off) are cleared without a fetch. Returns idle when the queue
- * is empty or the governor blocks the class of every queued subject in that repo.
+ * Picks the first dirty repo, in priority order, whose next batch has a budget class the
+ * governor allows, and the subjects of that class. Null when nothing can run.
+ */
+function planBatch(ctx: JobContext, now: Date): BatchPlan | null {
+  const { db, config } = ctx;
+  for (const repo of dirtyRepos(db)) {
+    const rc = repoConfig(config, repo);
+    const state = loadBatchState(db, repo, rc.batchSize);
+    const candidates = nextDirtyBatch(db, { limit: state.size, repo });
+    const updates = latestThreadUpdates(
+      db,
+      candidates.map((s) => s.subjectKey),
+    );
+    const classed = candidates.map((s) => ({
+      subject: s,
+      workClass: enrichWorkClass({ origin: s.origin, threadUpdatedAt: updates.get(s.subjectKey) ?? null, now }),
+    }));
+    const first = classed.find((c) => ctx.governor.canSpend("graphql", c.workClass));
+    if (!first) continue;
+    const picked = classed.filter((c) => c.workClass === first.workClass).map((c) => c.subject);
+    return { repo, rc, state, workClass: first.workClass, picked };
+  }
+  return null;
+}
+
+/**
+ * Enriches one batch from the dirty queue per run: the highest-priority repo with work the
+ * governor allows, up to that repo's current batch size, all of one budget class. Kind `other`
+ * subjects (and issues when `enrichIssues` is off) are cleared without a fetch. Returns idle
+ * when the queue is empty or the governor blocks every queued subject.
  */
 export const enrichJob: Job = {
   name: "enrich",
   async run(ctx) {
     const { db, config, clock, log } = ctx;
     const cleared = clearUnenrichable(ctx);
-    const [top] = nextDirtyBatch(db, { limit: 1 });
-    if (!top) return cleared > 0 ? "worked" : "idle";
-
-    const repo = top.repo;
-    const rc = repoConfig(config, repo);
-    const state = loadBatchState(db, repo, rc.batchSize);
     const now = clock();
-    const candidates = nextDirtyBatch(db, { limit: state.size, repo });
-    const keys = candidates.map((s) => s.subjectKey);
-    const updates = latestThreadUpdates(db, keys);
-    const classed = candidates.map((s) => ({
-      subject: s,
-      workClass: enrichWorkClass({ origin: s.origin, threadUpdatedAt: updates.get(s.subjectKey) ?? null, now }),
-    }));
-    const first = classed.find((c) => ctx.governor.canSpend("graphql", c.workClass));
-    if (!first) return cleared > 0 ? "worked" : "idle";
-    const picked = classed.filter((c) => c.workClass === first.workClass).map((c) => c.subject);
+    const plan = planBatch(ctx, now);
+    if (!plan) return cleared > 0 ? "worked" : "idle";
+    const { repo, rc, state, workClass, picked } = plan;
 
-    const states = getItemStates(db, keys);
+    const states = getItemStates(
+      db,
+      picked.map((s) => s.subjectKey),
+    );
     const subjects: EnrichSubject[] = [];
     const skipped: string[] = [];
     for (const s of picked) {
@@ -105,7 +130,7 @@ export const enrichJob: Job = {
           state,
           maxSize: rc.batchSize,
           markers: stickyMarkers(config),
-          workClass: first.workClass,
+          workClass: workClass,
         },
       );
     } catch (error) {
@@ -119,7 +144,7 @@ export const enrichJob: Job = {
     const counts = { ok: 0, notFound: 0, error: 0 };
     for (const o of result.outcomes) counts[o.kind]++;
     log.info(
-      `enrich ${repo} (${first.workClass}): ${counts.ok} ok, ${counts.notFound} not found, ${counts.error} failed; ` +
+      `enrich ${repo} (${workClass}): ${counts.ok} ok, ${counts.notFound} not found, ${counts.error} failed; ` +
         `${result.queries} queries, ${result.cost} pts, batch ${result.state.size}${result.state.reduced ? " reduced" : ""}`,
     );
     if (result.state.size < state.size || (result.state.reduced && !state.reduced)) {

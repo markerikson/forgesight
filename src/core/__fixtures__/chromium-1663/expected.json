@@ -1,0 +1,47 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "closedByOthers"
+  ],
+  "summaryLine": "Andarist merged",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 4,
+    "merged": 1,
+    "closed": 0
+  },
+  "sortAt": "2026-11-23T14:29:30Z",
+  "links": [],
+  "rounds": [
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 2,
+      "entries": []
+    },
+    {
+      "start": "force-pushed",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "pushed 9 commits",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": "force-pushed",
+      "isNew": true,
+      "hidden": 0,
+      "entries": []
+    },
+    {
+      "start": null,
+      "isNew": true,
+      "hidden": 1,
+      "entries": []
+    }
+  ]
+}

@@ -1,11 +1,14 @@
 import type { Database } from "bun:sqlite";
 import { parseArgs } from "node:util";
+import { describe } from "../core/pipeline/index.ts";
+import type { InboxRow, Round, SubjectView } from "../core/pipeline/types.ts";
 import type { ThreadRecord } from "../core/types.ts";
 import { hourlySpendSince } from "../store/api-calls.ts";
 import { defaultDbPath, openDb } from "../store/db.ts";
 import { getSubject } from "../store/subjects.ts";
 import { listThreads, threadsForSubject } from "../store/threads.ts";
 import { reviewThreadsFor, stickiesFor, timelineCounts, timelineFor } from "../store/timeline.ts";
+import { getView, listViews } from "../store/views.ts";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -123,6 +126,55 @@ export function subjectDetail(db: Database, key: string): string[] {
   return lines;
 }
 
+function roundLines(round: Round): string[] {
+  const head = `  ${round.startedAt}  ${round.startLabel ?? "(start)"}${round.isNew ? "  NEW" : ""}`;
+  const lines = [round.hiddenCount > 0 ? `${head}  (+${round.hiddenCount} hidden)` : head];
+  for (const entry of round.entries) {
+    if (entry.type === "group") {
+      lines.push(`    [${entry.group.summary}]${entry.group.isNew ? " new" : ""}`);
+      continue;
+    }
+    const e = entry.event;
+    const rule = e.ruleId ? ` (${e.ruleId})` : "";
+    lines.push(`    ${e.at}  ${describe(e)}${rule}${e.isNew ? "  new" : ""}`);
+  }
+  return lines;
+}
+
+/** The derived view for one subject, as the inbox would show it. */
+export function viewDetail(db: Database, key: string): string[] {
+  const record = getView(db, key);
+  if (!record) return [`No view for ${key}`];
+  const view = record.detail as unknown as SubjectView;
+  const lines = [
+    `${key}  ${view.header.title}`,
+    `  section: ${view.section}  reasons: ${view.reasons.join(", ") || "-"}`,
+    `  summary: ${view.summaryLine ?? "-"}`,
+    `  new: ${view.newMeaningfulCount}  hidden stats: ${JSON.stringify(view.hiddenStats)}`,
+    `  computed ${record.computedAt} (pipeline ${record.pipelineVersion})`,
+  ];
+  for (const link of view.links) lines.push(`  link ${link.label}: ${link.url}`);
+  lines.push("", `rounds (${view.rounds.length}, newest first)`);
+  for (const round of view.rounds) lines.push(...roundLines(round));
+  return lines;
+}
+
+/** Section counts and the newest rows in each section. */
+export function viewsSummary(db: Database, perSection = 10): string[] {
+  const views = listViews(db, { includeHidden: true });
+  const bySection = new Map<string, typeof views>();
+  for (const v of views) bySection.set(v.section, [...(bySection.get(v.section) ?? []), v]);
+  const lines: string[] = [];
+  for (const [section, rows] of bySection) {
+    lines.push(`${section} (${rows.length})`);
+    for (const v of rows.slice(0, perSection)) {
+      const row = v.row as unknown as InboxRow;
+      lines.push(`  ${v.subjectKey}  [${row.reasons.join(",")}]  ${row.summaryLine ?? "-"}`);
+    }
+  }
+  return lines.length > 0 ? lines : ["No views"];
+}
+
 /** API spend per hour, resource and work class over the last 24 hours. */
 export function budgetSummary(db: Database, now: Date): string[] {
   const rows = hourlySpendSince(db, new Date(now.getTime() - DAY_MS).toISOString());
@@ -149,13 +201,24 @@ export function budgetSummary(db: Database, now: Date): string[] {
 if (import.meta.main) {
   const { values, positionals } = parseArgs({
     args: process.argv.slice(2),
-    options: { budget: { type: "boolean", default: false } },
+    options: {
+      budget: { type: "boolean", default: false },
+      view: { type: "boolean", default: false },
+    },
     allowPositionals: true,
   });
   const db = openDb(defaultDbPath(), { readonly: true });
   const now = new Date();
   const [key] = positionals;
-  const lines = values.budget ? budgetSummary(db, now) : key ? subjectDetail(db, key) : recentSummary(db, now);
+  const lines = values.budget
+    ? budgetSummary(db, now)
+    : values.view
+      ? key
+        ? viewDetail(db, key)
+        : viewsSummary(db)
+      : key
+        ? subjectDetail(db, key)
+        : recentSummary(db, now);
   console.log(lines.join("\n"));
   db.close();
 }
