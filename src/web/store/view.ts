@@ -37,9 +37,11 @@ export const viewSlice = createSlice({
   name: "view",
   initialState: initialViewState,
   reducers: {
+    /** Switching sections (or reselecting the current one) also clears the repo filter. */
     sectionSelected(state, action: PayloadAction<Section>) {
-      if (state.section === action.payload) return;
+      if (state.section === action.payload && state.repo === null) return;
       state.section = action.payload;
+      state.repo = null;
       state.selectedKey = null;
       state.selectedIndex = 0;
       state.roundIndex = 0;

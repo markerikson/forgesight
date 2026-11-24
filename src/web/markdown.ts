@@ -17,7 +17,13 @@ export function createMarkdownRenderer(window: WindowLike): RenderMarkdown {
     }
   });
   const marked = new Marked({ gfm: true, breaks: true });
-  return (source) => purify.sanitize(marked.parse(source, { async: false }), { ADD_ATTR: ["target"] });
+  // Inline styles and <style> would let a comment restyle or cover the app; forms could post anywhere.
+  return (source) =>
+    purify.sanitize(marked.parse(source, { async: false }), {
+      ADD_ATTR: ["target"],
+      FORBID_TAGS: ["style", "form"],
+      FORBID_ATTR: ["style"],
+    });
 }
 
 let browserRenderer: RenderMarkdown | undefined;

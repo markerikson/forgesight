@@ -21,6 +21,14 @@ export function ThreadList() {
   const prevKey = rows[selectedIndex - 1]?.key;
   const nextKey = rows[selectedIndex + 1]?.key;
 
+  // Store the row actually shown as selected (the implicit first row, or the neighbor that replaced a
+  // row that left the list), so later polls that insert or remove rows don't move the selection.
+  useEffect(() => {
+    if (selectedKey !== undefined && (selectedKey !== view.selectedKey || selectedIndex !== view.selectedIndex)) {
+      dispatch(rowSelected({ key: selectedKey, index: selectedIndex }));
+    }
+  }, [dispatch, selectedKey, selectedIndex, view.selectedKey, view.selectedIndex]);
+
   useEffect(() => {
     if (selectedKey) document.getElementById(rowDomId(selectedKey))?.scrollIntoView({ block: "nearest" });
   }, [selectedKey]);

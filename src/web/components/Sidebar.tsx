@@ -23,10 +23,7 @@ export function Sidebar() {
               className={`${styles.item} ${view.section === section ? styles.active : ""}`}
               aria-current={view.section === section ? "page" : undefined}
               title={SECTION_KEYS[section]}
-              onClick={() => {
-                dispatch(sectionSelected(section));
-                dispatch(repoSelected(null));
-              }}
+              onClick={() => dispatch(sectionSelected(section))}
             >
               <span className={styles.label}>{SECTION_LABELS[section]}</span>
               {counts && <span className={styles.count}>{counts[section]}</span>}

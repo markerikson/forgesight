@@ -21,6 +21,16 @@ describe("createMarkdownRenderer", () => {
     expect(html).toContain('src="x.png"');
   });
 
+  test("strips styles and forms", () => {
+    const html = render(
+      '<style>body{display:none}</style><div style="position:fixed;inset:0">x</div><form action="https://evil.example"><button>go</button></form>',
+    );
+    expect(html).not.toContain("<style");
+    expect(html).not.toContain("style=");
+    expect(html).not.toContain("<form");
+    expect(html).toContain("<div>x</div>");
+  });
+
   test("keeps details blocks", () => {
     const html = render("<details><summary>Logs</summary>\n\nbody\n\n</details>");
     expect(html).toContain("<details>");

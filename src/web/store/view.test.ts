@@ -8,6 +8,7 @@ import {
   groupsToggled,
   moveSelection,
   repoCounts,
+  repoSelected,
   resolveSelection,
   rowSelected,
   sectionSelected,
@@ -152,6 +153,17 @@ describe("selectors", () => {
     store.dispatch(sectionSelected("hidden"));
     expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#7"]);
     expect(selectRepoCounts(store.getState())).toEqual([{ repo: "acme/app", count: 1 }]);
+  });
+});
+
+describe("sectionSelected", () => {
+  test("clears the repo filter, including when the section is unchanged", () => {
+    let state = viewSlice.reducer(undefined, repoSelected("acme/app"));
+    state = viewSlice.reducer(state, sectionSelected("updates"));
+    expect(state).toMatchObject({ section: "updates", repo: null });
+    state = viewSlice.reducer(state, repoSelected("acme/app"));
+    state = viewSlice.reducer(state, sectionSelected("updates"));
+    expect(state.repo).toBeNull();
   });
 });
 
