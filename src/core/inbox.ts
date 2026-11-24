@@ -46,6 +46,8 @@ function shortName(repo: string): string {
   return repo.slice(repo.indexOf("/") + 1);
 }
 
+const MAX_COUNT_LINES = 5;
+
 function countLine(repo: string, stats: { pushes: number; merged: number; closed: number }): string | null {
   const parts = [
     stats.pushes > 0 ? `${stats.pushes} pushed` : null,
@@ -81,10 +83,13 @@ export function buildInboxPayload(
     }
   }
   const total = (s: { pushes: number; merged: number; closed: number }) => s.pushes + s.merged + s.closed;
-  const countLines = [...hidden]
+  const allLines = [...hidden]
     .sort(([ra, a], [rb, b]) => total(b) - total(a) || (ra < rb ? -1 : 1))
     .map(([repo, stats]) => countLine(repo, stats))
     .filter((line) => line !== null);
+  const countLines = allLines.slice(0, MAX_COUNT_LINES);
+  const rest = allLines.length - countLines.length;
+  if (rest > 0) countLines.push(`and ${rest} more ${rest === 1 ? "repo" : "repos"}`);
   const rows = allRows.filter((row) => opts.includeHidden || row.section !== "hidden").toSorted(compareRows);
   return {
     rows,

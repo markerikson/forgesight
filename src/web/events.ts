@@ -69,7 +69,7 @@ export function describeEvent(event: Event): string {
     case "mentioned":
       return `mentioned ${target}`;
     case "stack":
-      return `stacked ${refText(d.ref)}`;
+      return d.added === false ? "removed this from a stack" : "added this to a stack";
     case "connected":
       return `${d.added === false ? "disconnected" : "connected"} ${refText(d.ref)}`;
     case "closedByPr":

@@ -135,6 +135,21 @@ describe("buildInboxPayload", () => {
     const { countLines } = buildInboxPayload([row("acme/app#1", "hidden")], { includeHidden: false, now: NOW });
     expect(countLines).toEqual([]);
   });
+
+  test("shows the five busiest repos and counts the rest", () => {
+    const many = [1, 2, 3, 4, 5, 6, 7].map((n) =>
+      row(`acme/r${n}#1`, "hidden", { repo: `acme/r${n}`, hiddenStats: { pushes: n, merged: 0, closed: 0 } }),
+    );
+    const { countLines } = buildInboxPayload(many, { includeHidden: false, now: NOW });
+    expect(countLines).toEqual([
+      "r7: 7 pushed",
+      "r6: 6 pushed",
+      "r5: 5 pushed",
+      "r4: 4 pushed",
+      "r3: 3 pushed",
+      "and 2 more repos",
+    ]);
+  });
 });
 
 describe("buildSubjectDetail", () => {
