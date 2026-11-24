@@ -176,6 +176,18 @@ describe("outboxJob", () => {
     expect(await outboxJob.run(ctx)).toBe("worked");
   });
 
+  test("a network failure releases the claim without counting an attempt", async () => {
+    applyStateOps(db, [KEY], { kind: "done" }, now.toISOString());
+    advance(10_000);
+    for (let i = 0; i < MAX_ATTEMPTS + 1; i++) {
+      gh.nextError = new GitHubApiError("mark thread T1 done: fetch failed", 0);
+      // oxlint-disable-next-line no-await-in-loop -- each run depends on the previous one
+      await expect(outboxJob.run(ctx)).rejects.toBeInstanceOf(GitHubApiError);
+    }
+    expect(outboxRow()).toMatchObject({ attempts: 0, claimed_at: null, failed_at: null });
+    expect(await outboxJob.run(ctx)).toBe("worked");
+  });
+
   test("still sends when the hourly REST cap is spent", async () => {
     const log = new MemoryApiCallLog();
     const governor = new Governor(log, { graphqlPerHour: 100, restPerHour: 1 }, clock);

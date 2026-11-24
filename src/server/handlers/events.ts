@@ -12,6 +12,8 @@ export const RETRY_MS = 3000;
 /** One open event stream. `send` throws once the stream is closed. */
 export interface EventClient {
   send(text: string): void;
+  /** Ends the stream so the browser reconnects. */
+  close(): void;
 }
 
 interface Subscriber {
@@ -27,9 +29,9 @@ function statusEvent(status: object): string {
   return `event: status\ndata: ${JSON.stringify(status)}\n\n`;
 }
 
-/** Status compared without `now`, which changes on every read. */
-function statusKey(status: { now: string }): string {
-  return JSON.stringify({ ...status, now: null });
+/** Status compared without `now` and the spend window start, which move on every read. */
+function statusKey(status: ReturnType<typeof readStatus>): string {
+  return JSON.stringify({ ...status, now: null, spend: { ...status.spend, since: null } });
 }
 
 /** `view` changes after `after` as the max seq read plus the distinct subject keys. */
@@ -72,6 +74,8 @@ export class EventHub {
    */
   subscribe(client: EventClient, lastEventId: string | null): () => void {
     const sub: Subscriber = { client, statusKey: null };
+    // While no stream was open nothing advanced the cursor; catch up before replaying.
+    if (this.subscribers.size === 0) this.cursor = latestChangeSeq(this.ctx.db);
     this.subscribers.add(sub);
     const remove = () => this.remove(sub);
     try {
@@ -108,9 +112,16 @@ export class EventHub {
     if (this.ticks % PING_TICKS === 0) this.broadcast(": ping\n\n");
   }
 
-  /** Removes every stream and stops the timer. */
+  /** Ends every stream and stops the timer. */
   close(): void {
-    for (const sub of [...this.subscribers]) this.remove(sub);
+    for (const sub of [...this.subscribers]) {
+      this.remove(sub);
+      try {
+        sub.client.close();
+      } catch {
+        // already closed
+      }
+    }
   }
 
   private replay(sub: Subscriber, lastEventId: string | null): void {
@@ -183,17 +194,20 @@ export function eventStream(req: Request, hub: EventHub): Response {
   let remove: (() => void) | null = null;
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      remove = hub.subscribe(
-        { send: (text) => controller.enqueue(enc.encode(text)) },
-        req.headers.get("last-event-id"),
-      );
-      req.signal.addEventListener("abort", () => {
-        remove?.();
+      const close = () => {
         try {
           controller.close();
         } catch {
           // already closed
         }
+      };
+      remove = hub.subscribe(
+        { send: (text) => controller.enqueue(enc.encode(text)), close },
+        req.headers.get("last-event-id"),
+      );
+      req.signal.addEventListener("abort", () => {
+        remove?.();
+        close();
       });
     },
     cancel() {

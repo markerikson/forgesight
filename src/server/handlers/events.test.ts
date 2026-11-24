@@ -33,8 +33,15 @@ function parse(text: string): SseEvent[] {
 
 function collector() {
   const chunks: string[] = [];
+  const state = { closed: false };
   return {
-    client: { send: (text: string) => void chunks.push(text) },
+    state,
+    client: {
+      send: (text: string) => void chunks.push(text),
+      close: () => {
+        state.closed = true;
+      },
+    },
     events: () => parse(chunks.join("")),
     take(): SseEvent[] {
       const out = parse(chunks.join(""));
@@ -167,6 +174,39 @@ describe("EventHub", () => {
     expect(c.take().filter((e) => e.event !== "comment")).toEqual([]);
   });
 
+  test("does not resend status just because the clock moved", () => {
+    let clock = NOW.getTime();
+    const ctx = testCtx(NOW, { now: () => new Date(clock) });
+    const hub = new EventHub(ctx, { autoTick: false });
+    const c = collector();
+    hub.subscribe(c.client, null);
+    c.take();
+    clock += 60_000;
+    for (let i = 0; i < STATUS_TICKS; i++) hub.tick();
+    expect(c.take()).toEqual([]);
+  });
+
+  test("close ends every stream", () => {
+    const { hub } = setup();
+    const a = collector();
+    const b = collector();
+    hub.subscribe(a.client, null);
+    hub.subscribe(b.client, null);
+    hub.close();
+    expect(hub.size).toBe(0);
+    expect([a.state.closed, b.state.closed]).toEqual([true, true]);
+  });
+
+  test("catches up to the feed when the first stream opens after an idle period", () => {
+    const { db, hub } = setup();
+    const last = appendChange(db, "view", "o/r#1", T);
+    const c = collector();
+    hub.subscribe(c.client, null);
+    expect(c.take()[0]?.id).toBe(String(last));
+    hub.tick();
+    expect(c.take()).toEqual([]);
+  });
+
   test("pings on the keepalive interval", () => {
     const { hub } = setup();
     const c = collector();
@@ -184,6 +224,7 @@ describe("EventHub", () => {
         send() {
           if (!open) throw new Error("closed");
         },
+        close() {},
       },
       null,
     );

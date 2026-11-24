@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { OutboxOp } from "../core/state.ts";
-import { NotFoundError, RateLimitedError, TokenError } from "../github/errors.ts";
+import { GitHubApiError, NotFoundError, RateLimitedError, TokenError } from "../github/errors.ts";
 import type { GitHubClient } from "../github/types.ts";
 import {
   claimOutbox,
@@ -76,7 +76,10 @@ export const outboxJob: Job = {
           completeOutbox(db, row.id, failedAt.toISOString(), "not_found");
           continue;
         }
-        if (error instanceof RateLimitedError || error instanceof TokenError) {
+        // Status 0 is a network failure or timeout, not a rejection of this row, so it does
+        // not count toward MAX_ATTEMPTS; the scheduler backs the job off instead.
+        const offline = error instanceof GitHubApiError && error.status === 0;
+        if (offline || error instanceof RateLimitedError || error instanceof TokenError) {
           releaseOutbox(db, row.id);
           throw error;
         }
