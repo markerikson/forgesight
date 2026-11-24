@@ -12,7 +12,7 @@
     "inspect": "bun run src/worker/inspect.ts",
     "fixture:record": "bun run scripts/record-fixture.ts",
     "test": "bun test src",
-    "typecheck": "tsgo --noEmit && tsgo --noEmit -p src/core",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/core",
     "lint": "oxlint app/ src/ scripts/"
   },
   "engines": {
@@ -37,9 +37,9 @@
     "@types/jsdom": "30.0.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@typescript/native-preview": "7.0.0-dev.20260127.1",
     "jsdom": "31.0.1",
     "oxlint": "1.42.0",
+    "typescript": "7.0.2",
     "vite": "8.3.7"
   }
 }

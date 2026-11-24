@@ -1,0 +1,20 @@
+{
+  "surfaces": {
+    "tooling": [
+      "^(scripts|spikes|\\.github)/",
+      "(^|/)[^/]*\\.config\\.[cm]?[jt]s$"
+    ]
+  },
+  "instructions": [
+    "## What this repository is",
+    "- A single-user GitHub notifications inbox that runs on the owner's machine: a Bun worker polls GitHub into SQLite (`bun:sqlite`), and a Timber.js (React 19, RSC, Vite) web app reads it. Code under `src/` and `app/` is the product.",
+    "- `scripts/` and `spikes/` are developer tooling and throwaway experiments.",
+    "## What failure looks like here",
+    "- `src/core/` must stay pure: deterministic functions with no package, runtime or Node/Bun/DOM imports. Time, config and the viewer's login are passed in as arguments. A clock read (`Date.now()`, `new Date()` without an argument) or `Math.random()` in `src/core/` is a finding; the type and lint checks do not catch those.",
+    "- A schema change in `src/store/` without a migration breaks the database already on disk.",
+    "- GitHub API budget: extra REST or GraphQL calls per poll, or fields that are slow for GitHub to compute (`files`, `changedFiles`, `commits { totalCount }`, `additions`/`deletions`) in batched pull request queries, cost rate limit or cause 502s.",
+    "- The UI is mouse-first: every action needs a visible button or menu item, not only a keyboard shortcut.",
+    "## Don't report",
+    "- Style, formatting and type errors: oxlint and tsc run in CI on every change."
+  ]
+}
