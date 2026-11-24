@@ -40,6 +40,23 @@ const THREAD_WAITING: Record<string, RankReason> = {
   assign: "assigned",
 };
 
+const THREAD_REASON_LINES: Record<string, string> = {
+  review_requested: "review requested",
+  mention: "mentioned you",
+  team_mention: "mentioned your team",
+  assign: "assigned to you",
+  author: "your thread",
+  comment: "you commented",
+  state_change: "you changed its state",
+  manual: "you subscribed",
+};
+
+/** Watching the repo is why most threads arrive, so that reason says nothing. */
+function threadReasonLine(reason: string): string {
+  if (reason === "subscribed") return "";
+  return THREAD_REASON_LINES[reason] ?? reason.replaceAll("_", " ");
+}
+
 /**
  * Unread on GitHub and updated after the last local read or done. A local read clears the
  * row right away, before the outbox marks the thread read on GitHub.
@@ -76,7 +93,7 @@ function rankFromThreads(input: DeriveInput): Rank {
     reasons,
     score: 0,
     newMeaningfulCount: 0,
-    summaryLine: newest ? `notification: ${newest.reason.replaceAll("_", " ")}` : "",
+    summaryLine: newest ? threadReasonLine(newest.reason) : "",
     hiddenStats: { pushes: 0, merged: 0, closed: 0 },
     sortAt,
   };

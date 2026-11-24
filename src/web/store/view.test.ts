@@ -59,6 +59,10 @@ describe("resolveSelection", () => {
     expect(resolveSelection(visible, "acme/gone#9", 10)?.key).toBe("acme/app#3");
   });
 
+  test("returns null when nothing is selected", () => {
+    expect(resolveSelection(visible, null, 0)).toBeNull();
+  });
+
   test("returns null for an empty list", () => {
     expect(resolveSelection([], "acme/app#1", 0)).toBeNull();
   });
@@ -76,13 +80,17 @@ describe("repoCounts", () => {
 });
 
 describe("selectors", () => {
-  test("selects the first visible row when nothing is selected", () => {
+  test("selects nothing until a row is picked", () => {
     const store = storeWith(rows);
-    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#1");
+    expect(selectSelectedRow(store.getState())).toBeNull();
+    store.dispatch(sectionSelected("updates"));
+    expect(selectSelectedRow(store.getState())).toBeNull();
   });
 
-  test("moveSelection walks the visible rows and stops at the ends", () => {
+  test("moveSelection starts at the first row and stops at the ends", () => {
     const store = storeWith(rows);
+    store.dispatch(moveSelection(1));
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#1");
     store.dispatch(moveSelection(1));
     expect(selectSelectedRow(store.getState())?.key).toBe("acme/lib#2");
     store.dispatch(moveSelection(5));

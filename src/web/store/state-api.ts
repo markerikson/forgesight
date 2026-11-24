@@ -63,7 +63,7 @@ export const stateApi = api.injectEndpoints({
           const after = getState() as ViewRootState;
           const visible = selectVisibleRows(after);
           if (!visible.some((row) => row.key === selected.key)) {
-            const next = resolveSelection(visible, null, selectedIndex);
+            const next = resolveSelection(visible, selected.key, selectedIndex);
             if (next) dispatch(rowSelected({ key: next.key, index: visible.indexOf(next) }));
           }
         }

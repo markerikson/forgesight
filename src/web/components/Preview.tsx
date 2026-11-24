@@ -38,7 +38,13 @@ export function Preview() {
     dispatch(applyState([row.key], { kind: "read" }));
   }, [dispatch, row, loaded]);
 
-  if (!row) return <section className={styles.preview} aria-label="Preview" />;
+  if (!row) {
+    return (
+      <section className={styles.preview} aria-label="Preview">
+        <p className={styles.message}>Pick a thread, or press j to start at the top.</p>
+      </section>
+    );
+  }
   if (!loaded) {
     const message = isError ? "Could not load this thread." : isFetching ? "Loading…" : "";
     return (
@@ -163,6 +169,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
 
 function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDetail }) {
   const url = subject.githubUrl ?? header.url;
+  const notifiedFor = subject.reason !== "subscribed" ? subject.reason : null;
   return (
     <header className={styles.header}>
       <h2 className={styles.title}>
@@ -196,9 +203,9 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
         <ReviewBadge decision={header.reviewDecision} />
         {subject.snoozeUntil && <span>snoozed until {subject.snoozeUntil.slice(0, 10)}</span>}
       </div>
-      {(subject.reasons.length > 0 || subject.reason) && (
+      {(subject.reasons.length > 0 || notifiedFor) && (
         <div className={styles.meta}>
-          {subject.reason && <span className={styles.reason}>notified: {subject.reason}</span>}
+          {notifiedFor && <span className={styles.reason}>notified: {notifiedFor.replaceAll("_", " ")}</span>}
           {subject.reasons.map((reason) => (
             <span key={reason} className={styles.reason}>
               {REASON_LABELS[reason]}

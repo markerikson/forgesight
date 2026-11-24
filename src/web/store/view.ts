@@ -220,13 +220,14 @@ export function filterRows(rows: readonly InboxRow[], section: Section, repo: st
   return rows.filter((row) => row.section === section && (repo === null || row.repo === repo));
 }
 
-/** The selected row, or its nearest neighbor when it left the list, or the first row. */
+/**
+ * The selected row, or its nearest neighbor when it left the list. Nothing is selected until
+ * the user picks a row, so opening a section or repo does not mark its first row read.
+ */
 export function resolveSelection(visible: readonly InboxRow[], key: string | null, index: number): InboxRow | null {
-  if (visible.length === 0) return null;
-  if (key !== null) {
-    const found = visible.find((row) => row.key === key);
-    if (found) return found;
-  }
+  if (visible.length === 0 || key === null) return null;
+  const found = visible.find((row) => row.key === key);
+  if (found) return found;
   return visible[Math.min(Math.max(index, 0), visible.length - 1)] ?? null;
 }
 

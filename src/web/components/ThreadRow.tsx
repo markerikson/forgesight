@@ -74,6 +74,11 @@ export const ThreadRow = memo(function ThreadRow({
         )}
       </div>
       <div className={`${styles.line} ${styles.sub}`}>
+        {row.author && (
+          <span className={styles.author} title={`Opened by ${row.author}`}>
+            {row.author}
+          </span>
+        )}
         <span className={styles.summary}>{row.summaryLine}</span>
         {row.enrichError && (
           <span className={styles.stale} title={row.enrichError}>

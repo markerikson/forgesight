@@ -72,6 +72,15 @@
   white-space: nowrap;
 }
 
+.author {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg);
+}
+
 .actor,
 .time {
   flex: none;
@@ -126,7 +135,7 @@
 }
 
 /* Keep the title and badges clear of the Done button that stays on the selected row. */
-.selected .line:first-child {
+.selected .line:not(.sub) {
   padding-right: 52px;
 }
 
