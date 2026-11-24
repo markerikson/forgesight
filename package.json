@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --bun vite dev",
+    "dev:all": "bun scripts/dev-all.ts",
     "build": "vite build",
     "start": "bun scripts/start-web.ts",
     "worker": "bun run src/worker/main.ts",
