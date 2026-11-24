@@ -65,3 +65,20 @@ export function resourceSpendSince(db: Database, resource: string, since: string
 export function pruneApiCalls(db: Database, before: string): number {
   return db.query("DELETE FROM api_calls WHERE at < ?").run(before).changes;
 }
+
+export interface HourlySpend extends ApiSpend {
+  /** `YYYY-MM-DDTHH`, UTC. */
+  hour: string;
+}
+
+/** Call count and summed cost per UTC hour, resource and work class since `since` (inclusive). */
+export function hourlySpendSince(db: Database, since: string): HourlySpend[] {
+  return db
+    .query<{ hour: string; resource: string; work_class: string; calls: number; cost: number }, [string]>(
+      `SELECT substr(at, 1, 13) AS hour, resource, work_class, COUNT(*) AS calls, COALESCE(SUM(cost), 0) AS cost
+       FROM api_calls WHERE at >= ?
+       GROUP BY hour, resource, work_class ORDER BY hour, resource, work_class`,
+    )
+    .all(since)
+    .map((r) => ({ hour: r.hour, resource: r.resource, workClass: r.work_class, calls: r.calls, cost: r.cost }));
+}
