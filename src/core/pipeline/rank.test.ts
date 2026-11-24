@@ -189,14 +189,15 @@ describe("rank", () => {
     expect(view.section).toBe("hidden");
   });
 
-  test("socket comments are hidden unless they carry a caution block", () => {
-    const quiet = derive({ items: [comment("socket-security", "2026-11-21T00:00:00Z", "All good", true)] });
+  test("socket comments are hidden unless they carry a caution block on my own PR", () => {
+    const quiet = derive({ author: ME, items: [comment("socket-security", "2026-11-21T00:00:00Z", "All good", true)] });
     expect(quiet.section).toBe("hidden");
-    const caution = derive({
-      items: [comment("socket-security", "2026-11-21T00:00:00Z", "> [!CAUTION]\n> risky dep", true)],
-    });
-    expect(caution.section).toBe("updates");
-    expect(caution.rounds[0]?.entries[0]).toMatchObject({ type: "event", event: { ruleId: "socket", level: "show" } });
+    const cautionItems = () => [comment("socket-security", "2026-11-21T00:00:00Z", "> [!CAUTION]\n> risky dep", true)];
+    const mine = derive({ author: ME, items: cautionItems() });
+    expect(mine.section).toBe("updates");
+    expect(mine.rounds[0]?.entries[0]).toMatchObject({ type: "event", event: { ruleId: "socket", level: "show" } });
+    const theirs = derive({ items: cautionItems() });
+    expect(theirs.section).toBe("hidden");
   });
 
   test("events without a GitHub timestamp are never new", () => {

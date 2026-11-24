@@ -7,7 +7,7 @@ import type {
   ThreadRecord,
   TimelineItemRecord,
 } from "../types.ts";
-import { classify } from "./classify.ts";
+import { classify, isMe } from "./classify.ts";
 import { normalize } from "./normalize.ts";
 import { applyOverrides, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
@@ -87,6 +87,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     me,
     mode: repoConfig(config, subject.repo).mode,
     subjectKind: subject.kind,
+    mySubject: isMe(subject.author ?? undefined, me),
     dismissedAt: state.dismissedAt,
   });
   const rounds = buildRounds(events);

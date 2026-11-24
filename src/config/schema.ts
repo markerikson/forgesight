@@ -21,7 +21,7 @@ const rule = type({
   "kind?": "string",
   "level?": level,
   "findings?": "string",
-  "override?": type({ "+": "reject", bodyRegex: "string", level }).array(),
+  "override?": type({ "+": "reject", bodyRegex: "string", level, "onlyMine?": "boolean" }).array(),
   "extract?": "Record<string, string>",
 });
 

@@ -29,9 +29,12 @@ export function findRule(rules: ContentRule[], actor: Actor | null, body: string
   return rules.find((r) => ruleMatches(r, actor, body));
 }
 
-/** The rule's level, or the level of its first override whose regex matches the body. */
-export function ruleLevel(rule: ContentRule, body: string): ContentLevel {
-  return rule.override.find((o) => test(o.bodyRegex, body))?.level ?? rule.level;
+/**
+ * The rule's level, or the level of its first override whose regex matches the body.
+ * Overrides marked `onlyMine` are skipped on subjects someone else opened.
+ */
+export function ruleLevel(rule: ContentRule, body: string, mySubject: boolean): ContentLevel {
+  return rule.override.find((o) => (mySubject || !o.onlyMine) && test(o.bodyRegex, body))?.level ?? rule.level;
 }
 
 export function ruleBotKind(rule: ContentRule): BotKind | undefined {

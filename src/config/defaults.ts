@@ -24,7 +24,8 @@ const bots: UserRule[] = [
     match: { author: "socket-security" },
     kind: "status",
     level: "hidden",
-    override: [{ bodyRegex: "\\[!CAUTION\\]", level: "show" }],
+    // Dependency alerts matter on my own PRs; on others' PRs the author handles them.
+    override: [{ bodyRegex: "\\[!CAUTION\\]", level: "show", onlyMine: true }],
   },
   {
     id: "netlify",

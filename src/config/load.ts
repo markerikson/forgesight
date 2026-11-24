@@ -73,6 +73,7 @@ function resolveRule(rule: UserRule, where: string): ContentRule {
     override: (rule.override ?? []).map((o, i) => ({
       bodyRegex: compile(o.bodyRegex, `${at}.override[${i}].bodyRegex`),
       level: o.level,
+      onlyMine: o.onlyMine ?? false,
     })),
     extract: Object.fromEntries(
       Object.entries(rule.extract ?? {}).map(([name, source]) => [

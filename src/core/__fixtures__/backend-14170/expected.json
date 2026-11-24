@@ -14,19 +14,12 @@
   "links": [],
   "rounds": [
     {
-      "start": "pushed 1 commit",
+      "start": "12 pushes",
       "isNew": true,
-      "hidden": 2,
+      "hidden": 3,
       "entries": [
-        "comment socket-security IC_kwDODVUEis8AAAABp3GzxA",
         "[8 base force-pushes] (new)"
       ]
-    },
-    {
-      "start": "11 pushes, no other activity",
-      "isNew": false,
-      "hidden": 0,
-      "entries": []
     }
   ]
 }

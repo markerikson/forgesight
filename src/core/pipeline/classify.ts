@@ -43,6 +43,8 @@ export interface ClassifyContext {
   mode: RepoMode;
   /** Assignment to me is shown on issues only; on PRs it is usually bookkeeping. */
   subjectKind: SubjectKind;
+  /** I opened the subject; enables rule overrides marked `onlyMine`. */
+  mySubject: boolean;
   /** Events after this time are new; null means everything is new. */
   dismissedAt: string | null;
 }
@@ -66,7 +68,7 @@ function classifyOne(e: Event, ctx: ClassifyContext): Omit<ViewEvent, keyof Even
     const body = e.body ?? "";
     const rule = findRule(ctx.config.bots, e.actor, body) ?? findRule(ctx.config.contentRules, e.actor, body);
     if (rule) {
-      const out: Omit<ViewEvent, keyof Event | "isNew"> = { level: ruleLevel(rule, body), ruleId: rule.id };
+      const out: Omit<ViewEvent, keyof Event | "isNew"> = { level: ruleLevel(rule, body, ctx.mySubject), ruleId: rule.id };
       const botKind = ruleBotKind(rule);
       if (botKind) out.botKind = botKind;
       const extracted = extract(rule, body);

@@ -23,6 +23,8 @@ export interface RuleMatch {
 export interface RuleOverride {
   bodyRegex: RegExp;
   level: ContentLevel;
+  /** Apply only on subjects I opened; elsewhere the rule's own level stands. */
+  onlyMine: boolean;
 }
 
 /** A bot or content rule: how matching comments are classified and shown. */
