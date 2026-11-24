@@ -281,7 +281,7 @@ describe("rank", () => {
 });
 
 describe("rounds", () => {
-  test("commits within ten minutes form one push; force-pushes start rounds", () => {
+  test("commits within ten minutes form one push; consecutive push-only rounds merge", () => {
     const view = derive({
       items: [
         comment("alice", "2026-11-19T00:00:00Z", "first"),
@@ -302,11 +302,31 @@ describe("rounds", () => {
       isNew: r.isNew,
     }));
     expect(summary).toEqual([
-      { start: "pushed 1 commit", commits: 1, entries: [], isNew: true },
-      { start: "force-pushed", commits: 0, entries: [], isNew: true },
+      { start: "2 pushes, no other activity", commits: 1, entries: [], isNew: true },
       { start: "pushed 3 commits", commits: 3, entries: ["2 bot comments", "comment"], isNew: true },
       { start: null, commits: 0, entries: ["comment"], isNew: false },
     ]);
     expect(view.hiddenStats.pushes).toBe(3);
+  });
+
+  test("a round with visible activity breaks a run of push-only rounds", () => {
+    const view = derive({
+      items: [
+        forcePush("2026-11-21T01:00:00Z"),
+        forcePush("2026-11-21T02:00:00Z"),
+        forcePush("2026-11-21T03:00:00Z"),
+        comment("alice", "2026-11-21T03:30:00Z", "looks good"),
+        forcePush("2026-11-21T04:00:00Z"),
+        item("BaseRefForcePushedEvent", "2026-11-21T04:30:00Z", { actor: user("alice") }),
+        forcePush("2026-11-21T05:00:00Z"),
+      ],
+    });
+    expect(view.rounds.map((r) => [r.startLabel, r.pushCount])).toEqual([
+      ["2 pushes", 2],
+      ["force-pushed", 1],
+      ["2 pushes, no other activity", 2],
+    ]);
+    expect(view.rounds[0]?.entries.map((e) => e.type)).toEqual(["group"]);
+    expect(view.hiddenStats.pushes).toBe(5);
   });
 });

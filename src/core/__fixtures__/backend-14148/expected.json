@@ -14,62 +14,12 @@
   "links": [],
   "rounds": [
     {
-      "start": "pushed 1 commit",
+      "start": "9 pushes",
       "isNew": true,
       "hidden": 0,
       "entries": [
-        "[2 cross-references, 1 rename, 1 base change] (new)"
+        "[3 cross-references, 1 bot comment, 1 rename, 1 base change] (new)"
       ]
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": true,
-      "hidden": 0,
-      "entries": [
-        "[1 cross-reference, 1 bot comment] (new)"
-      ]
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 2 commits",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 27 commits",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
     }
   ]
 }

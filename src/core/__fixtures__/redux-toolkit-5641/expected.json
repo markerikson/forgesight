@@ -33,35 +33,11 @@
       ]
     },
     {
-      "start": "pushed 1 commit",
-      "isNew": false,
-      "hidden": 0,
-      "entries": [
-        "[1 bot review]"
-      ]
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": false,
-      "hidden": 0,
-      "entries": [
-        "[1 assignment, 1 label change]"
-      ]
-    },
-    {
-      "start": "pushed 1 commit",
-      "isNew": false,
-      "hidden": 0,
-      "entries": [
-        "[1 bot review]"
-      ]
-    },
-    {
-      "start": "pushed 1 commit",
+      "start": "4 pushes",
       "isNew": false,
       "hidden": 3,
       "entries": [
-        "[2 bot comments, 1 bot review]"
+        "[2 bot comments, 3 bot reviews, 1 assignment, 1 label change]"
       ]
     }
   ]

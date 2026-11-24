@@ -87,6 +87,7 @@ function finish(b: RoundBuilder): Round {
     startedBy: b.startedBy,
     startLabel,
     startedAt: b.startedAt,
+    pushCount: b.startedBy ? 1 : 0,
     commits: b.commits,
     entries,
     hiddenCount,
@@ -94,11 +95,54 @@ function finish(b: RoundBuilder): Round {
   };
 }
 
+/** A round opened by a push with nothing shown in it, only collapsed or hidden events. */
+function isPushOnly(r: Round): boolean {
+  return r.startedBy !== null && r.entries.every((e) => e.type === "group");
+}
+
+/** Consecutive push-only rounds (oldest first) as one round labelled "5 pushes, no other activity". */
+function mergeRun(run: Round[]): Round {
+  const first = run[0];
+  if (!first || run.length === 1) return first as Round;
+  const collapsed = run.flatMap((r) => r.entries.flatMap((e) => (e.type === "group" ? e.group.items : [])));
+  const pushCount = run.reduce((n, r) => n + r.pushCount, 0);
+  return {
+    startedBy: first.startedBy,
+    startLabel: collapsed.length > 0 ? plural(pushCount, "push") : `${plural(pushCount, "push")}, no other activity`,
+    startedAt: first.startedAt,
+    pushCount,
+    commits: run.flatMap((r) => r.commits),
+    entries: collapsed.length > 0 ? [{ type: "group", group: makeGroup(collapsed) }] : [],
+    hiddenCount: run.reduce((n, r) => n + r.hiddenCount, 0),
+    isNew: run.some((r) => r.isNew),
+  };
+}
+
+function mergePushOnly(rounds: Round[]): Round[] {
+  const out: Round[] = [];
+  let run: Round[] = [];
+  const flush = () => {
+    if (run.length > 0) out.push(mergeRun(run));
+    run = [];
+  };
+  for (const r of rounds) {
+    if (isPushOnly(r)) {
+      run.push(r);
+    } else {
+      flush();
+      out.push(r);
+    }
+  }
+  flush();
+  return out;
+}
+
 /**
  * Splits events (oldest first) into review rounds, returned newest first. A round starts at
  * each force-push and at each batch of commits; commits within 10 minutes of the previous
  * commit join its batch unless a visible event came in between. Inside a round, runs of collapsed events between shown events
- * become one group; hidden events are only counted. Every force-push counts as real until
+ * become one group; hidden events are only counted. Consecutive rounds with nothing shown
+ * merge into one, so a run of rebases reads as "5 pushes". Every force-push counts as real until
  * push verdicts exist.
  */
 export function buildRounds(events: ViewEvent[]): Round[] {
@@ -135,5 +179,5 @@ export function buildRounds(events: ViewEvent[]): Round[] {
     current.events.push(e);
   }
   if (current) rounds.push(finish(current));
-  return rounds.reverse();
+  return mergePushOnly(rounds).reverse();
 }

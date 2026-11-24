@@ -47,7 +47,7 @@ export function RoundView({ subjectKey, round, index, focused, now }: Props) {
             />
           ),
         )}
-        {round.entries.length === 0 && <p className={styles.empty}>No visible activity.</p>}
+        {round.entries.length === 0 && round.pushCount <= 1 && <p className={styles.empty}>No visible activity.</p>}
       </div>
     </section>
   );

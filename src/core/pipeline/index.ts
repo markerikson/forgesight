@@ -19,7 +19,7 @@ export { describe } from "./rank.ts";
 export { toInboxRow, toViewRecord } from "./row.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
-export const PIPELINE_VERSION = 1;
+export const PIPELINE_VERSION = 2;
 
 export interface DeriveInput {
   subject: SubjectRecord;

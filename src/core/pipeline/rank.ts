@@ -149,7 +149,9 @@ function isNewIssue(subject: SubjectRecord, dismissedAt: string | null, me: stri
 
 function hiddenStats(events: ViewEvent[], rounds: Round[]): HiddenStats {
   return {
-    pushes: rounds.filter((r) => r.startedBy !== null && r.startedBy.isNew).length,
+    pushes: rounds
+      .filter((r) => r.startedBy !== null && r.startedBy.isNew)
+      .reduce((sum, r) => sum + r.pushCount, 0),
     merged: events.some((e) => e.isNew && e.kind === "merged") ? 1 : 0,
     closed: events.some((e) => e.isNew && (e.kind === "closed" || e.kind === "closedByPr")) &&
       !events.some((e) => e.isNew && e.kind === "merged")

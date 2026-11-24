@@ -132,10 +132,15 @@ export type RoundEntry =
 export interface Round {
   /** The push or commit batch that opened the round; null for the first stored round. */
   startedBy: ViewEvent | null;
-  /** "force-pushed", "pushed 3 commits", or null for the first round. */
+  /**
+   * "force-pushed", "pushed 3 commits", "5 pushes, no other activity" for merged push-only
+   * rounds, or null for the first round.
+   */
   startLabel: string | null;
   startedAt: string;
-  /** Commits in the push that opened the round, oldest first; empty for force-pushes. */
+  /** Pushes (force-pushes and commit batches) in this round: 0 for the first round, more than 1 when push-only rounds were merged. */
+  pushCount: number;
+  /** Commits in the pushes that opened the round, oldest first; empty for force-pushes. */
   commits: ViewEvent[];
   /** Shown events and collapsed groups in time order, oldest first. */
   entries: RoundEntry[];

@@ -14,27 +14,9 @@
   "links": [],
   "rounds": [
     {
-      "start": "pushed 1 commit",
+      "start": "4 pushes, no other activity",
       "isNew": true,
       "hidden": 2,
-      "entries": []
-    },
-    {
-      "start": "force-pushed",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "pushed 9 commits",
-      "isNew": true,
-      "hidden": 0,
-      "entries": []
-    },
-    {
-      "start": "force-pushed",
-      "isNew": true,
-      "hidden": 0,
       "entries": []
     },
     {
