@@ -1,21 +1,19 @@
 import type { Database } from "bun:sqlite";
+import { META } from "../core/meta-keys.ts";
 import { getMeta } from "../store/meta.ts";
 
-/**
- * Meta keys the worker writes. The worker defines them next to its own code; these copies
- * keep the web process from importing worker modules.
- */
+/** Meta keys the web reads for worker status. */
 export const WORKER_META = {
-  status: "worker.status",
-  heartbeatAt: "worker.heartbeatAt",
-  viewerLogin: "viewer.login",
-  lastPollStartedAt: "notifications.lastPollStartedAt",
-  lastCheckAt: "notifications.lastCheckAt",
-  lastFullAt: "notifications.lastFullAt",
-  nextPollAt: "notifications.nextPollAt",
-  backfillStartedAt: "backfill.startedAt",
-  backfillCursor: "backfill.cursor",
-  backfillCompletedAt: "backfill.completedAt",
+  status: META.workerStatus,
+  heartbeatAt: META.heartbeatAt,
+  viewerLogin: META.viewerLogin,
+  lastPollStartedAt: META.lastPollStartedAt,
+  lastCheckAt: META.lastCheckAt,
+  lastFullAt: META.lastFullAt,
+  nextPollAt: META.nextPollAt,
+  backfillStartedAt: META.backfillStartedAt,
+  backfillCursor: META.backfillCursor,
+  backfillCompletedAt: META.backfillCompletedAt,
 } as const;
 
 export type WorkerMetaKey = keyof typeof WORKER_META;
