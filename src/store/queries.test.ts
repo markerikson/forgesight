@@ -302,10 +302,11 @@ describe("item state", () => {
 });
 
 describe("views", () => {
-  test("putViews appends a view change only when a list-visible column changes", () => {
+  test("putViews appends a view change only when a visible column changes", () => {
     const db = memoryDb();
     expect(putViews(db, [view("o/r#1", { title: "a" })], T0)).toEqual(["o/r#1"]);
-    expect(putViews(db, [view("o/r#1", { title: "a" }, { detail: { rounds: [1] }, score: 9 })], T1)).toEqual([]);
+    expect(putViews(db, [view("o/r#1", { title: "a" }, { score: 9 })], T1)).toEqual([]);
+    expect(putViews(db, [view("o/r#1", { title: "a" }, { detail: { rounds: [1] } })], T1)).toEqual(["o/r#1"]);
     expect(putViews(db, [view("o/r#1", { title: "b" })], T2)).toEqual(["o/r#1"]);
     expect(putViews(db, [view("o/r#1", { title: "b" }, { section: "hidden" })], T2)).toEqual(["o/r#1"]);
     expect(putViews(db, [view("o/r#1", { title: "b" }, { section: "hidden", sortAt: T3 })], T3)).toEqual(["o/r#1"]);
@@ -313,7 +314,7 @@ describe("views", () => {
       putViews(db, [view("o/r#1", { title: "b" }, { section: "hidden", sortAt: T3, stackId: "s1" })], T3),
     ).toEqual(["o/r#1"]);
 
-    expect(changesAfter(db, 0).map((c) => c.kind)).toEqual(["view", "view", "view", "view", "view"]);
+    expect(changesAfter(db, 0).map((c) => c.kind)).toEqual(["view", "view", "view", "view", "view", "view"]);
     expect(getView(db, "o/r#1")?.row).toEqual({ title: "b" });
   });
 

@@ -38,16 +38,36 @@ export function pruneChanges(db: Database, before: string): number {
   return db.query("DELETE FROM changes WHERE at < ?").run(before).changes;
 }
 
-type ListedColumns = Pick<SubjectViewRow, "section" | "sort_at" | "stack_id" | "row_json">;
+/** Lowest stored change sequence, or null when the feed is empty. */
+export function oldestChangeSeq(db: Database): number | null {
+  const row = db.query<{ seq: number | null }, []>("SELECT MIN(seq) AS seq FROM changes").get();
+  return row?.seq ?? null;
+}
 
 /**
- * Upserts view rows. A `view` change is appended only for subjects whose list-visible
- * columns (`section`, `sort_at`, `stack_id`, `row_json`) differ from the stored row, or
- * that had no row. Returns the keys that changed.
+ * Highest change sequence ever written, or 0 when none. Reads the AUTOINCREMENT counter, so
+ * the value survives pruning.
+ */
+export function latestChangeSeq(db: Database): number {
+  const row = db
+    .query<{ seq: number }, []>("SELECT seq FROM sqlite_sequence WHERE name = 'changes'")
+    .get();
+  return row?.seq ?? 0;
+}
+
+type ComparedColumns = Pick<
+  SubjectViewRow,
+  "section" | "sort_at" | "stack_id" | "row_json" | "detail_json"
+>;
+
+/**
+ * Upserts view rows. A `view` change is appended only for subjects whose visible columns
+ * (`section`, `sort_at`, `stack_id`, `row_json`, `detail_json`) differ from the stored row,
+ * or that had no row. Returns the keys that changed.
  */
 export function putViews(db: Database, views: SubjectViewRecord[], now: string): string[] {
-  const current = db.query<ListedColumns, [string]>(
-    "SELECT section, sort_at, stack_id, row_json FROM subject_views WHERE subject_key = ?",
+  const current = db.query<ComparedColumns, [string]>(
+    "SELECT section, sort_at, stack_id, row_json, detail_json FROM subject_views WHERE subject_key = ?",
   );
   const upsert = db.query(
     `INSERT INTO subject_views (subject_key, pipeline_version, config_hash, section, sort_at,
@@ -63,10 +83,12 @@ export function putViews(db: Database, views: SubjectViewRecord[], now: string):
   db.transaction(() => {
     for (const v of views) {
       const rowJson = toJson(v.row);
+      const detailJson = toJson(v.detail);
       const before = current.get(v.subjectKey);
-      const listChanged =
+      const changedView =
         !before ||
         before.row_json !== rowJson ||
+        before.detail_json !== detailJson ||
         before.section !== v.section ||
         before.sort_at !== v.sortAt ||
         before.stack_id !== v.stackId;
@@ -80,10 +102,10 @@ export function putViews(db: Database, views: SubjectViewRecord[], now: string):
         v.repo,
         v.stackId,
         rowJson,
-        toJson(v.detail),
+        detailJson,
         v.computedAt,
       );
-      if (listChanged) {
+      if (changedView) {
         appendChange(db, "view", v.subjectKey, now);
         changed.push(v.subjectKey);
       }

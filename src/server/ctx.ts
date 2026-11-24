@@ -10,6 +10,8 @@ export interface ServerCtx {
   config: Config;
   configError: string | null;
   now: () => Date;
+  /** The read-write connection, opened on first use. Only POST handlers call it. */
+  writeDb: () => Database;
 }
 
 /** The database is missing or its schema does not match this build; the worker or `db:migrate` fixes it. */
@@ -26,10 +28,10 @@ export function getConfig(): Promise<LoadedConfig> {
   return configPromise;
 }
 
-export function openServerDb(path: string): Database {
+export function openServerDb(path: string, opts: { readonly: boolean } = { readonly: true }): Database {
   let db: Database;
   try {
-    db = openDb(path, { readonly: true });
+    db = openDb(path, opts);
   } catch (err) {
     throw new NotReadyError(
       `Cannot open ${path}: ${(err as Error).message}. Run \`bun run db:migrate\` or start the worker.`,
@@ -44,6 +46,24 @@ export function openServerDb(path: string): Database {
   return db;
 }
 
+let writeDb: Database | undefined;
+
+/**
+ * The per-process read-write connection, opened on first use. WAL mode and the busy timeout
+ * let it write while the worker does; every web write is one short transaction.
+ */
+export function getWriteDb(): Database {
+  writeDb ??= openServerDb(defaultDbPath(), { readonly: false });
+  try {
+    assertCurrent(writeDb);
+  } catch (err) {
+    writeDb.close();
+    writeDb = undefined;
+    throw new NotReadyError((err as Error).message);
+  }
+  return writeDb;
+}
+
 async function createCtx(): Promise<ServerCtx> {
   const loaded = await getConfig();
   return {
@@ -51,6 +71,7 @@ async function createCtx(): Promise<ServerCtx> {
     config: loaded.config,
     configError: loaded.error ?? null,
     now: () => new Date(),
+    writeDb: getWriteDb,
   };
 }
 

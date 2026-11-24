@@ -90,6 +90,36 @@ function deriveBatch(
   return { views, failed };
 }
 
+export interface DerivedKeys {
+  views: SubjectViewRecord[];
+  /** Keys whose stored view changed (a `view` change was appended). */
+  changed: string[];
+  failed: string[];
+}
+
+/**
+ * Derives and stores the views for `keys` in batches of `DERIVE_BATCH`. Uses only the store
+ * and the pure pipeline, so the web server calls it right after a state op.
+ */
+export function deriveKeys(
+  db: Database,
+  keys: string[],
+  config: Config,
+  now: Date,
+  log: Logger = console,
+): DerivedKeys {
+  const hash = configHash(config);
+  const nowIso = now.toISOString();
+  const result: DerivedKeys = { views: [], changed: [], failed: [] };
+  for (let i = 0; i < keys.length; i += DERIVE_BATCH) {
+    const batch = deriveBatch(db, keys.slice(i, i + DERIVE_BATCH), { config, hash, now, log });
+    result.views.push(...batch.views);
+    result.failed.push(...batch.failed);
+    result.changed.push(...putViews(db, batch.views, nowIso));
+  }
+  return result;
+}
+
 /** Recomputes every pending view in batches of `DERIVE_BATCH`, one transaction each. */
 export function deriveViews(
   db: Database,
@@ -98,16 +128,11 @@ export function deriveViews(
   log: Logger,
 ): DeriveSummary {
   const started = performance.now();
-  const hash = configHash(config);
   const nowIso = now.toISOString();
-  const { keys, maxSeq } = pendingKeys(db, hash, nowIso);
-  let changed = 0;
-  const failed: string[] = [];
-  for (let i = 0; i < keys.length; i += DERIVE_BATCH) {
-    const batch = deriveBatch(db, keys.slice(i, i + DERIVE_BATCH), { config, hash, now, log });
-    failed.push(...batch.failed);
-    changed += putViews(db, batch.views, nowIso).length;
-  }
+  const { keys, maxSeq } = pendingKeys(db, configHash(config), nowIso);
+  const derived = deriveKeys(db, keys, config, now, log);
+  const changed = derived.changed.length;
+  const failed = derived.failed;
   if (maxSeq !== null) setMeta(db, META.deriveSeq, String(maxSeq), nowIso);
   setMeta(db, META.deriveAt, nowIso, nowIso);
   // Failed keys are kept so the next run retries them even when their stored view is current.

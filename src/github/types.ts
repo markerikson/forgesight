@@ -108,6 +108,7 @@ export interface GitHubClient {
   /** Backfill: pages from newest, stopping at the first thread older than `cutoff`. */
   listNotificationsBefore(cutoff: Date): AsyncIterable<NotificationThread[]>;
   markDone(threadId: string): Promise<void>;
+  markRead(threadId: string): Promise<void>;
   unsubscribe(threadId: string): Promise<void>;
   resubscribe(threadId: string): Promise<void>;
   graphql<T>(query: string, variables: Record<string, unknown>, opts: GqlOpts): Promise<GqlResult<T>>;

@@ -14,7 +14,7 @@ export type FakeCall =
   | { method: "pollNotifications"; opts: PollOptions }
   | { method: "listNotificationsSince"; since: Date }
   | { method: "listNotificationsBefore"; cutoff: Date }
-  | { method: "markDone" | "unsubscribe" | "resubscribe"; threadId: string }
+  | { method: "markDone" | "markRead" | "unsubscribe" | "resubscribe"; threadId: string }
   | { method: "graphql"; query: string; variables: Record<string, unknown>; opts: GqlOpts }
   | { method: "getCommit"; repo: string; sha: string }
   | { method: "compare"; repo: string; base: string; head: string }
@@ -105,6 +105,13 @@ export class FakeGitHubClient implements GitHubClient {
     this.takeError();
     this.done.add(threadId);
     this.version++;
+  }
+
+  async markRead(threadId: string): Promise<void> {
+    this.calls.push({ method: "markRead", threadId });
+    this.takeError();
+    const thread = this.threads.get(threadId);
+    if (thread) this.threads.set(threadId, { ...thread, unread: false });
   }
 
   async unsubscribe(threadId: string): Promise<void> {

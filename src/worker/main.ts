@@ -16,7 +16,9 @@ import { SqliteApiCallLog } from "./api-call-log.ts";
 import { deriveJob, deriveViews } from "./derive.ts";
 import { enrichJob } from "./enrich.ts";
 import { startHeartbeat } from "./heartbeat.ts";
+import { maintenanceJob } from "./maintenance.ts";
 import { openPullsJob } from "./open-pulls.ts";
+import { outboxJob } from "./outbox.ts";
 import { createPoller } from "./poller.ts";
 import { consoleLogger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
 
@@ -71,11 +73,17 @@ log.info(`Signed in as ${viewer}`);
 const stopHeartbeat = startHeartbeat(db, clock);
 const poller = createPoller();
 // A tick runs the GitHub jobs in this order until one does work, so enrichment waits for
-// poll and backfill. Derive is local and runs at the end of every tick.
-const scheduler = new Scheduler(
-  { db, gh, governor, config: effectiveConfig, clock, log },
-  [poller.pollJob, poller.backfillJob, openPullsJob, enrichJob, deriveJob],
-);
+// poll and backfill. The outbox sends queued user writes right after the poll. Derive and
+// maintenance are local and run at the end of every tick.
+const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clock, log }, [
+  poller.pollJob,
+  outboxJob,
+  poller.backfillJob,
+  openPullsJob,
+  enrichJob,
+  deriveJob,
+  maintenanceJob,
+]);
 
 if (args.once) {
   poller.request();

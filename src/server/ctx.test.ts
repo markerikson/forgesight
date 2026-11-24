@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { openDb } from "../store/db.ts";
 import { runMigrations } from "../store/migrate.ts";
 import { SCHEMA_VERSION } from "../store/schema-version.ts";
-import { NotReadyError, getCtx, openServerDb } from "./ctx.ts";
+import { NotReadyError, getCtx, getWriteDb, openServerDb } from "./ctx.ts";
 
 let dir: string;
 beforeEach(() => {
@@ -64,6 +64,25 @@ describe("getCtx", () => {
     } finally {
       restoreEnv("FORGESIGHT_DATA_DIR", saved.data);
       restoreEnv("FORGESIGHT_CONFIG", saved.config);
+    }
+  });
+});
+
+describe("getWriteDb", () => {
+  test("opens one read-write connection and reuses it", () => {
+    const saved = process.env.FORGESIGHT_DATA_DIR;
+    process.env.FORGESIGHT_DATA_DIR = dir;
+    try {
+      const rw = openDb(join(dir, "inbox.db"));
+      runMigrations(rw);
+      rw.close();
+      const db = getWriteDb();
+      expect(getWriteDb()).toBe(db);
+      db.run("CREATE TABLE x (a)");
+      db.run(`PRAGMA user_version = ${SCHEMA_VERSION + 1}`);
+      expect(() => getWriteDb()).toThrow(NotReadyError);
+    } finally {
+      restoreEnv("FORGESIGHT_DATA_DIR", saved);
     }
   });
 });

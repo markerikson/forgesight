@@ -274,6 +274,19 @@ describe("createGitHubClient", () => {
     expect(requests[0]?.url.pathname).toBe("/notifications/threads/123");
     expect(log.calls[0]?.workClass).toBe("writeback");
   });
+
+  test("markRead PATCHes the thread as a writeback call", async () => {
+    const { client, log, requests } = setup(() => new Response(null, { status: 205 }));
+    await client.markRead("123");
+    expect(requests[0]?.init?.method).toBe("PATCH");
+    expect(requests[0]?.url.pathname).toBe("/notifications/threads/123");
+    expect(log.calls[0]?.workClass).toBe("writeback");
+  });
+
+  test("markRead turns a 404 into NotFoundError", async () => {
+    const { client } = setup(() => new Response(JSON.stringify({ message: "Not Found" }), { status: 404 }));
+    await expect(client.markRead("123")).rejects.toThrow(NotFoundError);
+  });
 });
 
 describe("FakeGitHubClient", () => {
