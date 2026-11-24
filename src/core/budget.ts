@@ -46,8 +46,11 @@ export function decideAllowed(state: BudgetState, now: Date): Set<WorkClass> {
   else allowed = ESSENTIAL_CLASSES;
 
   const { remaining } = state;
-  if (remaining && remaining.remaining < LOW_REMAINING && now < remaining.resetAt) {
-    allowed = allowed.filter((c) => ESSENTIAL_CLASSES.includes(c));
+  if (remaining && now < remaining.resetAt) {
+    if (remaining.remaining <= 0) return new Set();
+    if (remaining.remaining < LOW_REMAINING) {
+      allowed = allowed.filter((c) => ESSENTIAL_CLASSES.includes(c));
+    }
   }
   return new Set(allowed);
 }
