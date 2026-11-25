@@ -261,6 +261,9 @@ export function resolveSelection(
   if (visible.length === 0 || key === null) return null;
   const found = visible.find((entry) => entryKey(entry) === key);
   if (found) return found;
+  // A member of a collapsed workstream (say, restored from the URL) selects its group.
+  const owner = visible.find((entry) => isGroup(entry) && entry.members.some((member) => member.key === key));
+  if (owner) return owner;
   return visible[Math.min(Math.max(index, 0), visible.length - 1)] ?? null;
 }
 
@@ -334,16 +337,17 @@ export function withLingering(
   const visible = filterRows(live, section, repo);
   if (lingering.length === 0) return visible;
   const liveKeys = listedKeys(live);
-  const extra = filterRows(lingering, section, repo).filter((row) => !liveKeys.has(row.key));
+  const extra = lingering.filter((row) => !liveKeys.has(row.key) && (repo === null || row.repo === repo));
   if (extra.length === 0) return visible;
 
-  // A read member stays inside its workstream, in stack order, rather than as a loose row.
+  // A read member stays inside its workstream, in stack order, rather than as a loose row. The
+  // optimistic patch has already moved it to Hidden, so only loose rows are filtered by section.
   const joined = new Map<string, InboxRow[]>();
   const loose: InboxRow[] = [];
   for (const row of extra) {
     const owner = visible.find((entry) => isGroup(entry) && entry.memberKeys.includes(row.key));
     if (owner) joined.set(entryKey(owner), [...(joined.get(entryKey(owner)) ?? []), row]);
-    else loose.push(row);
+    else if (row.section === section) loose.push(row);
   }
   const entries: InboxEntry[] = [];
   for (const entry of visible) {

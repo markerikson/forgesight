@@ -281,6 +281,21 @@ describe("workstream groups", () => {
     expect("moreCount" in joined ? joined.moreCount : -1).toBe(0);
   });
 
+  test("withLingering joins a read member whose row already moved to Hidden", () => {
+    const live = group("s1", [members[0]!], { memberKeys: members.slice(0, 2).map((m) => m.key) });
+    const read = { ...members[1]!, section: "hidden" as const };
+    const other = row("acme/app#2", "hidden");
+    const result = withLingering([live], [read, other], "updates", null);
+    expect(result.map(entryKey)).toEqual(["workstream:s1"]);
+    expect("members" in result[0]! ? result[0].members.map((m) => m.key) : []).toEqual(
+      members.slice(0, 2).map((m) => m.key),
+    );
+  });
+
+  test("resolveSelection maps a member of a collapsed group to the group row", () => {
+    expect(resolveSelection(entries, members[3]!.key, 0)).toBe(stack);
+  });
+
   test("selecting a group row exposes it as the selected group, not a row", () => {
     const store = storeWith(entries);
     store.dispatch(sectionSelected("updates"));

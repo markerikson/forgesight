@@ -56,6 +56,15 @@ function rowsFor(entries: readonly InboxEntry[], keys: ReadonlySet<string>): Rec
   return rows;
 }
 
+/** Groups that list any of `keys` among their members. */
+function groupsFor(entries: readonly InboxEntry[], keys: ReadonlySet<string>): Record<string, InboxGroup> {
+  const groups: Record<string, InboxGroup> = {};
+  for (const entry of entries) {
+    if (isGroup(entry) && entry.members.some((member) => keys.has(member.key))) groups[entry.id] = entry;
+  }
+  return groups;
+}
+
 function workstreamTags(ids: readonly string[], withInbox: boolean) {
   const tags = ids.map((id) => ({ type: "Workstream" as const, id }));
   return withInbox ? [...tags, { type: "Inbox" as const, id: "LIST" }] : tags;
@@ -91,7 +100,11 @@ export const stateApi = api.injectEndpoints({
 
         if (op.kind !== "read" && op.kind !== "unread") dispatch(lingeringDropped(keys));
         // Rollback puts back only these rows, so changes that land meanwhile survive a failure.
-        const originals = cachedInboxArgs(before).map((arg) => ({ arg, rows: rowsFor(cachedRows(before, arg), keySet) }));
+        // Groups holding these rows come back too: the patch can empty a group and drop it.
+        const originals = cachedInboxArgs(before).map((arg) => {
+          const entries = cachedRows(before, arg);
+          return { arg, rows: rowsFor(entries, keySet), groups: groupsFor(entries, keySet) };
+        });
         for (const { arg } of originals) {
           dispatch(
             api.util.updateQueryData("getInbox", arg, (draft) =>
@@ -124,10 +137,10 @@ export const stateApi = api.injectEndpoints({
           );
           dispatch(toastShown(label, { opId: data.opId }));
         } catch {
-          for (const { arg, rows } of originals) {
+          for (const { arg, rows, groups } of originals) {
             dispatch(
               api.util.updateQueryData("getInbox", arg, (draft) =>
-                replaceRows(asPayload(draft), rows, arg.includeHidden),
+                replaceRows(asPayload(draft), rows, arg.includeHidden, groups),
               ),
             );
           }
