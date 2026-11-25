@@ -71,7 +71,6 @@ function ActionBar({ row, url }: { row: InboxRow; url: string | null }) {
       <button
         type="button"
         className={styles.primary}
-        disabled={row.section === "hidden"}
         title="Done (e)"
         onClick={() => dispatch(markDone([row.key]))}
       >
