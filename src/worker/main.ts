@@ -7,6 +7,7 @@ import { configPath } from "../config/paths.ts";
 import { Governor } from "../github/budget.ts";
 import { createGitHubClient } from "../github/client.ts";
 import { TokenError } from "../github/errors.ts";
+import { ANTHROPIC_API_KEY_ENV, llmClientFor } from "../llm/client.ts";
 import { resolveToken } from "../github/token.ts";
 import type { GitHubClient } from "../github/types.ts";
 import { defaultDbPath, openDb } from "../store/db.ts";
@@ -21,6 +22,7 @@ import { openPullsJob } from "./open-pulls.ts";
 import { outboxJob } from "./outbox.ts";
 import { createPoller } from "./poller.ts";
 import { consoleLogger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
+import { createWorkstreamSummariesJob } from "./workstream-summaries.ts";
 
 const { values: args } = parseArgs({
   options: {
@@ -72,15 +74,18 @@ log.info(`Signed in as ${viewer}`);
 
 const stopHeartbeat = startHeartbeat(db, clock);
 const poller = createPoller();
+const llm = llmClientFor(config.llm.tasks.workstreamSummary);
+if (!llm) log.warn(`${ANTHROPIC_API_KEY_ENV} is not set; workstream summaries are off`);
 // A tick runs the GitHub jobs in this order until one does work, so enrichment waits for
-// poll and backfill. The outbox sends queued user writes right after the poll. Derive and
-// maintenance are local and run at the end of every tick.
+// poll and backfill, and summaries wait for enrichment. The outbox sends queued user writes
+// right after the poll. Derive and maintenance are local and run at the end of every tick.
 const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clock, log }, [
   poller.pollJob,
   outboxJob,
   poller.backfillJob,
   openPullsJob,
   enrichJob,
+  createWorkstreamSummariesJob({ llm }),
   deriveJob,
   maintenanceJob,
 ]);

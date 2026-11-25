@@ -109,4 +109,12 @@ export const defaultConfig = {
   budget: { graphqlPerHour: 1000, restPerHour: 1500 },
   rebase: { enabled: true, method: "api" },
   server: { port: 4630, allowedHosts: ["localhost", "127.0.0.1"] },
+  llm: {
+    dailyCapUsd: 2,
+    tasks: { workstreamSummary: { provider: "anthropic", model: "claude-haiku-4-5" } },
+    prices: {
+      "claude-haiku-4-5": { input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 },
+      "claude-sonnet-4-5": { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
+    },
+  },
 } satisfies UserConfig;

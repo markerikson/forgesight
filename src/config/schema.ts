@@ -43,6 +43,22 @@ const rule = type({
 
 const positiveInt = "number.integer >= 1";
 
+const llmTask = type({
+  "+": "reject",
+  "provider?": "'anthropic'",
+  "model?": "string > 0",
+  "baseUrl?": "string > 0",
+});
+
+/** USD per million tokens. */
+const modelPrice = type({
+  "+": "reject",
+  input: "number >= 0",
+  output: "number >= 0",
+  cacheRead: "number >= 0",
+  cacheWrite: "number >= 0",
+});
+
 /** Shape of the user's `config.jsonc`. Every field is optional; defaults fill the rest. */
 export const userConfigSchema = type({
   "+": "reject",
@@ -73,6 +89,15 @@ export const userConfigSchema = type({
     "+": "reject",
     "port?": "1 <= number.integer <= 65535",
     "allowedHosts?": "string[]",
+  },
+  "llm?": {
+    "+": "reject",
+    "dailyCapUsd?": "number >= 0",
+    "tasks?": {
+      "+": "reject",
+      "workstreamSummary?": llmTask,
+    },
+    "prices?": type({ "[string]": modelPrice }),
   },
 });
 

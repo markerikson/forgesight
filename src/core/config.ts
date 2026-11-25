@@ -67,6 +67,29 @@ export interface Config {
   budget: { graphqlPerHour: number; restPerHour: number };
   rebase: { enabled: boolean; method: RebaseMethod };
   server: { port: number; allowedHosts: string[] };
+  llm: {
+    /** Spend stops for the rest of the UTC day once LLM calls total this much. */
+    dailyCapUsd: number;
+    tasks: { workstreamSummary: LlmTaskConfig };
+    /** Keyed by model id. Every task model has an entry. */
+    prices: Record<string, ModelPrice>;
+  };
+}
+
+export type LlmProvider = "anthropic";
+
+export interface LlmTaskConfig {
+  provider: LlmProvider;
+  model: string;
+  baseUrl?: string;
+}
+
+/** USD per million tokens. */
+export interface ModelPrice {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
 }
 
 export function repoConfig(config: Config, repo: string): RepoConfig {

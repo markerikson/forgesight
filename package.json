@@ -20,6 +20,8 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "2.15.0",
+    "@tanstack/ai": "^1.8.0",
+    "@tanstack/ai-anthropic": "^1.2.1",
     "@timber-js/app": "0.2.0-alpha.252",
     "@vitejs/plugin-react": "6.3.0",
     "@vitejs/plugin-rsc": "0.5.39",
