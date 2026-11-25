@@ -420,10 +420,38 @@ export function buildWorkstreams(pulls: readonly WsPull[], opts: BuildWorkstream
       extraSignals,
       cutBelow: config.cutBelow,
     });
-  const drafts = finalSets.map((set) => ({ set, extra: [] as WsSignal[], ws: describe(set) }));
+  const built = finalSets.map((set) => ({ set, extra: [] as WsSignal[], ws: describe(set) }));
+  const previous = opts.previous;
+
+  // A reopened stack that was merged into its closed predecessor stays merged while the
+  // previous result still holds both.
+  const absorbed = new Set<number>();
+  for (const prev of previous) {
+    if (prev.closed || prev.prefix === null) continue;
+    const parts = built.flatMap((draft, d) =>
+      !absorbed.has(d) &&
+      draft.ws.repo === prev.repo &&
+      draft.ws.author === prev.author &&
+      draft.ws.prefix === prev.prefix &&
+      prev.members.some((k) => draft.set.has(k))
+        ? [d]
+        : [],
+    );
+    const closed = parts.filter((d) => built[d]?.ws.closed);
+    const [owner] = closed;
+    if (parts.length < 2 || closed.length !== 1 || owner === undefined) continue;
+    const target = must(built[owner], "draft");
+    for (const d of parts) {
+      if (d === owner) continue;
+      for (const k of must(built[d], "draft").set) target.set.add(k);
+      absorbed.add(d);
+    }
+    target.extra.push("titlePrefix");
+    target.ws = describe(target.set, target.extra);
+  }
+  const drafts = built.filter((_, d) => !absorbed.has(d));
 
   // Stable IDs: member overlap first.
-  const previous = opts.previous;
   const pairs: { d: number; id: string; overlap: number }[] = [];
   drafts.forEach((draft, d) => {
     for (const prev of previous) {

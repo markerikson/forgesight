@@ -44,12 +44,17 @@ function resolveWorkstreams(
     genericPrefixes: (entry?.genericPrefixes ?? base?.genericPrefixes ?? []).map((p) => p.toLowerCase()),
     botAuthors: entry?.botAuthors ?? base?.botAuthors ?? [],
     groups: entry?.groups
-      ? entry.groups.map((g, i) => ({
-          name: g.name,
-          titles: patterns(g.titles ?? [], `${at}.groups[${i}].titles`),
-          branches: patterns(g.branches ?? [], `${at}.groups[${i}].branches`),
-          authors: g.authors ?? [],
-        }))
+      ? entry.groups.map((g, i) => {
+          if (!g.titles?.length && !g.branches?.length) {
+            throw new ConfigError(`${at}.groups[${i}] needs titles or branches`);
+          }
+          return {
+            name: g.name,
+            titles: patterns(g.titles ?? [], `${at}.groups[${i}].titles`),
+            branches: patterns(g.branches ?? [], `${at}.groups[${i}].branches`),
+            authors: g.authors ?? [],
+          };
+        })
       : (base?.groups ?? []),
   };
 }

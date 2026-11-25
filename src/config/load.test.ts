@@ -131,6 +131,12 @@ describe("resolveConfig", () => {
     ).toThrow(/repos\["a\/b"\]\.workstreams\.groups\[0\]\.titles\[0\]/);
   });
 
+  test("a workstream group needs a title or branch pattern", () => {
+    expect(() =>
+      resolveConfig({ repos: { "a/b": { workstreams: { groups: [{ name: "x", authors: ["bob"] }] } } } }),
+    ).toThrow(/repos\["a\/b"\]\.workstreams\.groups\[0\] needs titles or branches/);
+  });
+
   test("repoConfig uses the exact entry, then '*'", () => {
     const config = resolveConfig({ repos: { "a/b": { mode: "simple" } } });
     expect(repoConfig(config, "a/b").mode).toBe("simple");

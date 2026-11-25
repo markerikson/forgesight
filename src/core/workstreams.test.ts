@@ -283,6 +283,18 @@ describe("IDs across rebuilds", () => {
     expect(shape(result)).toEqual([[1, 2, 5, 6]]);
     expect(result[0]?.id).toBe(`${REPO}:ws:1`);
     expect(result[0]?.closed).toBe(false);
+    const again = build(reopened, { previous: result });
+    expect(shape(again)).toEqual([[1, 2, 5, 6]]);
+    expect(again[0]?.id).toBe(`${REPO}:ws:1`);
+  });
+
+  test("a merged reopened stack keeps its ID once the closed predecessor leaves the listing", () => {
+    const closed = chain(1, 2, { title: "Cache: v1", closed: "closed", closedAt: "2026-11-20T00:00:00Z" });
+    const open = chain(5, 2, { title: "Cache: v2" });
+    const merged = build([...closed, ...open], { previous: build(closed) });
+    const later = build(open, { previous: merged });
+    expect(shape(later)).toEqual([[5, 6]]);
+    expect(later[0]?.id).toBe(`${REPO}:ws:1`);
   });
 
   test("a new group does not reuse an ID that is taken", () => {
