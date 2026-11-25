@@ -47,6 +47,7 @@ fragment PrItems on PullRequestTimelineItems {
   ... on MentionedEvent { createdAt actor { login __typename } }
   ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }
   ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }
+  ... on DemilestonedEvent { createdAt actor { login __typename } milestoneTitle }
 
   ... on PullRequestReview { createdAt submittedAt state author { login __typename } body commit { oid }
     comments(first: 10) { nodes { id path body author { login } } } }
@@ -95,11 +96,14 @@ fragment IssueItems on IssueTimelineItems {
   ... on MentionedEvent { createdAt actor { login __typename } }
   ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }
   ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }
+  ... on DemilestonedEvent { createdAt actor { login __typename } milestoneTitle }
 
   ... on MarkedAsDuplicateEvent { createdAt actor { login __typename } canonical { __typename ... on Issue { number } ... on PullRequest { number } } }
   ... on TransferredEvent { createdAt actor { login __typename } fromRepository { nameWithOwner } }
   ... on SubIssueAddedEvent { createdAt actor { login __typename } subIssue { number title } }
   ... on ParentIssueAddedEvent { createdAt actor { login __typename } parent { number title } }
+  ... on SubIssueRemovedEvent { createdAt actor { login __typename } subIssue { number title } }
+  ... on ParentIssueRemovedEvent { createdAt actor { login __typename } parent { number title } }
 }
 "
 `;

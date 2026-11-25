@@ -21,7 +21,7 @@ export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
 export { typenameLabel } from "./text.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
-export const PIPELINE_VERSION = 4;
+export const PIPELINE_VERSION = 5;
 
 export interface DeriveInput {
   subject: SubjectRecord;
