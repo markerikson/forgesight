@@ -181,14 +181,17 @@ export function repoCounts(rows: readonly InboxEntry[]): RepoCounts[] {
   );
 }
 
-/** A review request or mention keeps a row in its section through a mute, its own or its workstream's. */
+/**
+ * A review request or mention keeps a row in its section through a mute, its own or its
+ * workstream's, and keeps it out of a low or muted workstream's group.
+ */
 export function keepsSection(row: InboxRow): boolean {
   return row.reasons.includes("reviewRequested") || row.reasons.includes("mentioned");
 }
 
 function absorbs(group: InboxGroup, row: InboxRow): boolean {
   if (row.section !== "waiting" && row.section !== "updates") return false;
-  return group.priority !== "muted" || !keepsSection(row);
+  return group.priority === "normal" || !keepsSection(row);
 }
 
 export function groupSection(group: Pick<InboxGroup, "priority" | "snoozed" | "isNew" | "members">): Section {

@@ -82,6 +82,19 @@ function pinSelection(dispatch: Dispatch, getState: () => unknown, selected: Inb
   if (next) dispatch(rowSelected({ key: entryKey(next), index: visible.indexOf(next) }));
 }
 
+/**
+ * A rolled-back group the cache no longer lists may have left as Hidden (one entry) or been
+ * dropped empty (its members counted one by one), so only the server knows the Hidden count.
+ */
+function refetchAfterGroupRollback(
+  dispatch: Dispatch,
+  originals: readonly { groups: Readonly<Record<string, InboxGroup | null>> }[],
+) {
+  if (originals.some(({ groups }) => Object.keys(groups).length > 0)) {
+    dispatch(api.util.invalidateTags([{ type: "Inbox", id: "LIST" }]));
+  }
+}
+
 function selectionBefore(state: ViewRootState) {
   const selected = selectSelectedEntry(state);
   return { selected, index: selected ? selectVisibleRows(state).indexOf(selected) : 0 };
@@ -144,6 +157,7 @@ export const stateApi = api.injectEndpoints({
               ),
             );
           }
+          refetchAfterGroupRollback(dispatch, originals);
           if (op.kind !== "read" && op.kind !== "unread") for (const row of lingering) dispatch(rowRead(row));
           if (op.kind !== "read") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
         }
@@ -203,6 +217,7 @@ export const stateApi = api.injectEndpoints({
               ),
             );
           }
+          refetchAfterGroupRollback(dispatch, originals);
           if (op.kind !== "seen") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
         }
       },

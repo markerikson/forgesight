@@ -166,6 +166,17 @@ describe("buildInboxPayload with workstreams", () => {
     expect(group.priority).toBe("low");
   });
 
+  test("a review request in a low-priority group stays its own row in Waiting", () => {
+    const rows = ROWS.map((r) =>
+      r.key === K2 ? { ...r, section: "waiting" as const, reasons: ["reviewRequested" as const] } : r,
+    );
+    const payload = build([input({ state: { priority: "low" } })], false, rows);
+    const group = groupOf(payload);
+    expect(group.section).toBe("updates");
+    expect(group.members.map((m) => m.key)).not.toContain(K2);
+    expect(payload.rows.find((e) => entryKey(e) === K2)?.section).toBe("waiting");
+  });
+
   test("a muted group goes to Hidden but a review request still shows its member", () => {
     const rows = ROWS.map((r) => (r.key === K2 ? { ...r, reasons: ["reviewRequested" as const] } : r));
     const payload = build([input({ state: { priority: "muted" } })], false, rows);

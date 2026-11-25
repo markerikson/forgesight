@@ -192,7 +192,8 @@ export function applyStateOps(db: Database, keys: SubjectKey[], op: StateOp, now
 
 /**
  * Reverts an op in one transaction: drops its unsent outbox rows and restores the item
- * states it replaced. Refuses when a newer live op touched any of its keys.
+ * states it replaced. Refuses when a newer live op touched any of its keys. A newer
+ * workstream `seen` op does not block it: undo keeps that op's seen fields instead.
  */
 export function undoStateOp(db: Database, opId: number, now: string): UndoResult {
   return db.transaction((): UndoResult => {
@@ -205,6 +206,7 @@ export function undoStateOp(db: Database, opId: number, now: string): UndoResult
       .query<{ id: number }, [number, string]>(
         `SELECT s.id FROM state_ops s
          WHERE s.id > ? AND s.undone_at IS NULL
+           AND json_extract(s.op_json, '$.op.kind') IS NOT 'seen'
            AND EXISTS (SELECT 1 FROM json_each(s.prev_json) e
                        WHERE e.key IN (SELECT value FROM json_each(?)))
          LIMIT 1`,
@@ -214,7 +216,7 @@ export function undoStateOp(db: Database, opId: number, now: string): UndoResult
 
     const wsRecord = parseWorkstreamOpRecord(op.op_json);
     if (wsRecord) {
-      restoreWorkstreamOp(db, wsRecord, op.prev_json, now);
+      restoreWorkstreamOp(db, opId, wsRecord, op.prev_json, now);
       db.query("UPDATE state_ops SET undone_at = ? WHERE id = ?").run(now, opId);
       return { kind: "undone", githubApplied: 0 };
     }

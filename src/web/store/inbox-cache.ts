@@ -34,8 +34,17 @@ export function replaceRows(
     }
     const next = pendingGroups.get(entry.id) ?? null;
     pendingGroups.delete(entry.id);
-    if (next) entries.push({ ...next, members: next.members.map(replace) });
-    else entries.push(...entry.members.map(replace));
+    if (!next) {
+      entries.push(...entry.members.map(replace));
+      continue;
+    }
+    // Keep the cached copy of each member unless the server sent a new one, and keep cached
+    // members the new group does not list as their own rows so reflow can place them.
+    const current = new Map(entry.members.map((m) => [m.key, m]));
+    entries.push({ ...next, members: next.members.map((m) => replace(current.get(m.key) ?? m)) });
+    for (const member of entry.members) {
+      if (!next.members.some((m) => m.key === member.key)) entries.push(replace(member));
+    }
   }
   let returned = 0;
   for (const group of pendingGroups.values()) {

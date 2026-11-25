@@ -231,8 +231,21 @@ describe("workstream ops", () => {
     const db = setup();
     const first = applyWorkstreamOps(db, ID, { kind: "setPriority", priority: "low" }, T1);
     applyWorkstreamOps(db, `${REPO}:ws:20`, { kind: "setPriority", priority: "low" }, T1);
-    applyWorkstreamOps(db, ID, { kind: "seen", summaryHash: null }, T1);
+    applyWorkstreamOps(db, ID, { kind: "unsnooze" }, T1);
     expect(undoStateOp(db, first.opId, T2)).toEqual({ kind: "superseded" });
+  });
+
+  test("a later seen op does not block undo and keeps its seen fields", () => {
+    const db = setup();
+    const low = applyWorkstreamOps(db, ID, { kind: "setPriority", priority: "low" }, T1);
+    applyWorkstreamOps(db, ID, { kind: "seen", summaryHash: "h1" }, T2);
+    const seen = getWorkstreamState(db, ID);
+    expect(undoStateOp(db, low.opId, T2)).toMatchObject({ kind: "undone" });
+    expect(getWorkstreamState(db, ID)).toMatchObject({
+      priority: "normal",
+      seenAt: seen.seenAt,
+      seenSummaryHash: "h1",
+    });
   });
 
   test("throws for an unknown workstream", () => {

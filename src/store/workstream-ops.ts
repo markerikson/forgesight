@@ -109,13 +109,44 @@ export function mergeUndoHints(prevJson: string): { keys: string[]; id: string }
   );
 }
 
-/** Restores what a workstream op replaced. Runs inside `undoStateOp`'s transaction. */
-export function restoreWorkstreamOp(db: Database, record: WorkstreamOpRecord, prevJson: string, now: string): void {
+/** Whether a live `seen` op on workstream `id` came after op `opId`. */
+function seenSince(db: Database, id: string, opId: number): boolean {
+  const row = db
+    .query<{ id: number }, [number, string]>(
+      `SELECT id FROM state_ops
+       WHERE id > ? AND undone_at IS NULL
+         AND json_extract(op_json, '$.op.kind') = 'seen'
+         AND json_extract(op_json, '$.target.id') = ?
+       LIMIT 1`,
+    )
+    .get(opId, id);
+  return row !== null;
+}
+
+/**
+ * Restores what workstream op `opId` replaced. Runs inside `undoStateOp`'s transaction. A
+ * later `seen` op does not block the undo, so its seen fields survive the restore.
+ */
+export function restoreWorkstreamOp(
+  db: Database,
+  opId: number,
+  record: WorkstreamOpRecord,
+  prevJson: string,
+  now: string,
+): void {
   const prev = JSON.parse(prevJson) as Record<string, WorkstreamPrev>;
-  const own = prev[wsPrevKey(record.target.id)];
+  const id = record.target.id;
+  const own = prev[wsPrevKey(id)];
   if (!own) return;
   if (own.overrideId !== null) deleteOverride(db, own.overrideId);
-  if (isWorkstreamStateOp(record.op)) putWorkstreamState(db, record.target.id, own.state, now);
+  if (isWorkstreamStateOp(record.op)) {
+    let state = own.state;
+    if (seenSince(db, id, opId)) {
+      const { seenAt, seenSummaryHash } = getWorkstreamState(db, id);
+      state = { ...state, seenAt, seenSummaryHash };
+    }
+    putWorkstreamState(db, id, state, now);
+  }
   else if (record.op.kind === "rename" && getWorkstream(db, record.target.id))
     setManualName(db, record.target.id, own.manualName, now);
   else if (record.op.kind === "merge") {

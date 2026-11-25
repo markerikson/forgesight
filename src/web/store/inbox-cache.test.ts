@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { entryKey, type InboxPayload, type InboxRow } from "../../core/index.ts";
-import { row } from "./__fixtures__/inbox.ts";
+import { entryKey, type InboxEntry, type InboxPayload, isGroup } from "../../core/index.ts";
+import { group, row } from "./__fixtures__/inbox.ts";
 import { replaceRows } from "./inbox-cache.ts";
 
-function inbox(rows: InboxRow[], hidden: number): InboxPayload {
+function inbox(rows: InboxEntry[], hidden: number): InboxPayload {
   return {
     rows,
     sidebar: { sections: { waiting: 0, updates: 0, snoozed: 0, hidden }, repos: [] },
@@ -54,5 +54,22 @@ describe("replaceRows", () => {
   test("returns the same payload when nothing changed", () => {
     const payload = inbox([a], 0);
     expect(replaceRows(payload, {}, false)).toBe(payload);
+  });
+
+  test("a group snapshot keeps the cached copies of its members and members it lacks", () => {
+    const m1 = row("acme/app#11", "updates", "acme/app", { title: "fresh" });
+    const m2 = row("acme/app#12", "updates");
+    const m3 = row("acme/app#13", "updates");
+    const cached = group("g1", [m1, m2, m3]);
+    const snapshot = { ...group("g1", [{ ...m1, title: "stale" }, m2]), memberKeys: cached.memberKeys, name: "Renamed" };
+    const result = replaceRows(inbox([cached], 0), {}, false, { g1: snapshot });
+    const [entry] = result.rows;
+    if (!entry || !isGroup(entry)) throw new Error("expected a group");
+    expect(entry.name).toBe("Renamed");
+    expect(entry.members.map((m) => [m.key, m.title])).toEqual([
+      ["acme/app#11", "fresh"],
+      ["acme/app#12", m2.title],
+      ["acme/app#13", m3.title],
+    ]);
   });
 });

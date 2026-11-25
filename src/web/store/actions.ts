@@ -116,12 +116,11 @@ export function renameWorkstream(group: InboxGroup, name: string): ViewThunk {
 /**
  * Records that the group was opened, clearing "new workstream" and "summary changed". Reads the
  * group's current entry: one that an op already moved out of the list, or that a priority change
- * already marked seen, is left alone. A group with an undoable op is also left alone, so the seen
- * op cannot supersede that op's undo.
+ * already marked seen, is left alone. The server lets an earlier op on the group be undone past
+ * this seen op.
  */
 export function markWorkstreamSeen(id: string): ViewThunk {
   return (dispatch, getState) => {
-    if (getState().view.undo.some((entry) => entry.workstream === id)) return;
     const group = selectInbox(getState())?.rows.find((entry) => isGroup(entry) && entry.id === id);
     if (!group || !isGroup(group) || (!group.isNew && !group.summary?.changed)) return;
     dispatch(applyWorkstream(group.id, { kind: "seen", summaryHash: group.summary?.hash ?? null }));
