@@ -74,6 +74,9 @@ const effectiveConfig = config.me ? config : { ...config, me: viewer };
 log.info(`Signed in as ${viewer}`);
 setMeta(db, META.outboxDryRun, config.outbox.dryRun ? "1" : "0", clock().toISOString());
 if (config.outbox.dryRun) log.warn("Outbox dry run: GitHub writes are completed locally and not sent.");
+// A broken config falls back to defaults, which would turn a configured dry run into live
+// writes. Hold queued writes until the config loads.
+if (error) log.warn("Outbox paused until the config error is fixed; queued GitHub writes are held.");
 
 const stopHeartbeat = startHeartbeat(db, clock);
 const poller = createPoller();
@@ -89,7 +92,7 @@ try {
 // right after the poll. Derive and maintenance are local and run at the end of every tick.
 const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clock, log }, [
   poller.pollJob,
-  outboxJob,
+  ...(error ? [] : [outboxJob]),
   poller.backfillJob,
   openPullsJob,
   enrichJob,

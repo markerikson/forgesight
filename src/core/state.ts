@@ -117,7 +117,7 @@ export function outboxOpFor(op: StateOp, state: ItemState): OutboxOp | null {
  * The unsent GitHub write an op cancels, given the item's state before the op. GitHub has
  * no "mark unread", so Keep unread can only stop a `read` that has not gone out yet. Unmute
  * cancels a waiting unsubscribe (and then resubscribes only threads whose unsubscribe was
- * sent), and unsubscribe cancels a waiting resubscribe.
+ * sent), and unsubscribe or mute cancels a waiting resubscribe.
  */
 export function cancelledOutboxOp(op: StateOp, state: ItemState): OutboxOp | null {
   switch (op.kind) {
@@ -127,6 +127,8 @@ export function cancelledOutboxOp(op: StateOp, state: ItemState): OutboxOp | nul
       return state.muted ? "unsubscribe" : null;
     case "unsubscribe":
       return "resubscribe";
+    case "mute":
+      return state.muted ? null : "resubscribe";
     default:
       return null;
   }

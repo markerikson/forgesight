@@ -166,6 +166,21 @@ describe("applyStateOps", () => {
     expect(dueOutbox(db, T2, 10)).toEqual([]);
   });
 
+  test("mute after unmute cancels the resubscribe still waiting, and unmute queues it again", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    for (const row of dueOutbox(db, DUE, 10)) completeOutbox(db, row.id, T1);
+    applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
+    const mute = applyStateOps(db, ["acme/app#1"], { kind: "mute" }, T1);
+    expect(outboxRows(db).map((r) => [r.op, r.cancelled_by])).toEqual([
+      ["unsubscribe", null],
+      ["unsubscribe", null],
+      ["resubscribe", mute.opId],
+      ["resubscribe", mute.opId],
+    ]);
+    expect(applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T2).outboxIds).toHaveLength(2);
+  });
+
   test("ops without a GitHub write queue nothing", () => {
     const db = seeded();
     const result = applyStateOps(
@@ -328,5 +343,16 @@ describe("outbox drain", () => {
     expect(pruneStateOps(db, T2)).toEqual({ outbox: 1, stateOps: 1 });
     expect(outboxRows(db).map((r) => r.thread_id)).toEqual(["11"]);
     expect(db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM state_ops").get()?.n).toBe(1);
+  });
+
+  test("prune keeps an undone op that a sent row still names as its canceller", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    const unmute = applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T0);
+    undoStateOp(db, unmute.opId, T0);
+    for (const row of dueOutbox(db, DUE, 10)) completeOutbox(db, row.id, T1);
+
+    expect(() => pruneStateOps(db, "2026-02-01T00:00:00.000Z")).not.toThrow();
+    expect(outboxRows(db).map((r) => r.cancelled_by)).toEqual([unmute.opId, unmute.opId]);
   });
 });

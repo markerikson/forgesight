@@ -353,7 +353,8 @@ export function outboxSummary(db: Database): OutboxSummary {
 
 /**
  * Deletes outbox rows created before `before` that were sent or belong to an undone op,
- * then state ops with no rows left. Failed rows stay, and so do the ops they belong to.
+ * then state ops no row belongs to or was cancelled by. Failed rows stay, and so do the ops
+ * they belong to.
  * Each thread's newest sent unsubscribe/resubscribe row stays too: unmute reads it to
  * decide whether to resubscribe.
  */
@@ -373,7 +374,8 @@ export function pruneStateOps(db: Database, before: string): { outbox: number; s
     const stateOps = db
       .query(
         `DELETE FROM state_ops WHERE created_at < ?
-         AND NOT EXISTS (SELECT 1 FROM outbox WHERE outbox.state_op_id = state_ops.id)`,
+         AND NOT EXISTS (SELECT 1 FROM outbox WHERE outbox.state_op_id = state_ops.id)
+         AND NOT EXISTS (SELECT 1 FROM outbox WHERE outbox.cancelled_by = state_ops.id)`,
       )
       .run(before).changes;
     return { outbox, stateOps };
