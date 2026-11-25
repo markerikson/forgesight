@@ -354,7 +354,13 @@ export function withLingering(
     }
     const order = (row: InboxRow) => entry.memberKeys.indexOf(row.key);
     const members = [...entry.members, ...rows].sort((a, b) => order(a) - order(b));
-    entries.push({ ...entry, members, moreCount: Math.max(0, entry.moreCount - rows.length) });
+    const keys = new Set(rows.map((row) => row.key));
+    entries.push({
+      ...entry,
+      members,
+      unlisted: entry.unlisted.filter((member) => !keys.has(member.key)),
+      moreCount: Math.max(0, entry.moreCount - rows.length),
+    });
   }
   return loose.length === 0 ? entries : [...entries, ...loose].sort(compareRows);
 }

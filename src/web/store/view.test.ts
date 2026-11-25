@@ -259,8 +259,20 @@ describe("workstream groups", () => {
     const live = group("s1", [members[0]!, members[2]!], {
       memberKeys: members.slice(0, 3).map((m) => m.key),
       moreCount: 1,
+      unlisted: [
+        {
+          key: members[1]!.key,
+          number: members[1]!.number,
+          title: members[1]!.title,
+          url: null,
+          state: null,
+          draft: false,
+          why: "hidden",
+        },
+      ],
     });
     const result = withLingering([live], [members[1]!], "updates", null);
+    expect("unlisted" in result[0]! ? result[0].unlisted : null).toEqual([]);
     expect(result.map(entryKey)).toEqual(["workstream:s1"]);
     const joined = result[0]!;
     expect("members" in joined ? joined.members.map((m) => m.key) : []).toEqual(
