@@ -7,6 +7,7 @@ import { getItemState } from "./item-state.ts";
 import { getMeta, setMeta } from "./meta.ts";
 import { latest, migrations, runMigrations } from "./migrate.ts";
 import { assertCurrent, SCHEMA_VERSION } from "./schema-version.ts";
+import { getSubject } from "./subjects.ts";
 
 function tableNames(db: ReturnType<typeof openDb>): string[] {
   return db
@@ -20,13 +21,14 @@ function tableNames(db: ReturnType<typeof openDb>): string[] {
 describe("migrations", () => {
   test("apply from version 0", () => {
     const db = openDb(":memory:");
-    expect(runMigrations(db)).toEqual({ from: 0, to: 2 });
+    expect(runMigrations(db)).toEqual({ from: 0, to: 3 });
     expect(tableNames(db)).toEqual([
       "api_calls",
       "changes",
       "item_state",
       "meta",
       "outbox",
+      "pr_texts",
       "review_threads",
       "state_ops",
       "sticky_versions",
@@ -34,6 +36,10 @@ describe("migrations", () => {
       "subjects",
       "threads",
       "timeline_items",
+      "workstream_members",
+      "workstream_overrides",
+      "workstream_state",
+      "workstreams",
     ]);
     assertCurrent(db);
   });
@@ -42,8 +48,33 @@ describe("migrations", () => {
     const db = openDb(":memory:");
     runMigrations(db);
     setMeta(db, "k", "v", "2026-01-01T00:00:00Z");
-    expect(runMigrations(db)).toEqual({ from: 2, to: 2 });
+    expect(runMigrations(db)).toEqual({ from: 3, to: 3 });
     expect(getMeta(db, "k")).toBe("v");
+  });
+
+  test("003 upgrades a version 2 database and keeps subjects, views and state ops", () => {
+    const db = openDb(":memory:");
+    expect(runMigrations(db, migrations.slice(0, 2))).toEqual({ from: 0, to: 2 });
+    db.run(
+      `INSERT INTO subjects (subject_key, repo, number, kind, origin) VALUES ('acme/app#1', 'acme/app', 1, 'pr', 'thread')`,
+    );
+    db.run(
+      `INSERT INTO state_ops (created_at, op_json, prev_json) VALUES ('2026-01-01T00:00:00Z', '{"kind":"done"}', '{}')`,
+    );
+    setMeta(db, "openPulls.acme/app", '{"pulls":[]}', "2026-01-01T00:00:00Z");
+
+    expect(runMigrations(db)).toEqual({ from: 2, to: 3 });
+    assertCurrent(db);
+    expect(getSubject(db, "acme/app#1")?.origin).toBe("thread");
+    expect(db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM state_ops").get()?.n).toBe(1);
+    expect(getMeta(db, "openPulls.acme/app")).toBe('{"pulls":[]}');
+    expect(db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM workstreams").get()?.n).toBe(0);
+    db.run(
+      `INSERT INTO workstream_state (workstream_id, updated_at) VALUES ('acme/app:ws:1', '2026-01-02T00:00:00Z')`,
+    );
+    expect(
+      db.query<{ priority: string }, []>("SELECT priority FROM workstream_state").get()?.priority,
+    ).toBe("normal");
   });
 
   test("002 upgrades a version 1 database and keeps its item state", () => {
@@ -55,8 +86,7 @@ describe("migrations", () => {
     );
     setMeta(db, "k", "v", "2026-01-01T00:00:00Z");
 
-    expect(runMigrations(db)).toEqual({ from: 1, to: 2 });
-    assertCurrent(db);
+    expect(runMigrations(db, migrations.slice(0, 2))).toEqual({ from: 1, to: 2 });
     expect(getItemState(db, "acme/app#1")).toEqual({
       dismissedAt: "2026-01-01T00:00:00Z",
       doneAt: null,

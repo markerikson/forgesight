@@ -33,3 +33,8 @@ export function batchMetaKey(repo: string): string {
 export function openPullsMetaKey(repo: string): string {
   return `openPulls.${repo}`;
 }
+
+/** PRs that left the open listing in the last 7 days, stored as JSON `ClosedPull[]`. */
+export function recentlyClosedMetaKey(repo: string): string {
+  return `openPulls.${repo}.recentlyClosed`;
+}

@@ -8,11 +8,16 @@ export const MAX_ENRICH_ATTEMPTS = 3;
 
 export type NewSubject = Pick<SubjectRecord, "subjectKey" | "repo" | "number" | "kind" | "origin">;
 
-/** Inserts subjects that are not stored yet. Existing rows are left unchanged. */
+/**
+ * Inserts subjects that are not stored yet. An existing row only changes its origin, and only
+ * upward in precedence: thread over stack over open-list.
+ */
 export function ensureSubjects(db: Database, subjects: NewSubject[]): void {
   const insert = db.query(
     `INSERT INTO subjects (subject_key, repo, number, kind, origin) VALUES (?, ?, ?, ?, ?)
-     ON CONFLICT (subject_key) DO NOTHING`,
+     ON CONFLICT (subject_key) DO UPDATE SET origin = excluded.origin
+     WHERE (CASE subjects.origin WHEN 'thread' THEN 3 WHEN 'stack' THEN 2 ELSE 1 END)
+         < (CASE excluded.origin WHEN 'thread' THEN 3 WHEN 'stack' THEN 2 ELSE 1 END)`,
   );
   db.transaction(() => {
     for (const s of subjects) insert.run(s.subjectKey, s.repo, s.number, s.kind, s.origin);

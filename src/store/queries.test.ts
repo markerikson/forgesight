@@ -138,11 +138,26 @@ describe("subjects", () => {
     expect(s?.priority).toBe(3);
   });
 
-  test("ensureSubjects leaves existing rows alone", () => {
+  test("ensureSubjects never lowers an existing origin", () => {
     const db = memoryDb();
     ensureSubjects(db, [pr("o/r#1")]);
-    ensureSubjects(db, [{ ...pr("o/r#1"), origin: "stack" }]);
+    ensureSubjects(db, [{ ...pr("o/r#1"), origin: "stack" }, { ...pr("o/r#1"), origin: "open-list" }]);
     expect(getSubject(db, "o/r#1")?.origin).toBe("thread");
+  });
+
+  test("ensureSubjects upgrades origin by precedence and keeps the rest of the row", () => {
+    const db = memoryDb();
+    ensureSubjects(db, [{ ...pr("o/r#1"), origin: "open-list" }]);
+    markDirty(db, ["o/r#1"], T0, 2);
+    ensureSubjects(db, [{ ...pr("o/r#1"), origin: "stack" }]);
+    expect(getSubject(db, "o/r#1")?.origin).toBe("stack");
+    ensureSubjects(db, [{ ...pr("o/r#1"), origin: "open-list" }]);
+    expect(getSubject(db, "o/r#1")?.origin).toBe("stack");
+    ensureSubjects(db, [pr("o/r#1")]);
+    const s = getSubject(db, "o/r#1");
+    expect(s?.origin).toBe("thread");
+    expect(s?.dirtyAt).toBe(T0);
+    expect(s?.priority).toBe(2);
   });
 
   test("saveEnrichment dedupes timeline items, replaces review threads, writes one raw change", () => {

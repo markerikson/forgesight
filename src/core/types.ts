@@ -154,4 +154,8 @@ export interface SubjectViewRecord {
 }
 
 /** `raw` feeds derive; `view`, `state`, `status` feed SSE. */
-export type ChangeKind = "raw" | "view" | "state" | "status";
+/**
+ * `stack`: a subject's workstream membership changed (key = subject key; re-derives it).
+ * `workstream`: a workstream's rows or state changed (key = workstream id).
+ */
+export type ChangeKind = "raw" | "view" | "state" | "status" | "stack" | "workstream";

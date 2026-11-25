@@ -7,6 +7,7 @@ import type {
   ThreadRecord,
   TimelineItemRecord,
 } from "../types.ts";
+import type { StackContext } from "../workstreams.ts";
 import { classify, isMe } from "./classify.ts";
 import { normalize } from "./normalize.ts";
 import { applyOverrides, type Rank, rank } from "./rank.ts";
@@ -31,6 +32,8 @@ export interface DeriveInput {
   config: Config;
   me: string | null;
   now: Date;
+  /** The subject's place in its workstream, when it belongs to one. */
+  stack?: StackContext | null;
 }
 
 const THREAD_WAITING: Record<string, RankReason> = {
@@ -149,6 +152,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     sortAt: r.sortAt,
     snoozeUntil: state.snoozeUntil,
     unread: threads.some((t) => isFreshUnread(t, state)) || state.keepUnread,
+    ...(input.stack ? { stack: input.stack } : {}),
   };
 }
 

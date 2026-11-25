@@ -11,6 +11,7 @@ import type { ItemState, SubjectKey } from "../core/types.ts";
 import { DEFAULT_ITEM_STATE, getItemStates, putItemState } from "./item-state.ts";
 import { jsonList, type OutboxTableRow, type StateOpRow, toJson } from "./rows.ts";
 import { threadsForSubject } from "./threads.ts";
+import { parseWorkstreamOpRecord, restoreWorkstreamOp } from "./workstream-ops.ts";
 
 /** How long a GitHub write waits in the outbox so it can be undone. */
 export const OUTBOX_DELAY_MS = 10_000;
@@ -210,6 +211,13 @@ export function undoStateOp(db: Database, opId: number, now: string): UndoResult
       )
       .get(opId, jsonList(keys));
     if (newer) return { kind: "superseded" };
+
+    const wsRecord = parseWorkstreamOpRecord(op.op_json);
+    if (wsRecord) {
+      restoreWorkstreamOp(db, wsRecord, op.prev_json, now);
+      db.query("UPDATE state_ops SET undone_at = ? WHERE id = ?").run(now, opId);
+      return { kind: "undone", githubApplied: 0 };
+    }
 
     db.query("DELETE FROM outbox WHERE state_op_id = ? AND claimed_at IS NULL AND completed_at IS NULL").run(
       opId,
