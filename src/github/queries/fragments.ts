@@ -26,6 +26,7 @@ const COMMON_ITEMS = `
   ... on MentionedEvent { createdAt ${ACTOR} }
   ... on RenamedTitleEvent { createdAt ${ACTOR} previousTitle currentTitle }
   ... on MilestonedEvent { createdAt ${ACTOR} milestoneTitle }
+  ... on DemilestonedEvent { createdAt ${ACTOR} milestoneTitle }
 `;
 
 /** PullRequestTimelineItems fields. */
@@ -53,6 +54,8 @@ export const ISSUE_ITEMS = `fragment IssueItems on IssueTimelineItems {${COMMON_
   ... on TransferredEvent { createdAt ${ACTOR} fromRepository { nameWithOwner } }
   ... on SubIssueAddedEvent { createdAt ${ACTOR} subIssue { number title } }
   ... on ParentIssueAddedEvent { createdAt ${ACTOR} parent { number title } }
+  ... on SubIssueRemovedEvent { createdAt ${ACTOR} subIssue { number title } }
+  ... on ParentIssueRemovedEvent { createdAt ${ACTOR} parent { number title } }
 }`;
 
 const CHECKS = {

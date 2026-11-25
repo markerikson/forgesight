@@ -20,6 +20,26 @@ export function relativeTime(iso: string, now: number): string {
   return new Date(at).toISOString().slice(0, 10);
 }
 
+export interface RowByline {
+  summary: string;
+  /** The latest human actor, or null when the author or the summary already names them. */
+  actor: string | null;
+}
+
+/**
+ * Names each person on a row's second line once. The summary starts with its actor's
+ * login; when that is the author, who is already shown, the login is dropped.
+ */
+export function rowByline(author: string | null, summaryLine: string, latestActor: string | null): RowByline {
+  const startsWith = (login: string) => summaryLine.toLowerCase().startsWith(`${login.toLowerCase()} `);
+  const summary = author && startsWith(author) ? summaryLine.slice(author.length + 1) : summaryLine;
+  const named =
+    latestActor === null ||
+    (author !== null && latestActor.toLowerCase() === author.toLowerCase()) ||
+    startsWith(latestActor);
+  return { summary, actor: named ? null : latestActor };
+}
+
 export type StateTone = "open" | "draft" | "merged" | "closed" | "unknown";
 
 export interface StateBadge {

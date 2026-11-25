@@ -106,10 +106,7 @@
 }
 
 .actions {
-  position: absolute;
-  top: 3px;
-  right: 8px;
-  z-index: 1;
+  flex: none;
   display: none;
   gap: 4px;
 }
@@ -137,11 +134,6 @@
 
 .selected .actions {
   display: flex;
-}
-
-/* Keep the title and badges clear of the Done button that stays on the selected row. */
-.selected .line:not(.sub) {
-  padding-right: 52px;
 }
 
 .selected:not(:hover, :focus-within) .actions button:not(.done) {

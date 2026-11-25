@@ -37,6 +37,9 @@ const commit = (at: string, headline = "change") =>
 const forcePush = (at: string) =>
   item("HeadRefForcePushedEvent", at, { actor: user("bob"), beforeCommit: { oid: "a" }, afterCommit: { oid: "b" } });
 
+const rename = (at: string) =>
+  item("RenamedTitleEvent", at, { actor: user("bob"), previousTitle: "a", currentTitle: "b" });
+
 interface Opts {
   items?: TimelineItemRecord[];
   author?: string;
@@ -48,6 +51,7 @@ interface Opts {
   itemState?: Partial<ItemState>;
   enriched?: boolean;
   bots?: Parameters<typeof resolveConfig>[0]["bots"];
+  enrichIssues?: boolean;
 }
 
 function derive(opts: Opts) {
@@ -108,6 +112,7 @@ function derive(opts: Opts) {
       me: ME,
       repos: { [REPO]: { mode: opts.mode ?? "full" } },
       ...(opts.bots ? { bots: opts.bots } : {}),
+      ...(opts.enrichIssues === undefined ? {} : { polling: { enrichIssues: opts.enrichIssues } }),
     }),
     me: ME,
     now: NOW,
@@ -116,11 +121,17 @@ function derive(opts: Opts) {
 
 describe("rank", () => {
   test("before enrichment the summary names only reasons other than watching the repo", () => {
-    expect(derive({ enriched: false }).summaryLine).toBe("");
+    expect(derive({ enriched: false }).summaryLine).toBe("not loaded yet");
     const mention = derive({ enriched: false, reason: "mention" });
     expect(mention.summaryLine).toBe("mentioned you");
     expect(mention.section).toBe("waiting");
     expect(derive({ enriched: false, reason: "ci_activity" }).summaryLine).toBe("ci activity");
+  });
+
+  test("subjects the worker never fetches do not claim to be loading", () => {
+    expect(derive({ enriched: false, kind: "other" }).summaryLine).toBe("");
+    expect(derive({ enriched: false, kind: "issue", enrichIssues: false }).summaryLine).toBe("");
+    expect(derive({ enriched: false, kind: "issue" }).summaryLine).toBe("not loaded yet");
   });
 
   test("a mention in the description (MentionedEvent with me as actor) is waiting", () => {
@@ -231,11 +242,13 @@ describe("rank", () => {
   });
 
   test("events without a GitHub timestamp are never new", () => {
-    const deleted = item("HeadRefDeletedEvent", "2026-11-21T00:00:00Z", {});
-    delete (deleted.raw as Record<string, unknown>).createdAt;
-    const view = derive({ items: [deleted] });
+    const pinned = item("PinnedEvent", "2026-11-21T00:00:00Z", {});
+    delete (pinned.raw as Record<string, unknown>).createdAt;
+    const view = derive({ items: [pinned] });
     expect(view.section).toBe("hidden");
-    expect(view.rounds.flatMap((r) => r.entries).every((e) => e.type === "group" && !e.group.isNew)).toBe(true);
+    const entries = view.rounds.flatMap((r) => r.entries);
+    expect(entries).toHaveLength(1);
+    expect(entries.every((e) => e.type === "group" && !e.group.isNew)).toBe(true);
   });
 
   test("an automatic base change reads without an actor", () => {
@@ -517,6 +530,81 @@ describe("rounds", () => {
     ]);
     expect(view.rounds[0]?.entries.map((e) => e.type)).toEqual(["group"]);
     expect(view.hiddenStats.pushes).toBe(5);
+  });
+
+  const crossRef = (at: string, number: number, willClose = false) =>
+    item("CrossReferencedEvent", at, {
+      actor: user("alice"),
+      willCloseTarget: willClose,
+      source: { __typename: "PullRequest", number, title: `PR ${number}`, repository: { nameWithOwner: REPO } },
+    });
+  const groupSummaries = (view: ReturnType<typeof derive>) =>
+    view.rounds.flatMap((r) => r.entries).map((e) => (e.type === "group" ? e.group.summary : e.event.kind));
+
+  test("a run of cross-references gets its own group, apart from other collapsed events", () => {
+    const view = derive({
+      items: [
+        rename("2026-11-21T00:00:00Z"),
+        crossRef("2026-11-21T00:01:00Z", 2),
+        crossRef("2026-11-21T00:02:00Z", 3),
+        crossRef("2026-11-21T00:03:00Z", 4),
+      ],
+    });
+    expect(groupSummaries(view)).toEqual(["1 rename", "3 references from other PRs"]);
+  });
+
+  test("a single cross-reference stays in the surrounding group", () => {
+    const view = derive({ items: [rename("2026-11-21T00:00:00Z"), crossRef("2026-11-21T00:01:00Z", 2)] });
+    expect(groupSummaries(view)).toEqual(["1 rename, 1 cross-reference"]);
+  });
+
+  test("a cross-reference that will close this subject is shown on its own line", () => {
+    const view = derive({
+      items: [crossRef("2026-11-21T00:01:00Z", 2), crossRef("2026-11-21T00:02:00Z", 3, true), crossRef("2026-11-21T00:03:00Z", 4)],
+    });
+    expect(groupSummaries(view)).toEqual(["1 cross-reference", "crossReference", "1 cross-reference"]);
+  });
+});
+
+describe("normalize", () => {
+  test("subscription, branch deletion and deployment events are dropped", () => {
+    const view = derive({
+      items: [
+        item("SubscribedEvent", "2026-11-21T00:00:00Z", { actor: user("bob") }),
+        item("HeadRefDeletedEvent", "2026-11-21T00:01:00Z", {}),
+        item("DeployedEvent", "2026-11-21T00:02:00Z", {}),
+      ],
+    });
+    expect(view.rounds).toEqual([]);
+  });
+
+  test("milestone events get their own kind and label", () => {
+    const view = derive({
+      kind: "issue",
+      items: [item("MilestonedEvent", "2026-11-21T00:00:00Z", { actor: user("bob"), milestoneTitle: "6.0" })],
+    });
+    const entry = view.rounds[0]?.entries[0];
+    expect(entry).toMatchObject({ type: "group", group: { summary: "1 milestone change" } });
+    expect(entry?.type === "group" && entry.group.items[0]?.data).toMatchObject({ milestone: "6.0", added: true });
+  });
+});
+
+describe("summary line", () => {
+  test("skips label and unknown events in favor of a describable one", () => {
+    const view = derive({
+      items: [
+        rename("2026-11-19T00:00:00Z"),
+        item("LabeledEvent", "2026-11-19T01:00:00Z", { actor: user("bob"), label: { name: "bug" } }),
+        item("PinnedEvent", "2026-11-19T02:00:00Z", { actor: user("bob") }),
+      ],
+    });
+    expect(view.summaryLine).toBe("bob renamed to b");
+  });
+
+  test("says who opened the subject when no event is describable", () => {
+    const labeled = item("LabeledEvent", "2026-11-19T01:00:00Z", { actor: user("bob"), label: { name: "bug" } });
+    expect(derive({ kind: "issue", author: "carol", items: [labeled] }).summaryLine).toBe("carol opened this issue");
+    expect(derive({ author: "carol" }).summaryLine).toBe("carol opened this PR");
   });
 });
 

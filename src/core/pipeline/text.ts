@@ -65,6 +65,14 @@ export function bareLogin(login: string): string {
   return login.endsWith("[bot]") ? login.slice(0, -"[bot]".length) : login;
 }
 
+/** "AutoMergeEnabledEvent" to "auto merge enabled", for timeline types without a label. */
+export function typenameLabel(typename: string): string {
+  return typename
+    .replace(/Event$/, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .toLowerCase();
+}
+
 export function plural(count: number, noun: string): string {
   if (count === 1) return `${count} ${noun}`;
   const suffix = /(sh|ch|s|x)$/.test(noun) ? "es" : "s";

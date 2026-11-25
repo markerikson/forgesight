@@ -18,9 +18,10 @@ import type { RankReason, Round, Section, SubjectView, ViewEvent } from "./types
 
 export { describe } from "./rank.ts";
 export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
+export { typenameLabel } from "./text.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
-export const PIPELINE_VERSION = 4;
+export const PIPELINE_VERSION = 5;
 
 export interface DeriveInput {
   subject: SubjectRecord;
@@ -74,6 +75,12 @@ function isUnreadHere(thread: ThreadRecord, state: ItemState): boolean {
   return thread.unread && (state.readAt === null || isAfter(thread.updatedAt, state.readAt));
 }
 
+/** Matches the subjects the enrich job fetches; the rest never get a timeline. */
+function willEnrich({ subject, config }: DeriveInput): boolean {
+  if (subject.kind === "other") return false;
+  return subject.kind !== "issue" || config.polling.enrichIssues;
+}
+
 /**
  * Rank for a subject enrichment has not reached yet: only the notification threads are
  * known, so an unread thread newer than the last visit counts as an update.
@@ -102,7 +109,7 @@ function rankFromThreads(input: DeriveInput): Rank {
     reasons,
     score: 0,
     newMeaningfulCount: 0,
-    summaryLine: newest ? threadReasonLine(newest.reason) : "",
+    summaryLine: (newest && threadReasonLine(newest.reason)) || (willEnrich(input) ? "not loaded yet" : ""),
     hiddenStats: { pushes: 0, merged: 0, closed: 0 },
     sortAt,
   };

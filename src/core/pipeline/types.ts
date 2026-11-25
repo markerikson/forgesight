@@ -45,6 +45,7 @@ export type EventKind =
   | "markedDuplicate"
   | "transferred"
   | "subIssue"
+  | "milestoned"
   | "unknown";
 
 /** A PR or issue another event points at. */
@@ -77,7 +78,9 @@ export interface EventData {
   target?: string;
   /** Labels. */
   label?: string;
-  /** `false` for unlabeled, unassigned, disconnected. */
+  /** Milestones: the milestone title, when the query fetched it. */
+  milestone?: string;
+  /** `false` for unlabeled, unassigned, disconnected, demilestoned, removed sub-issues. */
   added?: boolean;
   /** Renames and base changes. */
   from?: string;

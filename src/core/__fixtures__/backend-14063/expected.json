@@ -18,7 +18,8 @@
       "isNew": true,
       "hidden": 0,
       "entries": [
-        "[1 rename, 8 stack changes, 36 base force-pushes, 3 cross-references] (new)"
+        "[1 rename, 8 stack changes, 36 base force-pushes] (new)",
+        "[3 references from other PRs] (new)"
       ]
     },
     {

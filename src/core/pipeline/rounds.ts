@@ -33,6 +33,7 @@ const NOUNS: Record<EventKind, string> = {
   markedDuplicate: "duplicate mark",
   transferred: "transfer",
   subIssue: "sub-issue change",
+  milestoned: "milestone change",
   unknown: "other event",
 };
 
@@ -41,8 +42,20 @@ function noun(e: ViewEvent): string {
   return e.actor?.isBot && (e.kind === "comment" || e.kind === "review") ? `bot ${base}` : base;
 }
 
-/** "3 bot comments, 2 cross-references", in order of first appearance. */
+function isCrossReference(e: ViewEvent): boolean {
+  return e.kind === "crossReference";
+}
+
+/**
+ * "3 bot comments, 2 cross-references", in order of first appearance. A group of only
+ * cross-references reads "12 references from other PRs".
+ */
 export function groupSummary(events: ViewEvent[]): string {
+  if (events.length > 1 && events.every(isCrossReference)) {
+    const kinds = new Set(events.map((e) => e.data.ref?.kind));
+    const from = kinds.size === 1 && kinds.has("pr") ? "PRs" : kinds.size === 1 && kinds.has("issue") ? "issues" : "PRs and issues";
+    return `${plural(events.length, "reference")} from other ${from}`;
+  }
   const counts = new Map<string, number>();
   for (const e of events) {
     const n = noun(e);
@@ -53,6 +66,17 @@ export function groupSummary(events: ViewEvent[]): string {
 
 function makeGroup(items: ViewEvent[]): CollapsedGroup {
   return { summary: groupSummary(items), items, isNew: items.some((e) => e.isNew) };
+}
+
+/**
+ * A run of collapsed events as group entries. Two or more cross-references get a group of
+ * their own after the rest, so a stack tool's dozens of references don't bury the other events.
+ */
+function groupEntries(items: ViewEvent[]): RoundEntry[] {
+  const refs = items.filter(isCrossReference);
+  const split = refs.length >= 2 && refs.length < items.length;
+  const groups = split ? [items.filter((e) => !isCrossReference(e)), refs] : [items];
+  return groups.filter((g) => g.length > 0).map((g) => ({ type: "group", group: makeGroup(g) }));
 }
 
 interface RoundBuilder {
@@ -68,7 +92,7 @@ function finish(b: RoundBuilder): Round {
   let pending: ViewEvent[] = [];
   let hiddenCount = 0;
   const flush = () => {
-    if (pending.length > 0) entries.push({ type: "group", group: makeGroup(pending) });
+    entries.push(...groupEntries(pending));
     pending = [];
   };
   for (const e of b.events) {
@@ -112,7 +136,7 @@ function mergeRun(run: Round[]): Round {
     startedAt: first.startedAt,
     pushCount,
     commits: run.flatMap((r) => r.commits),
-    entries: collapsed.length > 0 ? [{ type: "group", group: makeGroup(collapsed) }] : [],
+    entries: groupEntries(collapsed),
     hiddenCount: run.reduce((n, r) => n + r.hiddenCount, 0),
     isNew: run.some((r) => r.isNew),
   };

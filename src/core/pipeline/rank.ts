@@ -1,8 +1,8 @@
 import type { ItemState, SubjectRecord, ThreadRecord } from "../types.ts";
 import { isHumanText, isMe } from "./classify.ts";
-import { firstLine, mentions, truncate } from "./text.ts";
+import { firstLine, mentions, truncate, typenameLabel } from "./text.ts";
 import { isAfter, ms } from "./time.ts";
-import type { HiddenStats, RankReason, Round, Section, ViewEvent } from "./types.ts";
+import type { EventKind, HiddenStats, RankReason, Round, Section, ViewEvent } from "./types.ts";
 
 export interface RankInput {
   subject: SubjectRecord;
@@ -106,9 +106,21 @@ export function describe(e: ViewEvent): string {
       return act("transferred this");
     case "subIssue":
       return act("changed sub-issues");
+    case "milestoned":
+      if (e.data.added === false) return act("removed the milestone");
+      return truncate(act(e.data.milestone ? `added to milestone ${e.data.milestone}` : "set the milestone"));
     case "unknown":
-      return act(`updated (${e.data.typename})`);
+      return act(typenameLabel(e.data.typename));
   }
+}
+
+/** Kinds whose description says too little to stand alone as a row's summary. */
+const WEAK_SUMMARY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>(["labeled", "unknown", "mentioned", "milestoned"]);
+
+/** Summary for a subject with no event worth describing. */
+function openedLine(subject: SubjectRecord): string {
+  const noun = subject.kind === "pr" ? "PR" : "issue";
+  return subject.author ? `${subject.author} opened this ${noun}` : `${noun} with no loaded activity`;
 }
 
 function last<T>(list: T[]): T | undefined {
@@ -256,9 +268,9 @@ export function rank(input: RankInput): Rank {
   else if (reasons.includes("reviewRequested") || reasons.includes("staleReviewRequest")) {
     summaryLine = lastRequest ? describe(lastRequest) : "review requested";
   } else {
-    const dated = events.filter((e) => e.undated !== true);
-    const fallback = last(dated.filter((e) => e.level !== "hidden" && e.kind !== "unknown")) ?? last(dated);
-    if (fallback) summaryLine = describe(fallback);
+    const dated = events.filter((e) => e.undated !== true && !WEAK_SUMMARY_KINDS.has(e.kind));
+    const fallback = last(dated.filter((e) => e.level !== "hidden")) ?? last(dated);
+    summaryLine = fallback ? describe(fallback) : openedLine(subject);
   }
 
   const sortAt =

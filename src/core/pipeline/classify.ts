@@ -33,6 +33,7 @@ const DEFAULT_LEVEL: Record<EventKind, ContentLevel> = {
   reviewRequestRemoved: "collapsed",
   transferred: "collapsed",
   subIssue: "collapsed",
+  milestoned: "collapsed",
   mentioned: "hidden",
   unknown: "collapsed",
 };
@@ -61,6 +62,7 @@ export function isHumanText(e: ViewEvent): boolean {
 function classifyOne(e: Event, ctx: ClassifyContext): Omit<ViewEvent, keyof Event | "isNew"> {
   if (e.kind === "mentioned") return { level: isMe(e.data.target, ctx.me) ? "show" : "hidden" };
   if (e.kind === "reviewRequested" && isMe(e.data.target, ctx.me)) return { level: "show" };
+  if (e.kind === "crossReference" && e.data.willClose === true) return { level: "show" };
   if (e.kind === "assigned" && ctx.subjectKind === "issue" && e.data.added !== false && isMe(e.data.target, ctx.me)) {
     return { level: "show" };
   }
