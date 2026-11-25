@@ -49,9 +49,11 @@ export function startEvents(store: AppStore): () => void {
     source = es;
     es.onopen = () => {
       store.dispatch(connectionChanged("open"));
-      // A new stream starts without the last event id, so changes made while it was down are
-      // never replayed. Refetch instead.
-      if (opened) store.dispatch(api.util.invalidateTags([{ type: "Inbox", id: "LIST" }, "Status"]));
+      // A new stream starts without the last event id, so nothing is replayed: not the changes
+      // since the server render on the first open, nor the changes while it was down later.
+      store.dispatch(
+        api.util.invalidateTags(opened ? ["Inbox", "Subject", "Status"] : [{ type: "Inbox", id: "LIST" }, "Status"]),
+      );
       opened = true;
     };
     es.onerror = () => {

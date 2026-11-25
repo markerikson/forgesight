@@ -1,5 +1,5 @@
 import { current, type Draft } from "@reduxjs/toolkit";
-import type { InboxPayload, SubjectKey } from "../../core/index.ts";
+import type { InboxPayload, InboxRow, SubjectKey } from "../../core/index.ts";
 import { patchInbox, type StateOp } from "../../core/state.ts";
 import type { StateRequest, StateResponse, UndoResponse } from "../../server/handlers/state.ts";
 import { opLabel } from "../ops.ts";
@@ -51,12 +51,21 @@ export const stateApi = api.injectEndpoints({
         const lingering = before.view.lingering.filter((row) => keySet.has(row.key));
 
         if (op.kind !== "read" && op.kind !== "unread") dispatch(lingeringDropped(keys));
-        const patches = cachedInboxArgs(before).map((arg) =>
-          dispatch(api.util.updateQueryData("getInbox", arg, (draft) =>
-            patchInbox(asPayload(draft), keys, op, now, { includeHidden: arg.includeHidden }),
-          ),
-        ),
-        );
+        // Rollback puts back only these rows, so changes that land meanwhile survive a failure.
+        const originals = cachedInboxArgs(before).map((arg) => {
+          const rows: Record<string, InboxRow> = {};
+          for (const row of api.endpoints.getInbox.select(arg)(before).data?.rows ?? []) {
+            if (keySet.has(row.key)) rows[row.key] = row;
+          }
+          return { arg, rows };
+        });
+        for (const { arg } of originals) {
+          dispatch(
+            api.util.updateQueryData("getInbox", arg, (draft) =>
+              patchInbox(asPayload(draft), keys, op, now, { includeHidden: arg.includeHidden }),
+            ),
+          );
+        }
 
         // Pin the selection on the row that took the place of one that left the list.
         if (op.kind !== "read" && selected) {
@@ -90,7 +99,13 @@ export const stateApi = api.injectEndpoints({
           );
           dispatch(toastShown(label, { opId: data.opId }));
         } catch {
-          for (const patch of patches) patch.undo();
+          for (const { arg, rows } of originals) {
+            dispatch(
+              api.util.updateQueryData("getInbox", arg, (draft) =>
+                replaceRows(asPayload(draft), rows, arg.includeHidden),
+              ),
+            );
+          }
           if (op.kind !== "read" && op.kind !== "unread") for (const row of lingering) dispatch(rowRead(row));
           if (op.kind !== "read") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
         }

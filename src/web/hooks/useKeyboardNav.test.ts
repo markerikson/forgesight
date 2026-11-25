@@ -44,10 +44,13 @@ describe("keyAction", () => {
     });
   });
 
-  test("leaves Enter and Space alone on buttons and links", () => {
+  test("leaves Enter alone on buttons and links", () => {
     expect(keyAction(key("Enter", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toBeNull();
     expect(keyAction(key("Enter", { target: fakeTarget({ tagName: "A" }) }), false)).toBeNull();
-    expect(keyAction(key(" ", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toBeNull();
+  });
+
+  test("Space on a focused button still goes to the next thread", () => {
+    expect(keyAction(key(" ", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toEqual({ type: "next" });
     expect(keyAction(key("o", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toEqual({ type: "open" });
   });
 

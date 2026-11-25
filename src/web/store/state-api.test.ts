@@ -5,7 +5,7 @@ import { row, storeWith } from "./__fixtures__/inbox.ts";
 import { applyState, undoLatest } from "./state-api.ts";
 import { rowRead, rowSelected, selectSelectedRow, selectVisibleRows } from "./view.ts";
 
-type Reply = { status: number; body: unknown };
+type Reply = { status: number; body: unknown; delayMs?: number };
 
 const RealRequest = globalThis.Request;
 const realFetch = globalThis.fetch;
@@ -26,6 +26,7 @@ beforeEach(() => {
   globalThis.fetch = (async (input: Request) => {
     sent.push({ url: new URL(input.url).pathname, body: await input.json() });
     const reply = replies.shift() ?? { status: 500, body: {} };
+    if (reply.delayMs) await new Promise((resolve) => setTimeout(resolve, reply.delayMs));
     return new Response(JSON.stringify(reply.body), {
       status: reply.status,
       headers: { "content-type": "application/json" },
@@ -75,6 +76,21 @@ describe("applyState", () => {
     expect(selectVisibleRows(store.getState())).toHaveLength(3);
     expect(store.getState().view.undo).toEqual([]);
     expect(store.getState().view.toast).toMatchObject({ kind: "error", message: "Could not save: Muted" });
+  });
+
+  test("a refused change keeps another change that succeeded meanwhile", async () => {
+    const store = storeWith(rows);
+    const doneRow: InboxRow = { ...rows[1]!, section: "hidden" };
+    replies.push({ status: 500, body: { error: "boom" }, delayMs: 20 });
+    replies.push({ status: 200, body: { opId: 3, outboxIds: [3], rows: { "acme/app#2": doneRow } } });
+
+    store.dispatch(applyState(["acme/app#1"], { kind: "mute" }));
+    store.dispatch(applyState(["acme/app#2"], { kind: "done" }));
+    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#3"]);
+
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#1", "acme/app#3"]);
+    expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 1 });
   });
 
   test("a refused Done brings back the read row it took out of the list", async () => {
