@@ -47,7 +47,41 @@ describe("keyAction", () => {
   test("leaves Enter alone on buttons and links", () => {
     expect(keyAction(key("Enter", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toBeNull();
     expect(keyAction(key("Enter", { target: fakeTarget({ tagName: "A" }) }), false)).toBeNull();
+  });
+
+  test("Space on a focused button still goes to the next thread", () => {
+    expect(keyAction(key(" ", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toEqual({ type: "next" });
     expect(keyAction(key("o", { target: fakeTarget({ tagName: "BUTTON" }) }), false)).toEqual({ type: "open" });
+  });
+
+  test("maps the state change keys", () => {
+    expect(keyAction(key("e"), false)).toEqual({ type: "done" });
+    expect(keyAction(key("m"), false)).toEqual({ type: "mute" });
+    expect(keyAction(key("M"), false)).toEqual({ type: "unsubscribe" });
+    expect(keyAction(key("s"), false)).toEqual({ type: "snooze" });
+    expect(keyAction(key("z"), false)).toEqual({ type: "snooze" });
+    expect(keyAction(key("u"), false)).toEqual({ type: "toggleUnread" });
+    expect(keyAction(key("Z"), false)).toEqual({ type: "undo" });
+    expect(keyAction(key(" "), false)).toEqual({ type: "next" });
+    expect(keyAction(key("R"), false)).toEqual({ type: "refresh" });
+  });
+
+  test("routes keys to the snooze menu while it is open", () => {
+    expect(keyAction(key("1"), false, true)).toEqual({ type: "menuPick", index: 0 });
+    expect(keyAction(key("6"), false, true)).toEqual({ type: "menuPick", index: 5 });
+    expect(keyAction(key("ArrowDown"), false, true)).toEqual({ type: "menuMove", delta: 1 });
+    expect(keyAction(key("k"), false, true)).toEqual({ type: "menuMove", delta: -1 });
+    expect(keyAction(key("Enter"), false, true)).toEqual({ type: "menuChoose" });
+    expect(keyAction(key("Escape"), false, true)).toEqual({ type: "menuClose" });
+    expect(keyAction(key("e"), false, true)).toBeNull();
+    expect(keyAction(key("0"), false, true)).toBeNull();
+  });
+
+  test("Enter on a focused menu item clicks that item instead of the highlighted one", () => {
+    const button = fakeTarget({ tagName: "BUTTON" });
+    expect(keyAction(key("Enter", { target: button }), false, true)).toBeNull();
+    expect(keyAction(key(" ", { target: button }), false, true)).toBeNull();
+    expect(keyAction(key("Escape", { target: button }), false, true)).toEqual({ type: "menuClose" });
   });
 });
 

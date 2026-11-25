@@ -114,6 +114,14 @@ function derive(opts: Opts) {
 }
 
 describe("rank", () => {
+  test("before enrichment the summary names only reasons other than watching the repo", () => {
+    expect(derive({ enriched: false }).summaryLine).toBe("");
+    const mention = derive({ enriched: false, reason: "mention" });
+    expect(mention.summaryLine).toBe("mentioned you");
+    expect(mention.section).toBe("waiting");
+    expect(derive({ enriched: false, reason: "ci_activity" }).summaryLine).toBe("ci activity");
+  });
+
   test("a mention in the description (MentionedEvent with me as actor) is waiting", () => {
     const view = derive({ items: [item("MentionedEvent", "2026-11-21T01:00:00Z", { actor: user(ME) })] });
     expect(view.section).toBe("waiting");
@@ -286,6 +294,7 @@ describe("rank", () => {
     expect(quiet.reasons).toContain("muted");
     const ping = derive({ items: [comment("alice", "2026-11-21T00:00:00Z", "@markerikson")], itemState: { muted: true } });
     expect(ping.section).toBe("waiting");
+    expect(ping.reasons).toContain("muted");
   });
 
   test("a new issue with no comments is an update", () => {

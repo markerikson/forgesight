@@ -1,31 +1,137 @@
-import { Fragment, useEffect } from "react";
-import type { SubjectDetail, SubjectHeader } from "../../core/index.ts";
+import { Fragment, useEffect, useRef, useState } from "react";
+import type { InboxRow, SubjectDetail, SubjectHeader } from "../../core/index.ts";
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
-import { useGetSubjectQuery } from "../store/api.ts";
-import { useAppSelector } from "../store/hooks.ts";
-import { selectSelectedRow } from "../store/view.ts";
+import { keepNewFlags } from "../new-flags.ts";
+import { isMuted, markDone, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
+import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
+import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
+import { applyState } from "../store/state-api.ts";
+import { rowRead, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
+import { anchorBelow } from "./SnoozeMenu.tsx";
 import styles from "./Preview.module.css";
 
+/** True when opening the row should mark it read on GitHub and here. */
+export function hasNewActivity(row: InboxRow): boolean {
+  return row.unread || row.newMeaningfulCount > 0;
+}
+
 export function Preview() {
+  const dispatch = useAppDispatch();
   const row = useAppSelector(selectSelectedRow);
   const { data, isError, isFetching } = useGetSubjectQuery(row?.key ?? "", { skip: !row });
+  const loaded = data !== undefined && data.key === row?.key ? data : undefined;
+  const me = useGetStatusQuery().data?.viewer.login ?? null;
 
-  if (!row) return <section className={styles.preview} aria-label="Preview" />;
-  if (!data || data.key !== row.key) {
+  // The detail as it was when the user started reading this subject, so its "new" markers survive
+  // the read and later refreshes. Selecting another subject replaces it.
+  const [readingBase, setReadingBase] = useState<SubjectDetail | null>(null);
+  if (loaded && readingBase?.key !== loaded.key) setReadingBase(loaded);
+
+  const readKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!row || !loaded || readKey.current === row.key) return;
+    readKey.current = row.key;
+    if (!hasNewActivity(row)) return;
+    dispatch(rowRead({ ...row, unread: false, newMeaningfulCount: 0 }));
+    dispatch(applyState([row.key], { kind: "read" }));
+  }, [dispatch, row, loaded]);
+
+  if (!row) {
+    return (
+      <section className={styles.preview} aria-label="Preview">
+        <p className={styles.message}>Pick a thread, or press j to start at the top.</p>
+      </section>
+    );
+  }
+  if (!loaded) {
     const message = isError ? "Could not load this thread." : isFetching ? "Loading…" : "";
     return (
       <section className={styles.preview} aria-label="Preview">
+        <div className={styles.top}>
+          <ActionBar row={row} url={row.url} />
+        </div>
         <p className={styles.message}>{message}</p>
       </section>
     );
   }
-  return <SubjectPane subject={data} />;
+  const subject = readingBase?.key === loaded.key ? keepNewFlags(readingBase, loaded, me) : loaded;
+  return <SubjectPane subject={subject} row={row} />;
 }
 
-function SubjectPane({ subject }: { subject: SubjectDetail }) {
+function ActionBar({ row, url }: { row: InboxRow; url: string | null }) {
+  const dispatch = useAppDispatch();
+  const [muteMenu, setMuteMenu] = useState(false);
+  const muted = isMuted(row);
+
+  return (
+    <div className={styles.actions} role="toolbar" aria-label="Actions">
+      <button
+        type="button"
+        className={styles.primary}
+        disabled={row.section === "hidden"}
+        title="Done (e)"
+        onClick={() => dispatch(markDone([row.key]))}
+      >
+        Done
+      </button>
+      <button
+        type="button"
+        title={row.section === "snoozed" ? "Snooze or unsnooze (s)" : "Snooze (s)"}
+        onClick={(e) => dispatch(openSnoozeMenu([row], anchorBelow(e.currentTarget)))}
+      >
+        Snooze…
+      </button>
+      <span className={styles.split}>
+        <button type="button" title={muted ? "Unmute (m)" : "Mute (m)"} onClick={() => dispatch(toggleMute(row))}>
+          {muted ? "Unmute" : "Mute"}
+        </button>
+        <button
+          type="button"
+          aria-label="More mute options"
+          aria-haspopup="menu"
+          aria-expanded={muteMenu}
+          onClick={() => setMuteMenu((open) => !open)}
+        >
+          ▾
+        </button>
+        {muteMenu && (
+          <>
+            <div className={styles.backdrop} onClick={() => setMuteMenu(false)} />
+            <div className={styles.menu} role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                title="Mute here and unsubscribe on GitHub (Shift+M)"
+                onClick={() => {
+                  setMuteMenu(false);
+                  dispatch(muteAndUnsubscribe(row));
+                }}
+              >
+                Mute and unsubscribe
+              </button>
+            </div>
+          </>
+        )}
+      </span>
+      <button type="button" title={row.unread ? "Mark read (u)" : "Keep unread (u)"} onClick={() => dispatch(toggleUnread(row))}>
+        {row.unread ? "Mark read" : "Keep unread"}
+      </button>
+      {url && (
+        <a className={styles.button} href={url} target="_blank" rel="noopener noreferrer" title="Open on GitHub (o)">
+          Open on GitHub
+        </a>
+      )}
+      <button type="button" className={styles.next} title="Next thread (Space)" onClick={() => dispatch(nextRow())}>
+        Next
+      </button>
+    </div>
+  );
+}
+
+function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }) {
   const roundIndex = useAppSelector((state) => state.view.roundIndex);
   const now = useNow();
   const focused = Math.min(roundIndex, Math.max(subject.rounds.length - 1, 0));
@@ -36,7 +142,10 @@ function SubjectPane({ subject }: { subject: SubjectDetail }) {
 
   return (
     <section className={styles.preview} aria-label="Preview">
-      <Header header={subject.header} subject={subject} />
+      <div className={styles.top}>
+        <ActionBar row={row} url={subject.githubUrl ?? subject.header.url} />
+        <Header header={subject.header} subject={subject} />
+      </div>
       {subject.rounds.length === 0 && <p className={styles.message}>No activity stored yet.</p>}
       {subject.rounds.map((round, index) => {
         const prev = subject.rounds[index - 1];
@@ -61,6 +170,7 @@ function SubjectPane({ subject }: { subject: SubjectDetail }) {
 
 function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDetail }) {
   const url = subject.githubUrl ?? header.url;
+  const notifiedFor = subject.reason !== "subscribed" ? subject.reason : null;
   return (
     <header className={styles.header}>
       <h2 className={styles.title}>
@@ -94,9 +204,9 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
         <ReviewBadge decision={header.reviewDecision} />
         {subject.snoozeUntil && <span>snoozed until {subject.snoozeUntil.slice(0, 10)}</span>}
       </div>
-      {(subject.reasons.length > 0 || subject.reason) && (
+      {(subject.reasons.length > 0 || notifiedFor) && (
         <div className={styles.meta}>
-          {subject.reason && <span className={styles.reason}>notified: {subject.reason}</span>}
+          {notifiedFor && <span className={styles.reason}>notified: {notifiedFor.replaceAll("_", " ")}</span>}
           {subject.reasons.map((reason) => (
             <span key={reason} className={styles.reason}>
               {REASON_LABELS[reason]}

@@ -7,12 +7,20 @@ const SHORTCUTS: [keys: string, action: string][] = [
   ["n / p", "Next (older) / previous round"],
   ["o / Enter", "Open on GitHub"],
   ["x", "Expand or collapse groups in the focused round"],
+  ["Space", "Next thread"],
+  ["e", "Done"],
+  ["s / z", "Snooze (or unsnooze)"],
+  ["m", "Mute / unmute"],
+  ["Shift+M", "Mute and unsubscribe"],
+  ["u", "Keep unread / mark read"],
+  ["Shift+Z", "Undo the last change"],
+  ["Shift+R", "Check GitHub now"],
   ["g w", "Go to Waiting on me"],
   ["g u", "Go to Updates"],
   ["g s", "Go to Snoozed"],
   ["g h", "Go to Hidden"],
   ["?", "Toggle this help"],
-  ["Esc", "Close this help"],
+  ["Esc", "Close this help or a menu"],
 ];
 
 export function HelpOverlay() {

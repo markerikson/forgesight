@@ -133,13 +133,18 @@ export function patchRow(
   _now: string,
   opts: { includeHidden?: boolean } = {},
 ): InboxRow | null {
-  const toHidden = (): InboxRow | null => (opts.includeHidden ? { ...row, section: "hidden" } : null);
+  const toHidden = (from: InboxRow = row): InboxRow | null =>
+    opts.includeHidden ? { ...from, section: "hidden" } : null;
   switch (op.kind) {
     case "done":
       return toHidden();
     case "mute":
-    case "unsubscribe":
-      return keepsSection(row) || row.section === "snoozed" ? { ...row } : toHidden();
+    case "unsubscribe": {
+      const muted = row.reasons.includes("muted") ? row : { ...row, reasons: [...row.reasons, "muted" as const] };
+      return keepsSection(row) || row.section === "snoozed" ? muted : toHidden(muted);
+    }
+    case "unmute":
+      return { ...row, reasons: row.reasons.filter((r) => r !== "muted") };
     case "snooze":
       return { ...row, section: "snoozed", snoozeUntil: op.until };
     case "read":
@@ -147,7 +152,6 @@ export function patchRow(
     case "unread":
       return { ...row, unread: true };
     case "unsnooze":
-    case "unmute":
       return { ...row };
   }
 }
