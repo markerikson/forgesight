@@ -6,7 +6,7 @@ import { keepNewFlags } from "../new-flags.ts";
 import { isMuted, markDone, markWorkstreamSeen, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
 import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
-import { applyState, refreshSubject } from "../store/state-api.ts";
+import { applyState, openSubject, refreshSubject } from "../store/state-api.ts";
 import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
@@ -17,6 +17,8 @@ import { subjectKeyForUrl } from "../links.ts";
 import { StackBox, WorkstreamPane } from "./WorkstreamPreview.tsx";
 import styles from "./Preview.module.css";
 
+const FETCH_POLL_MS = 3000;
+
 /** True when opening the row should mark it read on GitHub and here. */
 export function hasNewActivity(row: InboxRow): boolean {
   return row.unread || row.newMeaningfulCount > 0;
@@ -26,9 +28,23 @@ export function Preview() {
   const dispatch = useAppDispatch();
   const row = useAppSelector(selectSelectedRow);
   const group = useAppSelector(selectSelectedGroup);
-  const { data, isError, isFetching } = useGetSubjectQuery(row?.key ?? "", { skip: !row });
+  // Polls while the subject is fetching: a fetch that fails or changes nothing in the derived view
+  // sends no change event, so polling is what clears the loading state.
+  const [polling, setPolling] = useState(false);
+  const { data, isError, isFetching } = useGetSubjectQuery(row?.key ?? "", {
+    skip: !row,
+    pollingInterval: polling ? FETCH_POLL_MS : 0,
+  });
   const loaded = data !== undefined && data.key === row?.key ? data : undefined;
+  if ((loaded?.fetching === true) !== polling) setPolling(loaded?.fetching === true);
   const me = useGetStatusQuery().data?.viewer.login ?? null;
+
+  const openedKey = useRef<string | null>(null);
+  useEffect(() => {
+    if (!loaded || openedKey.current === loaded.key) return;
+    openedKey.current = loaded.key;
+    if (loaded.fetching) dispatch(openSubject(loaded.key));
+  }, [dispatch, loaded]);
 
   // The detail as it was when the user started reading this subject, so its "new" markers survive
   // the read and later refreshes. Selecting another subject replaces it.

@@ -215,6 +215,31 @@ describe("workstream summaries job", () => {
     expect(latestWorkstreamSummaries(db).size).toBe(1);
   });
 
+  test("summaries wait for stale PR texts to be refetched", async () => {
+    const { ctx, setPr, advance } = setup();
+    setPr(pr(1));
+    const llm = new FakeLlmClient();
+    let members = [1];
+    const { texts, summaries } = createWorkstreamSummaryJobs({ llm, workstreams: () => [workstream(1, members)] });
+    await texts.run(ctx);
+    await summaries?.run(ctx);
+    expect(llm.requests).toHaveLength(1);
+
+    // #2 joins and its text is fetched, then #1 is edited after that fetch.
+    advance(7 * HOUR);
+    members = [1, 2];
+    setPr(pr(2));
+    await texts.run(ctx);
+    setPr({ ...pr(1, "2026-11-24T18:00:00Z"), body: "Now also does step 1b." });
+    expect(await summaries?.run(ctx)).toBe("idle");
+    expect(llm.requests).toHaveLength(1);
+
+    await texts.run(ctx);
+    expect(await summaries?.run(ctx)).toBe("worked");
+    expect(llm.requests).toHaveLength(2);
+    expect(llm.requests[1]?.user).toContain("step 1b");
+  });
+
   test("a member that leaves the open listing is refetched for its closed state", async () => {
     const { db, gh, ctx, setPr, advance } = setup();
     setPr(pr(1));

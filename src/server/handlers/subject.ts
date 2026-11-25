@@ -8,6 +8,7 @@ import {
   subjectBody,
   subjectWorkstream,
 } from "../../core/index.ts";
+import type { SubjectRecord } from "../../core/types.ts";
 import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { getSubject, markDirty } from "../../store/subjects.ts";
 import { threadsForSubject } from "../../store/threads.ts";
@@ -62,17 +63,28 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
   }
   const detail = view.detail as unknown as SubjectView;
   const threads = threadsForSubject(ctx.db, key);
-  return buildSubjectDetail(detail, threads, workstream, fetchOnOpen(ctx, key, threads[0]?.updatedAt ?? null));
+  const subject = getSubject(ctx.db, key);
+  const { refreshable, fetching } = subject
+    ? fetchState(ctx, subject, threads[0]?.updatedAt ?? null)
+    : { refreshable: false, fetching: false };
+  return buildSubjectDetail(detail, threads, workstream, { refreshable, fetching });
+}
+
+interface FetchState extends SubjectFetchState {
+  /** Opening the subject should queue it as urgent. */
+  fetchOnOpen: boolean;
 }
 
 /**
- * Queues an urgent fetch when the opened subject was never fetched, lacks its description,
- * or has a notification newer than its last fetch. The urgent enrich job picks it up on the
- * worker's next tick; derive then emits a change and the client refetches the open subject.
+ * Reading a subject never queues it, because the list prefetches its neighbors through the same
+ * request. `fetching` says whether opening it fetches (or already queued) it; the preview then
+ * posts `refresh?ifNeeded=1`, which queues it as urgent.
  */
-function fetchOnOpen(ctx: ServerCtx, key: string, threadUpdatedAt: string | null): SubjectFetchState {
-  const subject = getSubject(ctx.db, key);
-  if (!subject) return { refreshable: false, fetching: false };
+function fetchState(
+  ctx: ServerCtx,
+  subject: SubjectRecord,
+  threadUpdatedAt = threadsForSubject(ctx.db, subject.subjectKey)[0]?.updatedAt ?? null,
+): FetchState {
   const refreshable = isEnrichable(subject.kind, ctx.config);
   const opened = {
     kind: subject.kind,
@@ -82,11 +94,8 @@ function fetchOnOpen(ctx: ServerCtx, key: string, threadUpdatedAt: string | null
     threadUpdatedAt,
   };
   const queued = subject.dirtyAt !== null;
-  if ((queued && refreshable && subject.enrichError === null) || needsFetchOnOpen(opened, ctx.config)) {
-    if (subject.priority < ENRICH_PRIORITY.urgent) markUrgent(ctx, key);
-    return { refreshable, fetching: true };
-  }
-  return { refreshable, fetching: queued && refreshable };
+  const fetchOnOpen = (queued && refreshable && subject.enrichError === null) || needsFetchOnOpen(opened, ctx.config);
+  return { refreshable, fetching: fetchOnOpen || (queued && refreshable), fetchOnOpen };
 }
 
 function markUrgent(ctx: ServerCtx, key: string): void {
@@ -101,15 +110,25 @@ export interface RefreshResponse {
 
 /**
  * `POST /api/subjects/<owner>/<repo>/<number>/refresh`: queues an urgent fetch even when the
- * subject looks current or its last fetch failed.
+ * subject looks current or its last fetch failed. With `?ifNeeded=1` (the preview opening a
+ * subject), queues it only when it was never fetched, lacks its description, has a notification
+ * newer than its last fetch, or is already queued. The urgent enrich job picks it up on the
+ * worker's next tick.
  */
 export async function refreshSubjectHandler(req: Request, ctx: ServerCtx): Promise<Response> {
-  const key = subjectKeyFromPath(new URL(req.url).pathname.replace(/\/refresh\/?$/, ""));
+  const url = new URL(req.url);
+  const key = subjectKeyFromPath(url.pathname.replace(/\/refresh\/?$/, ""));
   if (!key) return Response.json({ error: "bad_request", message: "Unrecognized subject path" }, { status: 400 });
   const subject = getSubject(ctx.db, key);
   if (!subject) return Response.json({ error: "not_found", message: `No subject ${key}` }, { status: 404 });
   if (!isEnrichable(subject.kind, ctx.config)) {
     return Response.json({ error: "bad_request", message: `${key} cannot be fetched` }, { status: 400 });
+  }
+  if (url.searchParams.get("ifNeeded") === "1") {
+    const state = fetchState(ctx, subject);
+    if (state.fetchOnOpen && subject.priority < ENRICH_PRIORITY.urgent) markUrgent(ctx, key);
+    const body: RefreshResponse = { key, fetching: state.fetching };
+    return Response.json(body, { status: state.fetchOnOpen ? 202 : 200 });
   }
   markUrgent(ctx, key);
   const body: RefreshResponse = { key, fetching: true };

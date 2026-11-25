@@ -214,39 +214,56 @@ describe("subjectHandler", () => {
   };
   const URGENT = { dirtyAt: NOW.toISOString(), priority: ENRICH_PRIORITY.urgent };
 
+  async function open(c: ServerCtx) {
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const res = await refreshSubjectHandler(
+      new Request("http://127.0.0.1:4630/api/subjects/acme/app/1/refresh?ifNeeded=1", { method: "POST" }),
+      c,
+    );
+    return { body, opened: { status: res.status, body: (await res.json()) as unknown } };
+  }
+
   test("returns the PR description from the view without queueing a current subject", async () => {
     const c = withRaw({ number: 1, body: "Fixes **the** bug" });
     notification(c, "2026-11-19T00:00:00.000Z");
-    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const { body, opened } = await open(c);
     expect(body).toMatchObject({ key: "acme/app#1", body: "Fixes **the** bug", refreshable: true, fetching: false });
+    expect(opened).toEqual({ status: 200, body: { key: "acme/app#1", fetching: false } });
+    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
+  });
+
+  test("reading a subject never queues it, so list prefetches stay out of the queue", async () => {
+    const c = subject(seeded());
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ refreshable: true, fetching: true });
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 
   test("queues an urgent fetch when the stored fields predate the description", async () => {
     const c = withRaw({ number: 1 });
-    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const { body, opened } = await open(c);
     expect(body).toMatchObject({ fetching: true });
+    expect(opened).toEqual({ status: 202, body: { key: "acme/app#1", fetching: true } });
     expect(queued(c)).toEqual(URGENT);
   });
 
   test("queues an urgent fetch for a subject that has never been fetched", async () => {
     const c = subject(seeded());
-    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
-    expect(body).toMatchObject({ refreshable: true, fetching: true });
+    await open(c);
     expect(queued(c)).toEqual(URGENT);
   });
 
   test("queues an urgent fetch when a notification is newer than the last fetch", async () => {
     const c = withRaw({ number: 1, body: "Fixes **the** bug" });
     notification(c, "2026-11-21T00:00:00.000Z");
-    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    await open(c);
     expect(queued(c)).toEqual(URGENT);
   });
 
   test("moves an already queued subject to the front of the queue", async () => {
     const c = withRaw({ number: 1, body: "Fixes **the** bug" });
     markDirty(c.db, ["acme/app#1"], "2026-11-23T00:00:00.000Z");
-    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const { body } = await open(c);
     expect(body).toMatchObject({ fetching: true });
     expect(queued(c)).toEqual({ dirtyAt: "2026-11-23T00:00:00.000Z", priority: ENRICH_PRIORITY.urgent });
   });
@@ -254,8 +271,9 @@ describe("subjectHandler", () => {
   test("does not queue a subject whose last fetch failed", async () => {
     const c = withRaw({ number: 1 });
     recordNotFound(c.db, "acme/app#1");
-    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const { body, opened } = await open(c);
     expect(body).toMatchObject({ refreshable: true, fetching: false });
+    expect(opened.status).toBe(200);
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 

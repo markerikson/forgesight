@@ -175,14 +175,19 @@ export function createWorkstreamSummaryJobs(deps: WorkstreamSummariesDeps): Work
     const numbers = membersByRepo(workstreams);
     const textsByRepo = new Map<string, ReturnType<typeof getPrTexts>>();
     const listings = new Map<string, Listing>();
+    const staleByRepo = new Map<string, Set<number>>();
     let queued = 0;
 
     for (const ws of workstreams) {
       if (ws.members.length === 0) continue;
-      const stored = textsByRepo.get(ws.repo) ?? getPrTexts(db, ws.repo, numbers.get(ws.repo) ?? []);
+      const repoNumbers = numbers.get(ws.repo) ?? [];
+      const stored = textsByRepo.get(ws.repo) ?? getPrTexts(db, ws.repo, repoNumbers);
       textsByRepo.set(ws.repo, stored);
       const listed = listings.get(ws.repo) ?? readListing(db, ws.repo);
       listings.set(ws.repo, listed);
+      // This job can run before the texts job catches up with a newer listing.
+      const stale = staleByRepo.get(ws.repo) ?? new Set(prTextsToFetch(repoNumbers, stored, listed));
+      staleByRepo.set(ws.repo, stale);
 
       const texts = new Map<SubjectKey, MemberText>();
       for (const key of ws.members) {
@@ -191,8 +196,12 @@ export function createWorkstreamSummaryJobs(deps: WorkstreamSummariesDeps): Work
         if (!n || !text) continue;
         texts.set(key, { number: n, title: text.title, body: text.body, ...memberState(db, key, text, listed.pulls.get(n)) });
       }
-      // Wait for every member's text unless GitHub has none to give.
-      const pending = ws.members.some((k) => !texts.has(k) && !unavailable.has(k));
+      // Wait for every member's current text unless GitHub has none to give.
+      const pending = ws.members.some((k) => {
+        if (unavailable.has(k)) return false;
+        const n = subjectNumber(k);
+        return !texts.has(k) || (n !== null && stale.has(n));
+      });
       if (pending) continue;
 
       const request = buildWorkstreamSummaryRequest(ws, texts);
