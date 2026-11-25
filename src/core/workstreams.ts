@@ -64,13 +64,26 @@ export interface WorkstreamGroupRule {
   authors: string[];
 }
 
+export interface WorkstreamTitleAlias {
+  match: RegExp;
+  replace: string;
+}
+
 export interface WorkstreamConfig {
   /** A PR with two or more child subtrees of at least this many PRs splits them off. */
   forkMinSize: number;
-  /** Titles that end the group above them; their children start new groups. */
+  /**
+   * Titles that end the group above them; their children start new groups. A matching PR
+   * with a single child stays in its child's group.
+   */
   cutBelow: RegExp[];
   /** Extra title prefixes that never group, lowercase. */
   genericPrefixes: string[];
+  /**
+   * Rewrites applied to each title prefix before comparing, in order: the first part of the
+   * prefix matching `match` is replaced by `replace`. Spelling variants then share a prefix.
+   */
+  titleAliases: WorkstreamTitleAlias[];
   /** Logins that never group by title prefix, in addition to `[bot]` logins and Bot actors. */
   botAuthors: string[];
   groups: WorkstreamGroupRule[];
@@ -96,6 +109,8 @@ export interface StackContext {
 }
 
 const REOPEN_WINDOW_MS = 14 * 86_400_000;
+/** Shorter identical titles ("WIP", "Fix tests") say nothing about shared work. */
+const MIN_SAME_TITLE = 16;
 
 const GENERIC_PREFIXES = new Set([
   "fix", "fixes", "feat", "feature", "chore", "wip", "refactor", "test", "tests", "docs", "doc",
@@ -131,11 +146,12 @@ export interface TitlePrefix {
 /**
  * Leading prefixes of a title: text inside leading brackets or parentheses, then text before
  * `:`, or else the first word when it is a CamelCase or dashed identifier. Generic words,
- * ticket numbers, and bracket text matching a `cutBelow` pattern are dropped.
+ * ticket numbers, and bracket text matching a `cutBelow` pattern are dropped. `titleAliases`
+ * rewrite each prefix first.
  */
 export function titlePrefixes(
   title: string,
-  config: Pick<WorkstreamConfig, "cutBelow" | "genericPrefixes">,
+  config: Pick<WorkstreamConfig, "cutBelow" | "genericPrefixes"> & Partial<Pick<WorkstreamConfig, "titleAliases">>,
 ): TitlePrefix[] {
   const found: string[] = [];
   let rest = title.trim().replace(/^[^\p{L}\p{N}[(]+/u, "");
@@ -153,11 +169,25 @@ export function titlePrefixes(
   }
   const generic = config.genericPrefixes.map((p) => p.toLowerCase());
   const out: TitlePrefix[] = [];
-  for (const display of found) {
+  for (const raw of found) {
+    const display = (config.titleAliases ?? []).reduce(
+      (text, alias) => text.replace(alias.match, alias.replace).trim(),
+      raw,
+    );
     const key = display.toLowerCase().replace(/\s+/g, " ");
     if (!isGenericPrefix(key, generic) && !out.some((p) => p.key === key)) out.push({ key, display });
   }
   return out;
+}
+
+/** A title without leading `cutBelow` brackets, lowercase with whitespace collapsed. */
+function normalTitle(title: string, config: Pick<WorkstreamConfig, "cutBelow">): string {
+  let rest = title.trim();
+  for (let lead = /^[[(][^\])]+[\])]\s*/.exec(rest); lead; lead = /^[[(][^\])]+[\])]\s*/.exec(rest)) {
+    if (!config.cutBelow.some((re) => re.test(lead[0].trim()))) break;
+    rest = rest.slice(lead[0].length);
+  }
+  return rest.toLowerCase().replace(/\s+/g, " ");
 }
 
 function isBot(pull: WsPull, config: WorkstreamConfig): boolean {
@@ -221,11 +251,14 @@ function mostCommon<T>(values: readonly T[]): { value: T; count: number } | null
  * Groups PRs into workstreams. Signals, joined in this order:
  *
  * 1. Stack edge: a PR whose base is another PR's head branch. When two open PRs share the head
- *    branch there is no edge. Edges are cut below `cutBelow` titles and where a PR has two or
- *    more child subtrees of at least `forkMinSize` PRs (each such subtree becomes its own group).
+ *    branch there is no edge. Edges are cut below `cutBelow` titles with two or more children,
+ *    where a PR has two or more child subtrees of at least `forkMinSize` PRs (each such subtree
+ *    becomes its own group), and above a leaf PR that has siblings and shares no title prefix
+ *    with its ancestors or its siblings' subtrees.
  * 2. Shared base: two or more PRs on the same non-trunk base branch that no PR has as head.
  * 3. Config groups: PRs matching a configured rule, and their groups, join under its name.
- * 4. Title prefix (weak): same author and prefix. It attaches PRs with no other signal to a
+ * 4. Title (weak): same author and title (ignoring `cutBelow` brackets, at least 16
+ *    characters), then same author and prefix. It attaches PRs with no other signal to a
  *    group or to each other, never joins two groups from steps 1-3, and a prefix found in two
  *    or more such groups by the same author is generic for that author. Bots are excluded.
  * 5. Manual overrides.
@@ -283,9 +316,34 @@ export function buildWorkstreams(pulls: readonly WsPull[], opts: BuildWorkstream
     subtree.set(key, size);
     return size;
   };
-  const isCutParent = (p: WsPull) => config.cutBelow.some((re) => re.test(p.title));
+  const prefixesByKey = new Map<SubjectKey, TitlePrefix[]>();
+  for (const p of all) prefixesByKey.set(subjectKeyOf(p), titlePrefixes(p.title, config));
+  const prefixKeys = (key: SubjectKey) => (prefixesByKey.get(key) ?? []).map((p) => p.key);
+
+  // A leaf PR stacked beside other children of a long-lived branch, whose title shares no
+  // prefix with the stack around it (ancestors and sibling subtrees), is separate work that
+  // only borrows the branch.
+  const isTopicFork = (childKey: SubjectKey, parent: WsPull) => {
+    const parentKey = subjectKeyOf(parent);
+    const siblings = (childrenOf.get(parentKey) ?? []).map(subjectKeyOf).filter((k) => k !== childKey);
+    if ((childrenOf.get(childKey) ?? []).length > 0 || siblings.length === 0) return false;
+    const own = prefixKeys(childKey);
+    if (own.length === 0) return false;
+    const around = new Set<string>();
+    for (let up: WsPull | undefined = parent; up; up = parentOf.get(subjectKeyOf(up))) {
+      for (const k of prefixKeys(subjectKeyOf(up))) around.add(k);
+    }
+    const down = [...siblings];
+    for (let k = down.pop(); k !== undefined; k = down.pop()) {
+      for (const p of prefixKeys(k)) around.add(p);
+      for (const c of childrenOf.get(k) ?? []) down.push(subjectKeyOf(c));
+    }
+    return around.size > 0 && !own.some((k) => around.has(k));
+  };
+  const isCutParent = (p: WsPull) =>
+    config.cutBelow.some((re) => re.test(p.title)) && (childrenOf.get(subjectKeyOf(p)) ?? []).length >= 2;
   const isCutEdge = (childKey: SubjectKey, parent: WsPull) => {
-    if (isCutParent(parent)) return true;
+    if (isCutParent(parent) || isTopicFork(childKey, parent)) return true;
     const big = (childrenOf.get(subjectKeyOf(parent)) ?? [])
       .map(subjectKeyOf)
       .filter((k) => sizeOf(k) >= config.forkMinSize);
@@ -335,9 +393,6 @@ export function buildWorkstreams(pulls: readonly WsPull[], opts: BuildWorkstream
     for (const [r, n] of sizes) if (n > 1) structural.add(r);
   }
 
-  const prefixesByKey = new Map<SubjectKey, TitlePrefix[]>();
-  for (const p of all) prefixesByKey.set(subjectKeyOf(p), titlePrefixes(p.title, config));
-
   const byAuthorPrefix = new Map<string, WsPull[]>();
   const groupsByAuthorPrefix = new Map<string, Set<SubjectKey>>();
   for (const p of all) {
@@ -354,21 +409,28 @@ export function buildWorkstreams(pulls: readonly WsPull[], opts: BuildWorkstream
       }
     }
   }
+  const attach = (a: SubjectKey, b: SubjectKey) => {
+    const ra = uf.find(a);
+    const rb = uf.find(b);
+    if (ra === rb || (structural.has(ra) && structural.has(rb))) return;
+    const wasStructural = structural.has(ra) || structural.has(rb);
+    structural.delete(ra);
+    structural.delete(rb);
+    const root = join(a, b, "titlePrefix");
+    if (wasStructural) structural.add(root);
+  };
+  const byAuthorTitle = new Map<string, WsPull[]>();
+  for (const p of all) {
+    const title = normalTitle(p.title, config);
+    if (!isBot(p, config) && title.length >= MIN_SAME_TITLE) pushTo(byAuthorTitle, `${p.author}\0${title}`, p);
+  }
+  for (const [first, ...rest] of byAuthorTitle.values()) {
+    if (first) for (const p of rest) attach(subjectKeyOf(first), subjectKeyOf(p));
+  }
   const prefixGroups = [...byAuthorPrefix].sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0));
   for (const [ap, [first, ...rest]] of prefixGroups) {
     if (first === undefined || (groupsByAuthorPrefix.get(ap)?.size ?? 0) >= 2) continue;
-    const a = subjectKeyOf(first);
-    for (const p of rest) {
-      const b = subjectKeyOf(p);
-      const ra = uf.find(a);
-      const rb = uf.find(b);
-      if (ra === rb || (structural.has(ra) && structural.has(rb))) continue;
-      const wasStructural = structural.has(ra) || structural.has(rb);
-      structural.delete(ra);
-      structural.delete(rb);
-      const root = join(a, b, "titlePrefix");
-      if (wasStructural) structural.add(root);
-    }
+    for (const p of rest) attach(subjectKeyOf(first), subjectKeyOf(p));
   }
 
   // Detected groups as member sets, then manual merge/remove.

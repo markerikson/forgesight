@@ -138,6 +138,28 @@ describe("cuts", () => {
     const pulls = [pr(1), ...chain(2, 3, {}, "b1"), pr(5, { baseRef: "b1" })];
     expect(shape(build(pulls, { config: { workstreams: { forkMinSize: 3 } } }))).toEqual([[1, 2, 3, 4, 5]]);
   });
+
+  test("a cutBelow parent with a single child stays with it", () => {
+    const pulls = [pr(1, { title: "[never merge] Cache: base" }), ...chain(2, 2, { title: "Cache: part" }, "b1")];
+    expect(shape(build(pulls))).toEqual([[1, 2, 3]]);
+  });
+
+  test("a leaf on a shared branch whose title shares no prefix with the stack is cut", () => {
+    const pulls = [
+      pr(1, { title: "Cache: base" }),
+      ...chain(2, 2, { title: "Cache: part" }, "b1"),
+      pr(4, { title: "Runtime: unrelated fix", baseRef: "b1" }),
+      pr(5, { title: "Cache: leaf", baseRef: "b1" }),
+    ];
+    expect(shape(build(pulls))).toEqual([[1, 2, 3, 5]]);
+  });
+
+  test("a topic fork needs siblings and a titled stack", () => {
+    const only = [pr(1, { title: "Cache: base" }), pr(2, { title: "Runtime: next step", baseRef: "b1" })];
+    expect(shape(build(only))).toEqual([[1, 2]]);
+    const untitled = [pr(1), pr(2, { title: "Runtime: a", baseRef: "b1" }), pr(3, { baseRef: "b1" })];
+    expect(shape(build(untitled))).toEqual([[1, 2, 3]]);
+  });
 });
 
 describe("shared base and config groups", () => {
@@ -227,6 +249,34 @@ describe("title prefixes", () => {
     expect(shape(build(pulls))).toEqual([
       [1, 2],
       [3, 4],
+    ]);
+  });
+
+  test("title aliases map spellings to one prefix", () => {
+    const config = settings({
+      workstreams: { titleAliases: [{ match: "^(?:cg|CallGraph)\\b", replace: "CallGraph" }] },
+    }).workstreams;
+    expect(titlePrefixes("CG links: one", config).map((p) => p.display)).toEqual(["CallGraph links"]);
+    expect(titlePrefixes("callgraph: two", config).map((p) => p.key)).toEqual(["callgraph"]);
+    const pulls = [pr(1, { title: "CG: one" }), pr(2, { title: "CallGraph: two" })];
+    expect(shape(build(pulls))).toEqual([]);
+    expect(
+      shape(build(pulls, { config: { workstreams: { titleAliases: [{ match: "^cg$", replace: "CallGraph" }] } } })),
+    ).toEqual([[1, 2]]);
+  });
+
+  test("the same title by the same author joins, even when the prefix is generic for them", () => {
+    const pulls = [
+      ...chain(1, 2, { title: "Cache: a" }),
+      ...chain(3, 2, { title: "Cache: b" }),
+      pr(5, { title: "Cache: drop the old key table", closed: "closed", closedAt: "2026-11-23T00:00:00Z" }),
+      pr(6, { title: "[never merge] Cache: drop the old key table" }),
+      pr(7, { title: "Cache: drop the old key table", author: "bob" }),
+    ];
+    expect(shape(build(pulls))).toEqual([
+      [1, 2],
+      [3, 4],
+      [5, 6],
     ]);
   });
 

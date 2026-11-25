@@ -40,3 +40,58 @@ export function nextRecentlyClosed(
   }
   return [...out.values()].sort((a, b) => a.pull.number - b.pull.number);
 }
+
+/** A stored PR subject, as the enrichment last saw it. */
+export interface StoredPull {
+  /** `closed` is never set; `state` says whether the PR is open. */
+  pull: WsPull;
+  state: SubjectState;
+  /** From the payload: merge or close time; null while open. */
+  closedAt: string | null;
+}
+
+export interface GroupingPullsInput {
+  open: readonly WsPull[];
+  /** When `open` was fetched. */
+  listedAt: string;
+  recentlyClosed: readonly ClosedPull[];
+  stored: readonly StoredPull[];
+  now: Date;
+}
+
+/**
+ * The PRs to group: the open listing, the recently-closed list, and stored PR subjects the
+ * listings missed. A stored PR closed or merged within 7 days joins as closed; that covers PRs
+ * closed before the first listing or opened and closed between two listings, and replaces a
+ * listed open PR when it closed after the listing was fetched. A stored PR that
+ * is open and was updated after the listing was fetched joins as open, and replaces a
+ * recently-closed entry that is older than that update (a reopened PR).
+ */
+export function groupingPulls(input: GroupingPullsInput): WsPull[] {
+  const cutoff = input.now.getTime() - RECENTLY_CLOSED_MS;
+  const listedAt = Date.parse(input.listedAt);
+  const out = new Map<number, WsPull>();
+  for (const p of input.open) out.set(p.number, p);
+  const closedAt = new Map<number, number>();
+  for (const c of input.recentlyClosed) {
+    if (out.has(c.pull.number)) continue;
+    out.set(c.pull.number, { ...c.pull, closedAt: c.closedAt });
+    closedAt.set(c.pull.number, Date.parse(c.closedAt));
+  }
+  for (const s of input.stored) {
+    const n = s.pull.number;
+    const listed = out.get(n);
+    if (s.state === "OPEN") {
+      const updated = Date.parse(s.pull.updatedAt);
+      if (!(updated > listedAt)) continue;
+      if (listed && !listed.closed) continue;
+      if (listed && !(updated > (closedAt.get(n) ?? Infinity))) continue;
+      out.set(n, { ...s.pull });
+    } else {
+      if (s.closedAt === null || Date.parse(s.closedAt) < cutoff) continue;
+      if (listed && (listed.closed || !(Date.parse(s.closedAt) > listedAt))) continue;
+      out.set(n, { ...s.pull, closed: s.state === "MERGED" ? "merged" : "closed", closedAt: s.closedAt });
+    }
+  }
+  return [...out.values()].sort((a, b) => a.number - b.number);
+}

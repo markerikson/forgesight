@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
-import type { EnrichmentResult, SubjectKind, SubjectRecord } from "../core/types.ts";
+import type { StoredPull } from "../core/recently-closed.ts";
+import type { EnrichmentResult, SubjectKind, SubjectRecord, SubjectState } from "../core/types.ts";
 import { bool, jsonList, subjectFromRow, type SubjectRow, toJson } from "./rows.ts";
 import { appendChange } from "./views.ts";
 
@@ -209,6 +210,51 @@ export function dirtyKeysOfKind(db: Database, kinds: SubjectKind[]): string[] {
 /** Number of dirty subjects. */
 export function dirtyCount(db: Database): number {
   return db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM subjects WHERE dirty_at IS NOT NULL").get()?.n ?? 0;
+}
+
+interface StoredPullRow {
+  number: number;
+  state: SubjectState;
+  author: string | null;
+  head_ref: string;
+  base_ref: string;
+  updated_at: string;
+  title: string | null;
+  author_type: string | null;
+  is_draft: number | null;
+  closed_at: string | null;
+}
+
+/** Enriched PR subjects of `repo` updated at or after `since`, as grouping input. */
+export function storedPulls(db: Database, repo: string, since: string): StoredPull[] {
+  return db
+    .query<StoredPullRow, [string, string]>(
+      `SELECT number, state, author, head_ref, base_ref, updated_at,
+         json_extract(raw_json, '$.title') AS title,
+         json_extract(raw_json, '$.author.__typename') AS author_type,
+         json_extract(raw_json, '$.isDraft') AS is_draft,
+         COALESCE(json_extract(raw_json, '$.mergedAt'), json_extract(raw_json, '$.closedAt')) AS closed_at
+       FROM subjects
+       WHERE repo = ? AND kind = 'pr' AND number IS NOT NULL AND state IS NOT NULL
+         AND head_ref IS NOT NULL AND base_ref IS NOT NULL AND updated_at >= ?
+       ORDER BY number`,
+    )
+    .all(repo, since)
+    .map((r) => ({
+      pull: {
+        repo,
+        number: r.number,
+        title: r.title ?? "",
+        author: r.author ?? "",
+        ...(r.author_type ? { authorType: r.author_type } : {}),
+        headRef: r.head_ref,
+        baseRef: r.base_ref,
+        isDraft: r.is_draft === 1,
+        updatedAt: r.updated_at,
+      },
+      state: r.state,
+      closedAt: r.closed_at,
+    }));
 }
 
 export function getSubject(db: Database, key: string): SubjectRecord | undefined {

@@ -2,13 +2,13 @@ import type { Database } from "bun:sqlite";
 import type { Config } from "../core/config.ts";
 import { repoConfig } from "../core/config.ts";
 import { META, openPullsMetaKey, recentlyClosedMetaKey } from "../core/meta-keys.ts";
-import type { ClosedPull } from "../core/recently-closed.ts";
+import { type ClosedPull, groupingPulls, RECENTLY_CLOSED_MS } from "../core/recently-closed.ts";
 import type { SubjectKey } from "../core/types.ts";
 import { isShownWorkstream, type MemberFacts } from "../core/workstream-state.ts";
 import { buildWorkstreams, type Workstream, type WsOverride, type WsPull } from "../core/workstreams.ts";
 import type { OpenPull, OpenPullsListing } from "../github/queries/open-pulls.ts";
 import { getMeta } from "../store/meta.ts";
-import { ensureSubjects, markDirty } from "../store/subjects.ts";
+import { ensureSubjects, markDirty, storedPulls } from "../store/subjects.ts";
 import {
   getWorkstreamStates,
   listOverrides,
@@ -159,8 +159,14 @@ export function rebuildWorkstreams(
   const nowIso = now.toISOString();
   const rc = repoConfig(config, repo);
   const open = listing.pulls.map((p) => toWsPull(repo, p));
-  const closed = readRecentlyClosed(db, repo).map((c): WsPull => Object.assign({}, c.pull, { closedAt: c.closedAt }));
-  const pulls = [...open, ...closed.filter((c) => !open.some((p) => p.number === c.number))];
+  const since = new Date(now.getTime() - RECENTLY_CLOSED_MS).toISOString();
+  const pulls = groupingPulls({
+    open,
+    listedAt: listing.fetchedAt,
+    recentlyClosed: readRecentlyClosed(db, repo),
+    stored: storedPulls(db, repo, since),
+    now,
+  });
 
   const previous = previousWorkstreams(db, repo);
   const overrides = reanchorMergeOverrides(db, repo, pulls, previous);

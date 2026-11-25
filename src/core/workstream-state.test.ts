@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { nextRecentlyClosed } from "./recently-closed.ts";
+import { type GroupingPullsInput, groupingPulls, nextRecentlyClosed, type StoredPull } from "./recently-closed.ts";
+import type { SubjectState } from "./types.ts";
 import {
   applyWorkstreamOp,
   DEFAULT_WORKSTREAM_STATE,
@@ -132,5 +133,74 @@ describe("nextRecentlyClosed", () => {
     const out = nextRecentlyClosed([], [pull(3)], prior, () => null, now);
     expect(out.map((c) => c.pull.number)).toEqual([1]);
     expect(out[0]?.closedAt).toBe(T0);
+  });
+});
+
+describe("groupingPulls", () => {
+  const pull = (number: number, updatedAt = T0): WsPull => ({
+    repo: "o/r",
+    number,
+    title: `PR ${number}`,
+    author: "alice",
+    headRef: `b${number}`,
+    baseRef: "main",
+    isDraft: false,
+    updatedAt,
+  });
+  const LISTED = "2026-11-24T10:30:00.000Z";
+  const LATER = "2026-11-24T10:45:00.000Z";
+  const now = new Date(T1);
+  const stored = (number: number, state: SubjectState, closedAt: string | null, updatedAt = T0): StoredPull => ({
+    pull: pull(number, updatedAt),
+    state,
+    closedAt,
+  });
+  const run = (input: Partial<GroupingPullsInput>) =>
+    groupingPulls({ open: [], listedAt: LISTED, recentlyClosed: [], stored: [], now, ...input }).map((p) => [
+      p.number,
+      p.closed ?? "open",
+    ]);
+
+  test("stored PRs closed within 7 days join, even when no listing saw them", () => {
+    expect(
+      run({
+        open: [pull(1)],
+        stored: [
+          stored(2, "MERGED", T0),
+          stored(3, "CLOSED", T0),
+          stored(4, "CLOSED", "2026-11-10T00:00:00.000Z"),
+          stored(5, "OPEN", null),
+        ],
+      }),
+    ).toEqual([
+      [1, "open"],
+      [2, "merged"],
+      [3, "closed"],
+    ]);
+  });
+
+  test("the listing and the recently-closed list win over older stored state", () => {
+    const recentlyClosed = [{ pull: { ...pull(2), closed: "closed" as const }, closedAt: LISTED }];
+    expect(
+      run({ open: [pull(1)], recentlyClosed, stored: [stored(1, "CLOSED", T0), stored(2, "OPEN", null)] }),
+    ).toEqual([
+      [1, "open"],
+      [2, "closed"],
+    ]);
+  });
+
+  test("stored state newer than the listing wins: closed since, opened since, reopened since", () => {
+    const recentlyClosed = [{ pull: { ...pull(3), closed: "closed" as const }, closedAt: LISTED }];
+    expect(
+      run({
+        open: [pull(1)],
+        recentlyClosed,
+        stored: [stored(1, "MERGED", LATER), stored(2, "OPEN", null, LATER), stored(3, "OPEN", null, LATER)],
+      }),
+    ).toEqual([
+      [1, "merged"],
+      [2, "open"],
+      [3, "open"],
+    ]);
   });
 });

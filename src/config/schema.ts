@@ -14,6 +14,7 @@ const repoEntry = type({
     "forkMinSize?": "number.integer >= 2",
     "cutBelow?": "string[]",
     "genericPrefixes?": "string[]",
+    "titleAliases?": type({ "+": "reject", match: "string > 0", replace: "string" }).array(),
     "botAuthors?": "string[]",
     "groups?": type({
       "+": "reject",
