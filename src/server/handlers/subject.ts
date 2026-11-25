@@ -5,6 +5,7 @@ import {
   buildSubjectDetail,
   subjectWorkstream,
 } from "../../core/index.ts";
+import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { getPrTexts } from "../../store/pr-texts.ts";
 import { threadsForSubject } from "../../store/threads.ts";
 import { getView } from "../../store/views.ts";
@@ -52,8 +53,11 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
       const row = getView(ctx.db, k)?.row as { title?: string } | undefined;
       return row?.title ?? listed.get(Number(k.slice(k.lastIndexOf("#") + 1)))?.title ?? null;
     };
-    // PLACEHOLDER: replaced by m4-llm branch at merge (latest summary per workstream id).
-    const input = { workstream: ws, state: getWorkstreamState(ctx.db, ws.id), summary: null };
+    const input = {
+      workstream: ws,
+      state: getWorkstreamState(ctx.db, ws.id),
+      summary: latestWorkstreamSummaries(ctx.db, [ws.id]).get(ws.id) ?? null,
+    };
     workstream = subjectWorkstream(input, key, titleOf);
   }
   return buildSubjectDetail(view.detail as unknown as SubjectView, threadsForSubject(ctx.db, key), workstream);

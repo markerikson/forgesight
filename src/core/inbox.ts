@@ -2,9 +2,18 @@
 // handlers and the web client both import these types.
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
 import type { SubjectKey, ThreadRecord } from "./types.ts";
-import type { WorkstreamSummaryRecord } from "./workstream-placeholders.ts";
 import type { WorkstreamState, WsPriority } from "./workstream-state.ts";
 import { type StackContext, stackContext, type Workstream } from "./workstreams.ts";
+
+/** A workstream's newest stored summary. */
+export interface WorkstreamSummaryInput {
+  /** Suggested name. */
+  name: string | null;
+  text: string;
+  status: string | null;
+  generatedAt: string;
+  inputHash: string;
+}
 
 export interface GroupSummary {
   text: string;
@@ -63,7 +72,7 @@ export function groupKey(id: string): string {
 export interface WorkstreamInput {
   workstream: Workstream;
   state: WorkstreamState | null;
-  summary: WorkstreamSummaryRecord | null;
+  summary: WorkstreamSummaryInput | null;
   /**
    * Whether the group's snooze still holds, once its wake conditions were checked against the
    * members' events. Without it, any snooze in `state` counts.
@@ -240,8 +249,8 @@ function groupSummary(input: WorkstreamInput): GroupSummary | null {
     text: summary.text,
     status: summary.status,
     generatedAt: summary.generatedAt,
-    hash: summary.hash,
-    changed: state?.seenSummaryHash != null && state.seenSummaryHash !== summary.hash,
+    hash: summary.inputHash,
+    changed: state?.seenSummaryHash != null && state.seenSummaryHash !== summary.inputHash,
   };
 }
 

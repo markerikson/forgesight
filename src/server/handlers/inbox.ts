@@ -6,6 +6,7 @@ import {
 } from "../../core/index.ts";
 import type { SubjectKey } from "../../core/types.ts";
 import { isShownWorkstream, type MemberFacts, workstreamSnoozeActive } from "../../core/workstream-state.ts";
+import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { listViews } from "../../store/views.ts";
 import { getWorkstreamStates, listWorkstreams, memberFacts, toWorkstream } from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
@@ -26,6 +27,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx): WorkstreamInput[] {
     ctx.db,
     stored.map((w) => w.id),
   );
+  const summaries = latestWorkstreamSummaries(ctx.db);
   const inputs: WorkstreamInput[] = [];
   for (const s of stored) {
     for (const m of s.members) {
@@ -38,8 +40,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx): WorkstreamInput[] {
     if (!isShownWorkstream(workstream, facts, me, state?.seenAt ?? null)) continue;
     // Wake on time only; human-event and ready wakes need member events the inbox read does not load.
     const snoozed = state !== null && workstreamSnoozeActive(state, [], me, now);
-    // PLACEHOLDER: replaced by m4-llm branch at merge (latest summary per workstream id).
-    inputs.push({ workstream, state, summary: null, snoozed });
+    inputs.push({ workstream, state, summary: summaries.get(s.id) ?? null, snoozed });
   }
   return inputs;
 }

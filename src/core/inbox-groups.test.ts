@@ -80,7 +80,7 @@ function input(
       ...overrides.workstream,
     },
     state: overrides.state === null ? null : { ...SEEN, ...overrides.state },
-    summary: { name: "Upload pipeline", text: "Reworks uploads.\nSecond line.", status: null, generatedAt: NOW_ISO, hash: "h1" },
+    summary: { name: "Upload pipeline", text: "Reworks uploads.\nSecond line.", status: null, generatedAt: NOW_ISO, inputHash: "h1" },
   };
 }
 
