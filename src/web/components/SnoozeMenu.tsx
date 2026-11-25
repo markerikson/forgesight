@@ -20,7 +20,11 @@ export function SnoozeMenu() {
   const menu = useAppSelector((state) => state.view.snoozeMenu);
   if (!menu) return null;
   const choices = menuChoices(menu, new Date());
-  const title = menu.keys.length > 1 ? `Snooze ${menu.keys.length} items` : "Snooze";
+  const title = menu.workstream
+    ? "Snooze workstream"
+    : menu.keys.length > 1
+      ? `Snooze ${menu.keys.length} items`
+      : "Snooze";
   const position = menu.anchor ? { top: menu.anchor.top, left: menu.anchor.left } : undefined;
   return (
     <div className={styles.backdrop} onClick={() => dispatch(snoozeMenuClosed())}>

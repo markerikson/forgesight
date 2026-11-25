@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildInboxPayload, buildSubjectDetail } from "./inbox.ts";
+import { buildInboxPayload, buildSubjectDetail, entryKey } from "./inbox.ts";
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
 import type { ThreadRecord } from "./types.ts";
 
@@ -102,7 +102,7 @@ describe("buildInboxPayload", () => {
 
   test("sorts by section order, then newest first, and leaves hidden rows out", () => {
     const payload = buildInboxPayload(rows, { includeHidden: false, now: NOW });
-    expect(payload.rows.map((r) => r.key)).toEqual([
+    expect(payload.rows.map(entryKey)).toEqual([
       "acme/app#4",
       "acme/app#7",
       "acme/lib#3",
@@ -114,7 +114,7 @@ describe("buildInboxPayload", () => {
 
   test("lists hidden rows last when asked", () => {
     const payload = buildInboxPayload(rows, { includeHidden: true, now: NOW });
-    expect(payload.rows.slice(-2).map((r) => r.key)).toEqual(["acme/app#1", "acme/lib#6"]);
+    expect(payload.rows.slice(-2).map(entryKey)).toEqual(["acme/app#1", "acme/lib#6"]);
   });
 
   test("counts every section and the active rows per repo", () => {

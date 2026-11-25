@@ -7,10 +7,11 @@ import { isMuted, markDone, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleM
 import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState } from "../store/state-api.ts";
-import { rowRead, selectSelectedRow } from "../store/view.ts";
+import { rowRead, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
+import { StackBox, WorkstreamPane } from "./WorkstreamPreview.tsx";
 import styles from "./Preview.module.css";
 
 /** True when opening the row should mark it read on GitHub and here. */
@@ -21,6 +22,7 @@ export function hasNewActivity(row: InboxRow): boolean {
 export function Preview() {
   const dispatch = useAppDispatch();
   const row = useAppSelector(selectSelectedRow);
+  const group = useAppSelector(selectSelectedGroup);
   const { data, isError, isFetching } = useGetSubjectQuery(row?.key ?? "", { skip: !row });
   const loaded = data !== undefined && data.key === row?.key ? data : undefined;
   const me = useGetStatusQuery().data?.viewer.login ?? null;
@@ -40,6 +42,7 @@ export function Preview() {
   }, [dispatch, row, loaded]);
 
   if (!row) {
+    if (group) return <WorkstreamPane group={group} />;
     return (
       <section className={styles.preview} aria-label="Preview">
         <p className={styles.message}>Pick a thread, or press j to start at the top.</p>
@@ -145,6 +148,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
         <ActionBar row={row} url={subject.githubUrl ?? subject.header.url} />
         <Header header={subject.header} subject={subject} />
       </div>
+      {subject.workstream && <StackBox workstream={subject.workstream} />}
       {subject.rounds.length === 0 && <p className={styles.message}>No activity stored yet.</p>}
       {subject.rounds.map((round, index) => {
         const prev = subject.rounds[index - 1];

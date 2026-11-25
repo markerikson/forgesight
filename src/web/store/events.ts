@@ -11,6 +11,9 @@ const RECONNECT_MS = 5_000;
 interface ChangedEvent {
   seq: number;
   keys: string[];
+  /** Workstreams whose membership, state or summary changed. */
+  // PLACEHOLDER: replaced by m4-store branch at merge (field name assumed).
+  workstreams?: string[];
 }
 
 function parse<T>(event: MessageEvent): T | null {
@@ -28,17 +31,22 @@ export function startEvents(store: AppStore): () => void {
   let stopped = false;
   let opened = false;
   let pending = new Set<string>();
+  let pendingWorkstreams = new Set<string>();
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   const flush = () => {
     flushTimer = null;
     const keys = [...pending];
+    const workstreams = [...pendingWorkstreams];
     pending = new Set();
+    pendingWorkstreams = new Set();
+    // The inbox list carries the workstream groups, so the LIST tag refreshes them too.
     store.dispatch(
       api.util.invalidateTags([
         { type: "Inbox", id: "LIST" },
         ...keys.map((key) => ({ type: "Subject" as const, id: key })),
+        ...workstreams.map((id) => ({ type: "Workstream" as const, id })),
       ]),
     );
   };
@@ -52,7 +60,7 @@ export function startEvents(store: AppStore): () => void {
       // A new stream starts without the last event id, so nothing is replayed: not the changes
       // since the server render on the first open, nor the changes while it was down later.
       store.dispatch(
-        api.util.invalidateTags(opened ? ["Inbox", "Subject", "Status"] : [{ type: "Inbox", id: "LIST" }, "Status"]),
+        api.util.invalidateTags(opened ? ["Inbox", "Subject", "Workstream", "Status"] : [{ type: "Inbox", id: "LIST" }, "Status"]),
       );
       opened = true;
     };
@@ -67,6 +75,7 @@ export function startEvents(store: AppStore): () => void {
     es.addEventListener("changed", (event) => {
       const data = parse<ChangedEvent>(event);
       for (const key of data?.keys ?? []) pending.add(key);
+      for (const id of data?.workstreams ?? []) pendingWorkstreams.add(id);
       flushTimer ??= setTimeout(flush, CHANGE_BATCH_MS);
     });
     es.addEventListener("status", (event) => {
@@ -74,7 +83,7 @@ export function startEvents(store: AppStore): () => void {
       if (status) store.dispatch(api.util.upsertQueryData("getStatus", undefined, status));
     });
     es.addEventListener("reset", () => {
-      store.dispatch(api.util.invalidateTags(["Inbox", "Subject", "Status"]));
+      store.dispatch(api.util.invalidateTags(["Inbox", "Subject", "Workstream", "Status"]));
     });
   };
 

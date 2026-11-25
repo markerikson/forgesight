@@ -3,13 +3,16 @@ import type { Section, SubjectView } from "../../core/index.ts";
 import { api } from "../store/api.ts";
 import {
   chooseSnooze,
+  doneAllWorkstream,
   markDone,
   menuChoices,
   muteAndUnsubscribe,
   nextRow,
   openSnoozeMenu,
+  openWorkstreamSnooze,
   toggleMute,
   toggleUnread,
+  toggleWorkstreamMute,
 } from "../store/actions.ts";
 import { useAppStore } from "../store/hooks.ts";
 import { refreshNow, undoLatest } from "../store/state-api.ts";
@@ -21,9 +24,12 @@ import {
   moveSelection,
   roundFocused,
   sectionSelected,
+  selectGroupOf,
+  selectSelectedGroup,
   selectSelectedRow,
   snoozeMenuClosed,
   snoozeMenuMoved,
+  toggleWorkstream,
 } from "../store/view.ts";
 
 export interface KeyInput {
@@ -39,6 +45,8 @@ export type KeyAction =
   | { type: "round"; delta: number }
   | { type: "open" }
   | { type: "toggleGroups" }
+  | { type: "expand" }
+  | { type: "collapse" }
   | { type: "prefix" }
   | { type: "section"; section: Section }
   | { type: "help" }
@@ -131,6 +139,12 @@ export function keyAction(e: KeyInput, afterG: boolean, menuOpen = false): KeyAc
       return { type: "open" };
     case "x":
       return { type: "toggleGroups" };
+    case "l":
+    case "ArrowRight":
+      return { type: "expand" };
+    case "h":
+    case "ArrowLeft":
+      return { type: "collapse" };
     case "g":
       return { type: "prefix" };
     case "?":
@@ -210,8 +224,44 @@ export function useKeyboardNav(): void {
 
       const row = selectSelectedRow(state);
       const subject = row ? api.endpoints.getSubject.select(row.key)(state).data : undefined;
+      const group = selectSelectedGroup(state);
+      // The workstream a selected member row is listed under.
+      const parentGroup = row ? selectGroupOf(state).get(row.key) : undefined;
+
+      if (group) {
+        switch (action.type) {
+          case "open":
+          case "toggleGroups":
+            store.dispatch(toggleWorkstream(group.id));
+            return;
+          case "expand":
+          case "collapse":
+            store.dispatch(toggleWorkstream(group.id, action.type === "expand"));
+            return;
+          case "done":
+            store.dispatch(doneAllWorkstream(group));
+            return;
+          case "mute":
+            store.dispatch(toggleWorkstreamMute(group));
+            return;
+          case "snooze":
+            store.dispatch(openWorkstreamSnooze(group, null));
+            return;
+          case "unsubscribe":
+          case "toggleUnread":
+          case "round":
+            return;
+          default:
+            break;
+        }
+      }
 
       switch (action.type) {
+        case "expand":
+          break;
+        case "collapse":
+          if (parentGroup) store.dispatch(toggleWorkstream(parentGroup.id, false));
+          break;
         case "move":
           store.dispatch(moveSelection(action.delta));
           break;

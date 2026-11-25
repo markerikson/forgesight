@@ -1,8 +1,17 @@
 // User state operations (Done, read, snooze, mute ...). The server applies them to stored
 // item state; the client applies `patchInbox` to its cached inbox as an optimistic update.
-import { compareRows, type InboxPayload, repoCounts, sectionCounts } from "./inbox.ts";
+import {
+  groupSection,
+  type InboxEntry,
+  type InboxGroup,
+  type InboxPayload,
+  isGroup,
+  keepsSection,
+  settleInbox,
+} from "./inbox.ts";
 import type { InboxRow } from "./pipeline/types.ts";
 import type { ItemState, SubjectKey } from "./types.ts";
+import type { WorkstreamOp } from "./workstream-placeholders.ts";
 
 export type StateOp =
   | { kind: "done" }
@@ -121,10 +130,6 @@ export function outboxThreads(op: OutboxOp, threads: readonly OutboxThread[]): s
   return wanted.map((t) => t.threadId);
 }
 
-function keepsSection(row: InboxRow): boolean {
-  return row.reasons.includes("reviewRequested") || row.reasons.includes("mentioned");
-}
-
 /**
  * The optimistic version of a list row after `op`, or null when the row leaves the list.
  * A row that moves to Hidden is returned with section `hidden` when `includeHidden` is set.
@@ -159,10 +164,13 @@ export function patchRow(
   }
 }
 
+const listsHidden = (payload: InboxPayload) => payload.rows.some((r) => r.section === "hidden");
+
 /**
- * Applies `patchRow` to the rows with `keys`, re-sorts, and recomputes the sidebar counts.
- * `includeHidden` defaults to whether the payload already lists any Hidden row. Without
- * Hidden rows in the list, the Hidden count grows by the rows that moved there.
+ * Applies `patchRow` to the rows with `keys`, including rows listed inside a workstream
+ * group, moves rows into or out of their groups, re-sorts, and recomputes the sidebar
+ * counts. `includeHidden` defaults to whether the payload already lists any Hidden entry.
+ * Without Hidden entries in the list, the Hidden count grows by the entries that moved there.
  */
 export function patchInbox(
   payload: InboxPayload,
@@ -171,23 +179,74 @@ export function patchInbox(
   now: string,
   opts: { includeHidden?: boolean } = {},
 ): InboxPayload {
-  const includeHidden = opts.includeHidden ?? payload.rows.some((r) => r.section === "hidden");
+  const includeHidden = opts.includeHidden ?? listsHidden(payload);
   const targets = new Set(keys);
-  let movedToHidden = 0;
-  const rows: InboxRow[] = [];
-  for (const row of payload.rows) {
-    if (!targets.has(row.key)) {
-      rows.push(row);
+  const patch = (row: InboxRow): InboxRow => (targets.has(row.key) ? (patchRow(row, op, now, { includeHidden: true }) ?? row) : row);
+  const entries: InboxEntry[] = payload.rows.map((entry) =>
+    isGroup(entry) ? { ...entry, members: entry.members.map(patch) } : patch(entry),
+  );
+  return settleInbox(payload, entries, includeHidden);
+}
+
+/**
+ * The optimistic version of the inbox after a workstream op on group `id`. Ops on a group
+ * the payload does not list (a muted group outside the Hidden view) change nothing; the
+ * server's response fills it in.
+ */
+export function patchWorkstream(
+  payload: InboxPayload,
+  id: string,
+  op: WorkstreamOp,
+  now: string,
+  opts: { includeHidden?: boolean } = {},
+): InboxPayload {
+  const includeHidden = opts.includeHidden ?? listsHidden(payload);
+  const target = payload.rows.find((e) => isGroup(e) && e.id === id) as InboxGroup | undefined;
+  if (!target) return payload;
+  const changed = patchGroup(target, op, now);
+  const entries: InboxEntry[] = [];
+  for (const entry of payload.rows) {
+    if (entry !== target) {
+      if (op.kind === "merge" && isGroup(entry) && entry.id === op.into) {
+        entries.push({ ...entry, memberKeys: [...entry.memberKeys, ...target.memberKeys] });
+      } else {
+        entries.push(entry);
+      }
       continue;
     }
-    const patched = patchRow(row, op, now, { includeHidden });
-    if (row.section !== "hidden" && (patched === null || patched.section === "hidden")) movedToHidden += 1;
-    if (patched !== null) rows.push(patched);
+    if (changed) entries.push(changed);
+    else entries.push(...target.members);
+    if (changed && op.kind === "removeMember") {
+      const removed = target.members.find((m) => m.key === op.key);
+      if (removed) entries.push(removed);
+    }
   }
-  rows.sort(compareRows);
-  const sections = sectionCounts(rows);
-  if (!includeHidden) sections.hidden = payload.sidebar.sections.hidden + movedToHidden;
-  return { ...payload, rows, sidebar: { sections, repos: repoCounts(rows) } };
+  const returned = target.section === "hidden" && changed !== null && groupSection(changed) !== "hidden" ? 1 : 0;
+  return settleInbox(payload, entries, includeHidden, returned);
+}
+
+/** The group after `op`, or null when it stops existing (merged into another group). */
+export function patchGroup(group: InboxGroup, op: WorkstreamOp, _now: string): InboxGroup | null {
+  switch (op.kind) {
+    case "setPriority":
+      return { ...group, priority: op.priority, isNew: false };
+    case "snooze":
+      return { ...group, snoozed: true, snoozeUntil: op.until };
+    case "unsnooze":
+      return { ...group, snoozed: false, snoozeUntil: null };
+    case "rename":
+      return op.name ? { ...group, name: op.name } : group;
+    case "seen":
+      return { ...group, isNew: false, summary: group.summary && { ...group.summary, changed: false } };
+    case "removeMember":
+      return {
+        ...group,
+        memberKeys: group.memberKeys.filter((k) => k !== op.key),
+        members: group.members.filter((m) => m.key !== op.key),
+      };
+    case "merge":
+      return null;
+  }
 }
 
 const STATE_OP_KINDS: ReadonlySet<string> = new Set<StateOpKind>([

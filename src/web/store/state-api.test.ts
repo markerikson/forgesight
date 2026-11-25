@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import type { InboxRow } from "../../core/index.ts";
+import { type InboxRow, entryKey } from "../../core/index.ts";
 import { api } from "./api.ts";
 import { row, storeWith } from "./__fixtures__/inbox.ts";
 import { applyState, undoLatest } from "./state-api.ts";
@@ -55,7 +55,7 @@ describe("applyState", () => {
     replies.push({ status: 200, body: { opId: 1, outboxIds: [1], rows: { "acme/app#2": doneRow } } });
 
     store.dispatch(applyState(["acme/app#2"], { kind: "done" }));
-    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#1", "acme/app#3"]);
+    expect(selectVisibleRows(store.getState()).map(entryKey)).toEqual(["acme/app#1", "acme/app#3"]);
     expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#3");
 
     await settle();
@@ -86,10 +86,10 @@ describe("applyState", () => {
 
     store.dispatch(applyState(["acme/app#1"], { kind: "mute" }));
     store.dispatch(applyState(["acme/app#2"], { kind: "done" }));
-    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#3"]);
+    expect(selectVisibleRows(store.getState()).map(entryKey)).toEqual(["acme/app#3"]);
 
     await new Promise((resolve) => setTimeout(resolve, 40));
-    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#1", "acme/app#3"]);
+    expect(selectVisibleRows(store.getState()).map(entryKey)).toEqual(["acme/app#1", "acme/app#3"]);
     expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 1 });
   });
 
@@ -168,7 +168,7 @@ describe("undoLatest", () => {
     store.dispatch(undoLatest());
     await settle();
     expect(store.getState().view.lingering).toEqual([readRow]);
-    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toContain("acme/app#1");
+    expect(selectVisibleRows(store.getState()).map(entryKey)).toContain("acme/app#1");
   });
 
   test("a superseded undo explains why and drops the entry", async () => {

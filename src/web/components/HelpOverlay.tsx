@@ -7,6 +7,7 @@ const SHORTCUTS: [keys: string, action: string][] = [
   ["n / p", "Next (older) / previous round"],
   ["o / Enter", "Open on GitHub"],
   ["x", "Expand or collapse groups in the focused round"],
+  ["l / h", "Expand or collapse the selected workstream"],
   ["Space", "Next thread"],
   ["e", "Done"],
   ["s / z", "Snooze (or unsnooze)"],

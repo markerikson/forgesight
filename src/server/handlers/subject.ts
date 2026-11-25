@@ -1,7 +1,8 @@
-import { type SubjectDetail, type SubjectView, buildSubjectDetail } from "../../core/index.ts";
+import { type SubjectDetail, type SubjectView, buildSubjectDetail, subjectWorkstream } from "../../core/index.ts";
 import { threadsForSubject } from "../../store/threads.ts";
 import { getView } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
+import { loadWorkstreamInputs } from "./inbox.ts";
 
 /**
  * The subject key from `/api/subjects/<owner>/<repo>/<number>` or
@@ -31,7 +32,14 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
   const view = getView(ctx.db, key);
   if (!view) return null;
   // The worker writes `detail` with `toViewRecord`, so the stored JSON is a SubjectView.
-  return buildSubjectDetail(view.detail as unknown as SubjectView, threadsForSubject(ctx.db, key));
+  const input = loadWorkstreamInputs(ctx).find((w) => w.workstream.members.includes(key));
+  const workstream = input
+    ? subjectWorkstream(input, key, (k) => {
+        const row = getView(ctx.db, k)?.row as { title?: string } | undefined;
+        return row?.title ?? null;
+      })
+    : null;
+  return buildSubjectDetail(view.detail as unknown as SubjectView, threadsForSubject(ctx.db, key), workstream);
 }
 
 export async function subjectHandler(req: Request, ctx: ServerCtx): Promise<Response> {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { InboxPayload, Section, SubjectView } from "../../core/index.ts";
+import { entryKey, type InboxPayload, type Section, type SubjectView } from "../../core/index.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
@@ -95,14 +95,14 @@ describe("inboxHandler", () => {
     const { status, body } = await get(inboxHandler, "/api/inbox", seeded());
     const payload = body as InboxPayload;
     expect(status).toBe(200);
-    expect(payload.rows.map((r) => r.key)).toEqual(["acme/app#1", "acme/app@t9"]);
+    expect(payload.rows.map(entryKey)).toEqual(["acme/app#1", "acme/app@t9"]);
     expect(payload.sidebar.sections.hidden).toBe(1);
     expect(payload.countLines).toEqual(["app: 1 pushed"]);
   });
 
   test("includes hidden rows with includeHidden=1", async () => {
     const { body } = await get(inboxHandler, "/api/inbox?includeHidden=1", seeded());
-    expect((body as InboxPayload).rows.map((r) => r.key)).toContain("acme/app#2");
+    expect((body as InboxPayload).rows.map(entryKey)).toContain("acme/app#2");
   });
 
   test("returns an empty inbox before the worker has derived anything", async () => {

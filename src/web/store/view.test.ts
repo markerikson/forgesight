@@ -1,8 +1,16 @@
 import { describe, expect, test } from "bun:test";
+import { entryKey } from "../../core/index.ts";
 import { api } from "./api.ts";
-import { payload, row, storeWith } from "./__fixtures__/inbox.ts";
+import { group, payload, row, storeWith } from "./__fixtures__/inbox.ts";
 import {
   filterRows,
+  flattenEntries,
+  MEMBER_CAP,
+  selectGroupOf,
+  selectSelectedEntry,
+  selectSelectedGroup,
+  selectSubject,
+  toggleWorkstream,
   groupsToggled,
   lingeringDropped,
   moveSelection,
@@ -36,27 +44,31 @@ const rows = [
 
 describe("filterRows", () => {
   test("keeps the section's rows in payload order", () => {
-    expect(filterRows(rows, "waiting", null).map((r) => r.key)).toEqual(["acme/app#1", "acme/lib#2", "acme/app#3"]);
+    expect(filterRows(rows, "waiting", null).map(entryKey)).toEqual(["acme/app#1", "acme/lib#2", "acme/app#3"]);
   });
 
   test("narrows by repo", () => {
-    expect(filterRows(rows, "waiting", "acme/app").map((r) => r.key)).toEqual(["acme/app#1", "acme/app#3"]);
+    expect(filterRows(rows, "waiting", "acme/app").map(entryKey)).toEqual(["acme/app#1", "acme/app#3"]);
   });
 });
 
 describe("resolveSelection", () => {
   const visible = filterRows(rows, "waiting", null);
+  const pick = (key: string | null, index: number) => {
+    const entry = resolveSelection(visible, key, index);
+    return entry ? entryKey(entry) : null;
+  };
 
   test("finds the selected key", () => {
-    expect(resolveSelection(visible, "acme/app#3", 0)?.key).toBe("acme/app#3");
+    expect(pick("acme/app#3", 0)).toBe("acme/app#3");
   });
 
   test("falls back to the row at the old index when the key is gone", () => {
-    expect(resolveSelection(visible, "acme/gone#9", 1)?.key).toBe("acme/lib#2");
+    expect(pick("acme/gone#9", 1)).toBe("acme/lib#2");
   });
 
   test("clamps the fallback index to the list", () => {
-    expect(resolveSelection(visible, "acme/gone#9", 10)?.key).toBe("acme/app#3");
+    expect(pick("acme/gone#9", 10)).toBe("acme/app#3");
   });
 
   test("returns null when nothing is selected", () => {
@@ -114,7 +126,7 @@ describe("selectors", () => {
     const store = storeWith([row("acme/app#7", "hidden")], true);
     expect(selectVisibleRows(store.getState())).toEqual([]);
     store.dispatch(sectionSelected("hidden"));
-    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toEqual(["acme/app#7"]);
+    expect(selectVisibleRows(store.getState()).map(entryKey)).toEqual(["acme/app#7"]);
     expect(selectRepoCounts(store.getState())).toEqual([{ repo: "acme/app", count: 1 }]);
   });
 });
@@ -148,7 +160,7 @@ describe("lingering rows", () => {
   const read = row("acme/app#2", "updates", "acme/app", { sortAt: "2026-11-02T00:00:00Z" });
 
   test("withLingering keeps read rows in their sort position", () => {
-    expect(withLingering(live, [read], "updates", null).map((r) => r.key)).toEqual([
+    expect(withLingering(live, [read], "updates", null).map(entryKey)).toEqual([
       "acme/app#1",
       "acme/app#2",
       "acme/app#3",
@@ -156,7 +168,7 @@ describe("lingering rows", () => {
   });
 
   test("withLingering prefers the live row and respects the section and repo filter", () => {
-    expect(withLingering(live, [{ ...live[0]!, title: "old" }], "updates", null)[0]?.title).toBe("acme/app#1");
+    expect(withLingering(live, [{ ...live[0]!, title: "old" }], "updates", null)[0]).toBe(live[0]);
     expect(withLingering(live, [read], "waiting", null)).toEqual([]);
     expect(withLingering(live, [read], "updates", "acme/lib")).toEqual([]);
   });
@@ -166,7 +178,7 @@ describe("lingering rows", () => {
     store.dispatch(sectionSelected("updates"));
     store.dispatch(rowRead(read));
     store.dispatch(api.util.upsertQueryEntries([{ endpointName: "getInbox", arg: { includeHidden: false }, value: payload(live) }]));
-    expect(selectVisibleRows(store.getState()).map((r) => r.key)).toContain("acme/app#2");
+    expect(selectVisibleRows(store.getState()).map(entryKey)).toContain("acme/app#2");
     expect([...selectGoneKeys(store.getState())]).toEqual(["acme/app#2"]);
   });
 
@@ -183,7 +195,7 @@ describe("lingering rows", () => {
     let state = viewSlice.reducer(undefined, rowRead(read));
     state = viewSlice.reducer(state, rowRead(live[0]!));
     state = viewSlice.reducer(state, lingeringDropped(["acme/app#2"]));
-    expect(state.lingering.map((r) => r.key)).toEqual(["acme/app#1"]);
+    expect(state.lingering.map(entryKey)).toEqual(["acme/app#1"]);
   });
 });
 
@@ -226,4 +238,54 @@ test("snoozeMenuMoved wraps around the choices", () => {
   expect(state.snoozeMenu?.index).toBe(4);
   state = viewSlice.reducer(state, snoozeMenuMoved({ delta: 1, count: 5 }));
   expect(state.snoozeMenu?.index).toBe(0);
+});
+
+describe("workstream groups", () => {
+  const members = Array.from({ length: 10 }, (_, i) =>
+    row(`acme/app#${10 + i}`, "updates", "acme/app", { sortAt: `2026-11-0${(i % 9) + 1}T00:00:00Z` }),
+  );
+  const stack = group("s1", members);
+  const loose = row("acme/app#1", "waiting");
+  const entries = [loose, stack];
+
+  test("flattenEntries lists members after an expanded group, capped until shown in full", () => {
+    expect(flattenEntries(entries, [], []).map(entryKey)).toEqual(["acme/app#1", "workstream:s1"]);
+    const capped = flattenEntries(entries, ["s1"], []);
+    expect(capped).toHaveLength(2 + MEMBER_CAP);
+    expect(flattenEntries(entries, ["s1"], ["s1"])).toHaveLength(2 + members.length);
+  });
+
+  test("selecting a group row exposes it as the selected group, not a row", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(rowSelected({ key: "workstream:s1", index: 0 }));
+    expect(selectSelectedGroup(store.getState())?.id).toBe("s1");
+    expect(selectSelectedRow(store.getState())).toBeNull();
+  });
+
+  test("collapsing while a member is selected moves selection to the group", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(toggleWorkstream("s1", true));
+    store.dispatch(rowSelected({ key: "acme/app#12", index: 3 }));
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#12");
+    store.dispatch(toggleWorkstream("s1", false));
+    expect(selectSelectedEntry(store.getState()) && entryKey(selectSelectedEntry(store.getState())!)).toBe("workstream:s1");
+  });
+
+  test("selectSubject expands the member's group in full and selects it", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    expect(store.dispatch(selectSubject("acme/app#19"))).toBe(true);
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#19");
+    expect(store.dispatch(selectSubject("acme/app#99"))).toBe(false);
+  });
+
+  test("members count as listed for gone keys", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(rowRead(members[0]!));
+    expect([...selectGoneKeys(store.getState())]).toEqual([]);
+    expect(selectGroupOf(store.getState()).get("acme/app#10")?.id).toBe("s1");
+  });
 });

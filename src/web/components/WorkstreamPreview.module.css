@@ -1,0 +1,167 @@
+.stack {
+  margin: 8px 16px 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+  font-size: 12px;
+}
+
+.stackHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.stackName {
+  font-weight: 600;
+}
+
+.position {
+  color: var(--fg-mute);
+}
+
+.relations {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 10px;
+  margin: 0;
+}
+
+.relations dt {
+  color: var(--fg-mute);
+}
+
+.relations dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  margin: 0;
+  min-width: 0;
+}
+
+.link {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--info);
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.body {
+  padding: 8px 16px 16px;
+}
+
+.summary {
+  margin-top: 6px;
+}
+
+.status {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.summaryText {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.generated,
+.noSummary {
+  margin: 4px 0 0;
+  color: var(--fg-mute);
+  font-size: 11px;
+}
+
+.changed,
+.newBadge {
+  color: var(--new);
+  font-weight: 600;
+}
+
+.priority {
+  display: inline-flex;
+}
+
+.priority > button {
+  border-radius: 0;
+}
+
+.priority > button + button {
+  margin-left: -1px;
+}
+
+.priority > button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.priority > button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.priority > .active {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.members {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member:hover .memberTitle {
+  text-decoration: underline;
+}
+
+.memberNumber,
+.memberTime {
+  flex: none;
+  color: var(--fg-mute);
+  font-size: 12px;
+}
+
+.memberTitle {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberNew {
+  flex: none;
+  color: var(--new);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.memberTime {
+  margin-left: auto;
+}

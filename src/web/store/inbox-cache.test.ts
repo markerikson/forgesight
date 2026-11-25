@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { InboxPayload, InboxRow } from "../../core/index.ts";
+import { entryKey, type InboxPayload, type InboxRow } from "../../core/index.ts";
 import { row } from "./__fixtures__/inbox.ts";
 import { replaceRows } from "./inbox-cache.ts";
 
@@ -18,7 +18,7 @@ const b = row("acme/lib#2", "updates", "acme/lib", { sortAt: "2026-11-01T00:00:0
 describe("replaceRows", () => {
   test("replaces rows in place and recounts sections and repos", () => {
     const result = replaceRows(inbox([a, b], 4), { [b.key]: { ...b, section: "waiting" } }, false);
-    expect(result.rows.map((r) => [r.key, r.section])).toEqual([
+    expect(result.rows.map((r) => [entryKey(r), r.section])).toEqual([
       ["acme/app#1", "waiting"],
       ["acme/lib#2", "waiting"],
     ]);
@@ -32,19 +32,19 @@ describe("replaceRows", () => {
 
   test("drops rows that became hidden from a cache without Hidden, counting them", () => {
     const result = replaceRows(inbox([a, b], 4), { [a.key]: { ...a, section: "hidden" } }, false);
-    expect(result.rows.map((r) => r.key)).toEqual(["acme/lib#2"]);
+    expect(result.rows.map(entryKey)).toEqual(["acme/lib#2"]);
     expect(result.sidebar.sections.hidden).toBe(5);
   });
 
   test("adds rows that came back from Hidden", () => {
     const result = replaceRows(inbox([b], 4), { [a.key]: a }, false);
-    expect(result.rows.map((r) => r.key)).toEqual(["acme/app#1", "acme/lib#2"]);
+    expect(result.rows.map(entryKey)).toEqual(["acme/app#1", "acme/lib#2"]);
     expect(result.sidebar.sections.hidden).toBe(3);
   });
 
   test("keeps hidden rows in a cache that includes Hidden", () => {
     const result = replaceRows(inbox([a, b], 0), { [a.key]: { ...a, section: "hidden" } }, true);
-    expect(result.rows.map((r) => [r.key, r.section])).toEqual([
+    expect(result.rows.map((r) => [entryKey(r), r.section])).toEqual([
       ["acme/lib#2", "updates"],
       ["acme/app#1", "hidden"],
     ]);

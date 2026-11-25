@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildInboxPayload } from "./inbox.ts";
+import { buildInboxPayload, entryKey } from "./inbox.ts";
 import type { InboxRow, Section } from "./pipeline/types.ts";
 import {
   applyStateOp,
@@ -234,7 +234,7 @@ describe("patchInbox", () => {
   test("done drops the rows and moves them into the hidden count", () => {
     const payload = buildInboxPayload(rows, { includeHidden: false, now: new Date(NOW) });
     const next = patchInbox(payload, ["acme/app#1", "acme/lib#3"], { kind: "done" }, NOW);
-    expect(next.rows.map((r) => r.key)).toEqual(["acme/app#2", "acme/app#4"]);
+    expect(next.rows.map(entryKey)).toEqual(["acme/app#2", "acme/app#4"]);
     expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 1, snoozed: 0, hidden: 3 });
     expect(next.sidebar.repos).toEqual([{ repo: "acme/app", waiting: 1, updates: 1 }]);
     expect(next.countLines).toBe(payload.countLines);
@@ -243,14 +243,14 @@ describe("patchInbox", () => {
   test("keeps done rows as hidden when the list shows hidden rows", () => {
     const payload = buildInboxPayload(rows, { includeHidden: true, now: new Date(NOW) });
     const next = patchInbox(payload, ["acme/app#1"], { kind: "done" }, NOW);
-    expect(next.rows.map((r) => r.key)).toEqual(["acme/app#2", "acme/lib#3", "acme/app#4", "acme/app#1", "acme/app#5"]);
+    expect(next.rows.map(entryKey)).toEqual(["acme/app#2", "acme/lib#3", "acme/app#4", "acme/app#1", "acme/app#5"]);
     expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 2, snoozed: 0, hidden: 2 });
   });
 
   test("snooze re-sorts the row into the snoozed section", () => {
     const payload = buildInboxPayload(rows, { includeHidden: false, now: new Date(NOW) });
     const next = patchInbox(payload, ["acme/app#1"], SNOOZE, NOW);
-    expect(next.rows.map((r) => [r.key, r.section])).toEqual([
+    expect(next.rows.map((r) => [entryKey(r), r.section])).toEqual([
       ["acme/app#2", "waiting"],
       ["acme/lib#3", "updates"],
       ["acme/app#4", "updates"],

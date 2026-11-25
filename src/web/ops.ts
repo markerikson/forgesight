@@ -1,4 +1,5 @@
 import type { StateOp } from "../core/state.ts";
+import type { WorkstreamOp } from "../core/workstream-placeholders.ts";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -8,7 +9,7 @@ export function shortTime(iso: string): string {
   return `${WEEKDAYS[d.getDay()]} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-function snoozeLabel(op: Extract<StateOp, { kind: "snooze" }>): string {
+function snoozeLabel(op: { until: string | null; untilHumanEvent: boolean; untilReady: boolean }): string {
   if (op.untilReady) return "Snoozed until ready for review";
   if (op.until && op.untilHumanEvent) return `Snoozed until ${shortTime(op.until)} or someone replies`;
   if (op.until) return `Snoozed until ${shortTime(op.until)}`;
@@ -40,6 +41,30 @@ function baseLabel(op: StateOp): string {
 export function opLabel(op: StateOp, count: number): string {
   const base = baseLabel(op);
   return count > 1 ? `${base}: ${count} items` : base;
+}
+
+/** Toast and undo-menu text for a workstream change, naming the workstream. */
+export function workstreamOpLabel(op: WorkstreamOp, name: string): string {
+  switch (op.kind) {
+    case "setPriority":
+      return op.priority === "muted"
+        ? `Muted workstream ${name}`
+        : op.priority === "low"
+          ? `Low priority: ${name}`
+          : `Normal priority: ${name}`;
+    case "snooze":
+      return `${snoozeLabel(op)}: ${name}`;
+    case "unsnooze":
+      return `Unsnoozed: ${name}`;
+    case "rename":
+      return op.name ? `Renamed to ${op.name}` : `Reset name of ${name}`;
+    case "seen":
+      return `Seen: ${name}`;
+    case "removeMember":
+      return `Removed from ${name}`;
+    case "merge":
+      return `Merged ${name}`;
+  }
 }
 
 export interface SnoozeChoice {
