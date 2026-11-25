@@ -16,7 +16,8 @@ function isAnthropicModel(model: string): model is AnthropicChatModel {
 /**
  * Client for one task, or `null` when the provider's key is not set. Keys come from the
  * environment only, so `config.jsonc` never holds secrets. Throws for a model the
- * provider adapter does not know.
+ * provider adapter does not know, unless `baseUrl` points at a compatible gateway that
+ * may use its own model ids.
  */
 export function llmClientFor(
   task: LlmTaskConfig,
@@ -25,10 +26,11 @@ export function llmClientFor(
 ): LlmClient | null {
   switch (task.provider) {
     case "anthropic": {
-      const model = task.model;
-      if (!isAnthropicModel(model)) {
-        throw new Error(`Unknown Anthropic model "${model}". Known models: ${ANTHROPIC_MODELS.join(", ")}`);
+      if (!task.baseUrl && !isAnthropicModel(task.model)) {
+        throw new Error(`Unknown Anthropic model "${task.model}". Known models: ${ANTHROPIC_MODELS.join(", ")}`);
       }
+      // The adapter only uses the model id as a request field, so a gateway's own id passes through.
+      const model = task.model as AnthropicChatModel;
       const apiKey = env[ANTHROPIC_API_KEY_ENV]?.trim();
       if (!apiKey) return null;
       // The worker owns retries and backoff, so the SDK must not retry on its own.

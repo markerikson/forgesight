@@ -5,6 +5,7 @@ import {
   llmRetryDelayMs,
   prTextsToFetch,
   subjectNumber,
+  SUMMARY_MIN_INTERVAL_MS,
   summaryDecision,
 } from "../core/summaries/plan.ts";
 import { OUTPUT_SCHEMAS } from "../core/summaries/schema.ts";
@@ -187,8 +188,14 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
       const latest = latestSummary(db, "workstream", ws.id);
       if (summaryDecision(latest, request.inputHash, now) !== "queue") continue;
       const last = lastLlmJobFor(db, "workstream", ws.id, request.inputHash);
-      // A failed job is final for this input; a changed input gets a new hash and a new job.
-      if (last?.status === "failed") continue;
+      // A failed input waits out the summary interval; bad keys, low credit and outages clear later.
+      if (
+        last?.status === "failed" &&
+        last.finishedAt &&
+        now.getTime() - Date.parse(last.finishedAt) < SUMMARY_MIN_INTERVAL_MS
+      ) {
+        continue;
+      }
 
       const payload: StoredRequest = { ...request, model };
       const before = last?.status;

@@ -99,6 +99,14 @@ describe("llmClientFor", () => {
     expect(() => llmClientFor({ ...task, model: "claude-nope" }, env)).toThrow(/Unknown Anthropic model/);
   });
 
+  test("a gateway base URL accepts its own model ids", async () => {
+    const seen: Seen[] = [];
+    const gateway = { ...task, model: "gateway-model", baseUrl: "http://localhost:9999" };
+    const client = llmClientFor(gateway, env, fakeFetch(400, JSON.stringify({ type: "error" }), seen));
+    await client!.complete({ ...request, model: "gateway-model" }).catch(() => undefined);
+    expect(seen[0]!.body).toMatchObject({ model: "gateway-model" });
+  });
+
   test("calls the Anthropic API with the key, base URL and request", async () => {
     const seen: Seen[] = [];
     const answer = JSON.stringify({ name: "Auth rewrite", summary: "Rewrites auth." });

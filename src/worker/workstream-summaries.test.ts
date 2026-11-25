@@ -308,22 +308,30 @@ describe("workstream summaries job", () => {
     expect(llm.requests[0]?.user).toContain("## #2 Step 2");
   });
 
-  test("a non-retryable failure is not queued again for the same input", async () => {
+  test("a non-retryable failure waits out the summary interval before trying again", async () => {
     const { db, ctx, setPr, advance } = setup();
     setPr(pr(1));
+    let fail = true;
     const llm = new FakeLlmClient(() => {
-      throw new LlmError("bad request", 400, false);
+      if (fail) throw new LlmError("bad request", 400, false);
+      return { name: "Recovered", summary: "Works again." };
     });
     const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
     await job.run(ctx);
     expect(llm.requests).toHaveLength(1);
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       advance(HOUR);
       // oxlint-disable-next-line no-await-in-loop -- each pass depends on the previous one
       expect(await job.run(ctx)).toBe("idle");
     }
     expect(llm.requests).toHaveLength(1);
     expect(latestWorkstreamSummaries(db).size).toBe(0);
+
+    fail = false;
+    advance(HOUR);
+    await job.run(ctx);
+    expect(llm.requests).toHaveLength(2);
+    expect(latestWorkstreamSummaries(db).get(`${REPO}:ws:1`)?.text).toBe("Works again.");
   });
 
   test("by default summarizes the stored workstreams", async () => {
