@@ -1,0 +1,33 @@
+.wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  min-width: 0;
+}
+
+.link {
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--info);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.github {
+  flex: none;
+  color: var(--fg-fade);
+  font-size: 0.85em;
+  text-decoration: none;
+}
+
+.github:hover {
+  color: var(--info);
+}

@@ -14,6 +14,8 @@ import {
   type WsOverride,
   type WsSignal,
 } from "../core/workstreams.ts";
+import { firstWorkstreamBuildMetaKey } from "../core/meta-keys.ts";
+import { getMeta, setMeta } from "./meta.ts";
 import { bool, jsonList, toJson } from "./rows.ts";
 import { appendChange } from "./views.ts";
 
@@ -173,6 +175,21 @@ export function listWorkstreams(db: Database, repo?: string): StoredWorkstream[]
   return withMembers(db, rows);
 }
 
+function earliestFirstSeen(db: Database, repo: string): string | undefined {
+  const row = db
+    .query<{ first: string | null }, [string]>("SELECT MIN(first_seen_at) AS first FROM workstreams WHERE repo = ?")
+    .get(repo);
+  return row?.first ?? undefined;
+}
+
+/**
+ * When grouping first ran for `repo`. Stored once in `meta`, so deleting old workstream rows
+ * does not move it; repos built before it was stored fall back to the earliest `first_seen_at`.
+ */
+export function firstWorkstreamBuild(db: Database, repo: string): string | undefined {
+  return getMeta(db, firstWorkstreamBuildMetaKey(repo)) ?? earliestFirstSeen(db, repo);
+}
+
 /**
  * The `previous` input for `buildWorkstreams`: current workstreams of `repo` plus closed ones
  * that left the listing in the last 14 days (stored without members).
@@ -273,6 +290,9 @@ export function writeWorkstreams(
   now: string,
 ): WriteWorkstreamsResult {
   return db.transaction(() => {
+    if (getMeta(db, firstWorkstreamBuildMetaKey(repo)) === undefined) {
+      setMeta(db, firstWorkstreamBuildMetaKey(repo), earliestFirstSeen(db, repo) ?? now, now);
+    }
     const before = listWorkstreams(db, repo);
     const archivedFirstSeen = new Map(
       db

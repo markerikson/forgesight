@@ -105,6 +105,18 @@
   padding-left: 30px;
 }
 
+/* The ↗ GitHub link keeps its space but only shows on the hovered or selected row. */
+.github {
+  flex: none;
+  visibility: hidden;
+}
+
+.row:hover .github,
+.row:focus-within .github,
+.selected .github {
+  visibility: visible;
+}
+
 .actions {
   flex: none;
   display: none;

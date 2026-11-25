@@ -1,7 +1,7 @@
 // Response shapes for the inbox API and the pure functions that build them. The server
 // handlers and the web client both import these types.
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
-import type { SubjectKey, SubjectState, ThreadRecord } from "./types.ts";
+import type { Login, SubjectKey, SubjectState, ThreadRecord } from "./types.ts";
 import type { WorkstreamState, WsPriority } from "./workstream-state.ts";
 import { type StackContext, stackContext, type Workstream } from "./workstreams.ts";
 
@@ -36,6 +36,11 @@ export interface InboxGroup {
   priority: WsPriority;
   /** Not opened yet and no priority set. */
   isNew: boolean;
+  /**
+   * Found by the repo's first workstream build, or of unknown age. Every group is unseen after
+   * that build, so these get no "new workstream" badge; see `isNewWorkstream`.
+   */
+  firstBuild: boolean;
   /** Best member section; Updates at most for low priority; Hidden when muted; Snoozed while snoozed. */
   section: Section;
   /** Newest listed member's `sortAt`. */
@@ -53,6 +58,15 @@ export interface InboxGroup {
   closed: boolean;
   snoozed: boolean;
   snoozeUntil: string | null;
+  /** The first member's description when it has no inbox row; otherwise the preview loads it. */
+  rootBody: RootBody | null;
+}
+
+/** A stored PR description: GitHub's plain-text rendering, cut to a fixed length. */
+export interface RootBody {
+  text: string;
+  /** The stored text was cut short; the full description is on GitHub. */
+  clipped: boolean;
 }
 
 /** Why a member is not listed in its group: its row is Hidden or Snoozed, or it has no notification. */
@@ -66,6 +80,9 @@ export interface UnlistedMember {
   url: string | null;
   state: SubjectState | null;
   draft: boolean;
+  author: Login | null;
+  /** Last activity: the row's `sortAt`, else the PR's `updatedAt` when listed or fetched. */
+  updatedAt: string | null;
   why: UnlistedReason;
 }
 
@@ -99,6 +116,12 @@ export interface WorkstreamInput {
   snoozed?: boolean;
   /** Members with no inbox row, so the group can still show them. */
   pulls?: Record<SubjectKey, ListedPull>;
+  /** The first member's stored description, when that member has no inbox row. */
+  rootBody?: RootBody | null;
+  /** When this workstream was first stored. */
+  firstSeenAt?: string;
+  /** When the repo's first workstream was stored: its first workstream build. */
+  repoFirstSeenAt?: string;
 }
 
 /** Where a subject sits in its workstream, for the preview's stack box. */
@@ -106,8 +129,13 @@ export interface SubjectWorkstream {
   id: string;
   name: string;
   stack: StackContext;
+  /**
+   * The subject sits on a branch stack: it has a parent or children in the group. False for
+   * members grouped by config, title or a manual merge, which have no base-branch relation.
+   */
+  stacked: boolean;
   summary: GroupSummary | null;
-  /** Titles of the parent and children, when they have rows. */
+  /** Titles of the parent and children, when known. */
   titles: Record<SubjectKey, string>;
 }
 
@@ -146,7 +174,41 @@ export interface SubjectDetail extends SubjectView {
 
 const SECTION_ORDER: Record<Section, number> = { waiting: 0, updates: 1, snoozed: 2, hidden: 3 };
 
-const isNewGroup = (e: InboxEntry) => (isGroup(e) && e.isNew ? 0 : 1);
+/** Unseen, and found after the repo's first workstream build: worth a "new workstream" badge. */
+export function isNewWorkstream(group: Pick<InboxGroup, "isNew" | "firstBuild">): boolean {
+  return group.isNew && !group.firstBuild;
+}
+
+/** A group's members by state, listed and unlisted, and its newest member activity. */
+export interface GroupTotals {
+  /** Open and not draft. */
+  open: number;
+  draft: number;
+  merged: number;
+  closed: number;
+  lastActivityAt: string | null;
+}
+
+/** Totals over the members the group knows about; members with an unknown state are not counted. */
+export function groupTotals(group: Pick<InboxGroup, "members" | "unlisted">): GroupTotals {
+  const totals: GroupTotals = { open: 0, draft: 0, merged: 0, closed: 0, lastActivityAt: null };
+  const members = [
+    ...group.members.map((m) => ({ state: m.merged ? "MERGED" : m.state, draft: m.draft, at: m.sortAt })),
+    ...group.unlisted.map((u) => ({ state: u.state, draft: u.draft, at: u.updatedAt })),
+  ];
+  for (const { state, draft, at } of members) {
+    if (state === "MERGED") totals.merged++;
+    else if (state === "CLOSED") totals.closed++;
+    else if (state === "OPEN") {
+      if (draft) totals.draft++;
+      else totals.open++;
+    }
+    if (at && (totals.lastActivityAt === null || at > totals.lastActivityAt)) totals.lastActivityAt = at;
+  }
+  return totals;
+}
+
+const isNewGroup = (e: InboxEntry) => (isGroup(e) && isNewWorkstream(e) ? 0 : 1);
 
 /** Inbox order: section, then new workstreams, then `sortAt` newest first, then key. */
 export function compareRows(a: InboxEntry, b: InboxEntry): number {
@@ -271,8 +333,8 @@ function unlistedMembers(group: InboxGroup, rows: ReadonlyMap<SubjectKey, InboxR
     const row = rows.get(key);
     if (row) {
       if (row.section !== "hidden" && row.section !== "snoozed") continue;
-      const { number, title, url, state, draft } = row;
-      out.push({ key, number, title, url, state, draft, why: row.section });
+      const { number, title, url, state, draft, author } = row;
+      out.push({ key, number, title, url, state, draft, author, updatedAt: row.sortAt, why: row.section });
       continue;
     }
     const prior = known.get(key);
@@ -336,6 +398,10 @@ export function buildGroup(input: WorkstreamInput, allRows: readonly InboxRow[])
     summary: groupSummary(input),
     priority,
     isNew: !ws.closed && (state?.seenAt ?? null) === null,
+    firstBuild:
+      input.firstSeenAt === undefined ||
+      input.repoFirstSeenAt === undefined ||
+      input.firstSeenAt <= input.repoFirstSeenAt,
     section: "updates",
     sortAt: "",
     members: [],
@@ -351,6 +417,7 @@ export function buildGroup(input: WorkstreamInput, allRows: readonly InboxRow[])
     closed: ws.closed,
     snoozed,
     snoozeUntil: state?.snoozeUntil ?? null,
+    rootBody: input.rootBody ?? null,
   };
 }
 
@@ -367,7 +434,8 @@ export function subjectWorkstream(
     const title = k === null ? null : titleOf(k);
     if (k !== null && title !== null) titles[k] = title;
   }
-  return { id: input.workstream.id, name: groupName(input), stack, summary: groupSummary(input), titles };
+  const stacked = stack.parent !== null || stack.children.length > 0;
+  return { id: input.workstream.id, name: groupName(input), stack, stacked, summary: groupSummary(input), titles };
 }
 
 function shortName(repo: string): string {

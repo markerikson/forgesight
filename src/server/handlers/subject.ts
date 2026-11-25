@@ -7,12 +7,12 @@ import {
   subjectWorkstream,
 } from "../../core/index.ts";
 import { latestWorkstreamSummaries } from "../../store/llm.ts";
-import { getPrTexts } from "../../store/pr-texts.ts";
 import { getSubject, markDirty } from "../../store/subjects.ts";
 import { threadsForSubject } from "../../store/threads.ts";
 import { getView } from "../../store/views.ts";
 import { getWorkstreamState, toWorkstream, workstreamForSubject } from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
+import { listedPulls } from "./inbox.ts";
 
 /**
  * The subject key from `/api/subjects/<owner>/<repo>/<number>` or
@@ -46,14 +46,10 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
   let workstream: SubjectWorkstream | null = null;
   if (stored) {
     const ws = toWorkstream(stored);
-    const listed = getPrTexts(
-      ctx.db,
-      ws.repo,
-      ws.members.map((k) => Number(k.slice(k.lastIndexOf("#") + 1))).filter((n) => Number.isInteger(n) && n > 0),
-    );
+    const listed = listedPulls(ctx, ws.repo, ws.members);
     const titleOf = (k: string) => {
       const row = getView(ctx.db, k)?.row as { title?: string } | undefined;
-      return row?.title ?? listed.get(Number(k.slice(k.lastIndexOf("#") + 1)))?.title ?? null;
+      return row?.title || listed[k]?.title || null;
     };
     const input = {
       workstream: ws,

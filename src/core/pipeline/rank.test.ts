@@ -9,6 +9,8 @@ const REPO = "replayio/backend";
 const KEY = `${REPO}#1`;
 const DISMISSED = "2026-11-20T00:00:00Z";
 const NOW = new Date("2026-11-22T00:00:00Z");
+// My open PRs always wait unless marked done, so tests about which activity counts on my PR mark it done first.
+const DONE_MINE = { author: ME, itemState: { doneAt: DISMISSED } };
 
 const user = (login: string) => ({ login, __typename: "User" });
 const bot = (login: string) => ({ login, __typename: "Bot" });
@@ -188,9 +190,34 @@ describe("rank", () => {
   });
 
   test("a human comment on my PR is waiting", () => {
-    const view = derive({ author: ME, items: [comment("alice", "2026-11-21T00:00:00Z", "nit")] });
+    const view = derive({ ...DONE_MINE, items: [comment("alice", "2026-11-21T00:00:00Z", "nit")] });
     expect(view.section).toBe("waiting");
-    expect(view.reasons).toEqual(["onMine"]);
+    expect(view.reasons).toEqual(["onMine", "myOpenPr"]);
+  });
+
+  test("my open PRs, drafts included, are waiting with no new activity", () => {
+    const open = derive({ author: ME });
+    expect(open.section).toBe("waiting");
+    expect(open.reasons).toEqual(["myOpenPr"]);
+    expect(derive({ author: ME, raw: { isDraft: true } }).section).toBe("waiting");
+  });
+
+  test("marking my open PR done clears it until something new shows", () => {
+    expect(derive(DONE_MINE).section).toBe("hidden");
+    const later = derive({ ...DONE_MINE, items: [comment("alice", "2026-11-21T00:00:00Z", "nit")] });
+    expect(later.reasons).toContain("myOpenPr");
+    expect(later.section).toBe("waiting");
+  });
+
+  test("my closed PRs and my issues do not get the open PR reason", () => {
+    expect(derive({ author: ME, state: "MERGED" }).reasons).not.toContain("myOpenPr");
+    expect(derive({ author: ME, state: "CLOSED" }).reasons).not.toContain("myOpenPr");
+    expect(derive({ author: ME, kind: "issue" }).reasons).not.toContain("myOpenPr");
+  });
+
+  test("a muted or snoozed open PR of mine still follows the override", () => {
+    expect(derive({ author: ME, itemState: { muted: true } }).section).toBe("hidden");
+    expect(derive({ author: ME, itemState: { snoozeUntil: "2026-11-23T00:00:00Z" } }).section).toBe("snoozed");
   });
 
   test("a human comment on a subscribed PR is an update", () => {
@@ -208,16 +235,16 @@ describe("rank", () => {
   });
 
   test("agent output posted under a human login does not count as human activity", () => {
-    const view = derive({ author: ME, items: [comment("bhackett1024", "2026-11-21T00:00:00Z", "🤖 Superseded by #2")] });
+    const view = derive({ ...DONE_MINE, items: [comment("bhackett1024", "2026-11-21T00:00:00Z", "🤖 Superseded by #2")] });
     expect(view.section).toBe("hidden");
   });
 
   test("socket comments are hidden unless they carry a caution block on my own PR", () => {
-    const quiet = derive({ author: ME, items: [comment("socket-security", "2026-11-21T00:00:00Z", "All good", true)] });
+    const quiet = derive({ ...DONE_MINE, items: [comment("socket-security", "2026-11-21T00:00:00Z", "All good", true)] });
     expect(quiet.section).toBe("hidden");
     const cautionItems = () => [comment("socket-security", "2026-11-21T00:00:00Z", "> [!CAUTION]\n> risky dep", true)];
-    const mine = derive({ author: ME, items: cautionItems() });
-    expect(mine.section).toBe("updates");
+    const mine = derive({ ...DONE_MINE, items: cautionItems() });
+    expect(mine.reasons).not.toContain("onMine");
     expect(mine.rounds[0]?.entries[0]).toMatchObject({ type: "event", event: { ruleId: "socket", level: "show" } });
     const theirs = derive({ items: cautionItems() });
     expect(theirs.section).toBe("hidden");
@@ -289,9 +316,9 @@ describe("rank", () => {
       body: "",
     });
     const merged = item("MergedEvent", "2026-11-21T01:00:00Z", { actor: user("alice"), commit: { oid: "x" } });
-    expect(derive({ mode: "simple", author: ME, items: [review, merged] }).section).toBe("hidden");
+    expect(derive({ mode: "simple", ...DONE_MINE, items: [review, merged] }).section).toBe("hidden");
     const talk = comment("alice", "2026-11-21T02:00:00Z", "question");
-    expect(derive({ mode: "simple", author: ME, items: [review, merged, talk] }).section).toBe("waiting");
+    expect(derive({ mode: "simple", ...DONE_MINE, items: [review, merged, talk] }).reasons).toContain("onMine");
   });
 
   test("snooze overrides the section until it expires", () => {
@@ -342,7 +369,7 @@ describe("rank", () => {
 
   test("agent approve verdicts are hidden", () => {
     const verdict = comment("alice", "2026-11-21T00:00:00Z", "🤖 Approve: no issues found");
-    const view = derive({ author: ME, items: [verdict] });
+    const view = derive({ ...DONE_MINE, items: [verdict] });
     expect(view.section).toBe("hidden");
     expect(view.rounds[0]?.hiddenCount).toBe(1);
   });

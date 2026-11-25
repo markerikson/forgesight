@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
   buildInboxPayload,
   entryKey,
+  groupTotals,
   type InboxGroup,
   type InboxPayload,
   isGroup,
+  isNewWorkstream,
   subjectWorkstream,
   type WorkstreamInput,
 } from "./inbox.ts";
@@ -104,7 +106,15 @@ function groupOf(payload: InboxPayload): InboxGroup {
 
 describe("unlisted members", () => {
   const K5 = "replayio/backend#5";
-  const pull = { number: 5, title: "Listing only", url: "https://github.com/replayio/backend/pull/5", state: "OPEN" as const, draft: true };
+  const pull = {
+    number: 5,
+    title: "Listing only",
+    url: "https://github.com/replayio/backend/pull/5",
+    state: "OPEN" as const,
+    draft: true,
+    author: "stacker",
+    updatedAt: "2026-11-04T00:00:00Z",
+  };
 
   test("hidden rows and members without a thread are unlisted, in stack order", () => {
     const ws = { ...input({ members: [K1, K5, K2, K3, K4] }), pulls: { [K5]: pull } };
@@ -112,7 +122,17 @@ describe("unlisted members", () => {
     expect(group.members.map((m) => m.key)).toEqual([K1, K2, K3]);
     expect(group.unlisted).toEqual([
       { key: K5, ...pull, why: "noThread" },
-      { key: K4, number: 4, title: `Title ${K4}`, url: null, state: "CLOSED", draft: false, why: "hidden" },
+      {
+        key: K4,
+        number: 4,
+        title: `Title ${K4}`,
+        url: null,
+        state: "CLOSED",
+        draft: false,
+        author: "stacker",
+        updatedAt: "2026-11-01T00:00:00Z",
+        why: "hidden",
+      },
     ]);
     expect(group.moreCount).toBe(2);
   });
@@ -285,5 +305,71 @@ describe("subjectWorkstream", () => {
 
   test("is null outside the workstream", () => {
     expect(subjectWorkstream(input(), "acme/app#9", () => null)).toBeNull();
+  });
+
+  test("a stacked member is stacked; a config group member is not", () => {
+    expect(subjectWorkstream(input(), K2, () => null)?.stacked).toBe(true);
+    const config = input({ workstream: { edges: [], signals: ["config"], nameSource: "config" } });
+    const ws = subjectWorkstream(config, K2, () => null);
+    expect(ws?.stacked).toBe(false);
+    expect(ws?.stack).toMatchObject({ parent: null, children: [], size: 4 });
+  });
+});
+
+describe("new workstream badge", () => {
+  const unseen = (dates: { firstSeenAt?: string; repoFirstSeenAt?: string }) =>
+    groupOf(build([{ ...input({ state: null }), ...dates }]));
+
+  test("groups from the repo's first build are unseen but get no badge", () => {
+    const group = unseen({ firstSeenAt: "2026-11-01T00:00:00Z", repoFirstSeenAt: "2026-11-01T00:00:00Z" });
+    expect(group.isNew).toBe(true);
+    expect(isNewWorkstream(group)).toBe(false);
+  });
+
+  test("groups of unknown age get no badge", () => {
+    expect(isNewWorkstream(unseen({}))).toBe(false);
+    expect(isNewWorkstream(unseen({ firstSeenAt: "2026-11-02T00:00:00Z" }))).toBe(false);
+  });
+
+  test("an unseen group found after the first build gets the badge until opened", () => {
+    const dates = { firstSeenAt: "2026-11-02T00:00:00Z", repoFirstSeenAt: "2026-11-01T00:00:00Z" };
+    expect(isNewWorkstream(unseen(dates))).toBe(true);
+    const seen = groupOf(build([{ ...input(), ...dates }]));
+    expect(isNewWorkstream(seen)).toBe(false);
+  });
+
+  test("only badged groups sort first in their section", () => {
+    const rows = [row(K1, "updates", { sortAt: "2026-11-01T00:00:00Z" }), row(K2, "updates", { sortAt: "2026-11-01T00:00:00Z" }), row("acme/app#9", "updates", { repo: "acme/app", sortAt: "2026-11-06T00:00:00Z" })];
+    const old = { ...input({ state: null, members: [K1, K2] }), firstSeenAt: "2026-11-01T00:00:00Z", repoFirstSeenAt: "2026-11-01T00:00:00Z" };
+    expect(build([old], false, rows).rows.map(entryKey)).toEqual(["acme/app#9", "workstream:ws1"]);
+    const fresh = { ...old, firstSeenAt: "2026-11-03T00:00:00Z" };
+    expect(build([fresh], false, rows).rows.map(entryKey)).toEqual(["workstream:ws1", "acme/app#9"]);
+  });
+});
+
+describe("groupTotals", () => {
+  test("counts listed and unlisted members by state and finds the newest activity", () => {
+    const members = [
+      row(K1, "updates", { sortAt: "2026-11-05T00:00:00Z" }),
+      row(K2, "waiting", { draft: true, sortAt: "2026-11-03T00:00:00Z" }),
+      row(K3, "updates", { state: "MERGED", merged: true, sortAt: "2026-11-02T00:00:00Z" }),
+    ];
+    const base = { key: K4, number: 4, title: "t", url: null, draft: false, author: null, why: "noThread" as const };
+    const unlisted = [
+      { ...base, state: "CLOSED" as const, updatedAt: "2026-11-07T00:00:00Z" },
+      { ...base, key: "replayio/backend#5", state: "MERGED" as const, updatedAt: null },
+      { ...base, key: "replayio/backend#6", state: null, updatedAt: null },
+    ];
+    expect(groupTotals({ members, unlisted })).toEqual({
+      open: 1,
+      draft: 1,
+      merged: 2,
+      closed: 1,
+      lastActivityAt: "2026-11-07T00:00:00Z",
+    });
+  });
+
+  test("an empty group has no activity", () => {
+    expect(groupTotals({ members: [], unlisted: [] })).toEqual({ open: 0, draft: 0, merged: 0, closed: 0, lastActivityAt: null });
   });
 });

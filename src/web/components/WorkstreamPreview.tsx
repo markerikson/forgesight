@@ -1,4 +1,10 @@
-import type { GroupSummary, InboxGroup, SubjectWorkstream } from "../../core/inbox.ts";
+import {
+  type GroupSummary,
+  groupTotals,
+  type InboxGroup,
+  isNewWorkstream,
+  type SubjectWorkstream,
+} from "../../core/inbox.ts";
 import type { SubjectKey } from "../../core/types.ts";
 import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
 import { relativeTime, repoShortName } from "../format.ts";
@@ -10,10 +16,13 @@ import {
   renameWorkstream,
   setWorkstreamPriority,
 } from "../store/actions.ts";
+import { useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { selectGoneKeys, selectSubject } from "../store/view.ts";
 import { anchorBelow } from "./SnoozeMenu.tsx";
-import { StateIcon } from "./Badges.tsx";
+import { CiDot, ReviewBadge, StateIcon } from "./Badges.tsx";
+import { Description } from "./Description.tsx";
+import { GitHubIcon, SubjectLink } from "./SubjectLink.tsx";
 import { UNLISTED_LABELS } from "./GroupRow.tsx";
 import previewStyles from "./Preview.module.css";
 import styles from "./WorkstreamPreview.module.css";
@@ -24,20 +33,13 @@ const PRIORITIES: { value: WorkstreamPriority; label: string; title: string }[] 
   { value: "muted", label: "Muted", title: "Move to Hidden; review requests and mentions still show" },
 ];
 
-/** GitHub redirects /issues/N to the pull request when N is one. */
-function githubUrlFor(key: SubjectKey): string | null {
-  const match = /^([^#@]+)#(\d+)$/.exec(key);
-  return match ? `https://github.com/${match[1]}/issues/${match[2]}` : null;
-}
-
 function keyLabel(key: SubjectKey): string {
   const hash = key.indexOf("#");
   return hash === -1 ? key : `#${key.slice(hash + 1)}`;
 }
 
-function SummaryBlock({ summary }: { summary: GroupSummary | null }) {
+function SummaryBlock({ summary }: { summary: GroupSummary }) {
   const now = useNow();
-  if (!summary) return <p className={styles.noSummary}>No summary yet.</p>;
   return (
     <div className={styles.summary}>
       {summary.status && <p className={styles.status}>{summary.status}</p>}
@@ -51,21 +53,40 @@ function SummaryBlock({ summary }: { summary: GroupSummary | null }) {
 }
 
 function StackLink({ subjectKey, title }: { subjectKey: SubjectKey; title: string | undefined }) {
-  const dispatch = useAppDispatch();
-  const url = githubUrlFor(subjectKey);
   const label = title ? `${keyLabel(subjectKey)} ${title}` : keyLabel(subjectKey);
   return (
-    <button
-      type="button"
-      className={styles.link}
-      title={title ?? subjectKey}
-      onClick={() => {
-        if (!dispatch(selectSubject(subjectKey)) && url) window.open(url, "_blank", "noopener,noreferrer");
-      }}
-    >
+    <SubjectLink subjectKey={subjectKey} className={styles.link} title={title ?? subjectKey}>
       {label}
-    </button>
+    </SubjectLink>
   );
+}
+
+function totalsText(group: InboxGroup, now: number | null): string {
+  const totals = groupTotals(group);
+  const counts = [
+    totals.open > 0 && `${totals.open} open`,
+    totals.draft > 0 && `${totals.draft} draft`,
+    totals.merged > 0 && `${totals.merged} merged`,
+    totals.closed > 0 && `${totals.closed} closed`,
+  ].filter((part) => part !== false);
+  const activity =
+    now !== null && totals.lastActivityAt !== null ? `last activity ${relativeTime(totals.lastActivityAt, now)} ago` : null;
+  return [counts.join(", "), activity].filter(Boolean).join(" · ");
+}
+
+/** The first member's description: from the payload when it has no inbox row, else its subject. */
+function RootDescription({ group }: { group: InboxGroup }) {
+  const rootKey = group.memberKeys[0];
+  const { data } = useGetSubjectQuery(rootKey ?? "", { skip: rootKey === undefined || group.rootBody !== null });
+  if (rootKey === undefined) return null;
+  const label = `Description of ${keyLabel(rootKey)}`;
+  if (group.rootBody !== null) {
+    const note = group.rootBody.clipped ? "Cut short; the full description is on GitHub." : undefined;
+    return <Description key={rootKey} body={group.rootBody.text} label={label} plain note={note} />;
+  }
+  const body = data && data.key === rootKey ? data.body : null;
+  if (!body) return null;
+  return <Description key={rootKey} body={body} label={label} />;
 }
 
 /** Where the open subject sits in its stack, and what the workstream is about. */
@@ -76,23 +97,26 @@ export function StackBox({ workstream }: { workstream: SubjectWorkstream }) {
       <div className={styles.stackHead}>
         <span className={styles.stackName}>{workstream.name}</span>
         <span className={styles.position}>
-          {stack.position} of {stack.size} in stack
+          {stack.position} of {stack.size}
+          {workstream.stacked && " in stack"}
         </span>
       </div>
-      <dl className={styles.relations}>
-        <dt>Based on</dt>
-        <dd>{stack.parent ? <StackLink subjectKey={stack.parent} title={titles[stack.parent]} /> : "the base branch"}</dd>
-        {stack.children.length > 0 && (
-          <>
-            <dt>Next</dt>
-            <dd>
-              {stack.children.map((child) => (
-                <StackLink key={child} subjectKey={child} title={titles[child]} />
-              ))}
-            </dd>
-          </>
-        )}
-      </dl>
+      {workstream.stacked && (
+        <dl className={styles.relations}>
+          <dt>Based on</dt>
+          <dd>{stack.parent ? <StackLink subjectKey={stack.parent} title={titles[stack.parent]} /> : "the base branch"}</dd>
+          {stack.children.length > 0 && (
+            <>
+              <dt>Next</dt>
+              <dd>
+                {stack.children.map((child) => (
+                  <StackLink key={child} subjectKey={child} title={titles[child]} />
+                ))}
+              </dd>
+            </>
+          )}
+        </dl>
+      )}
       {workstream.summary && <SummaryBlock summary={workstream.summary} />}
     </section>
   );
@@ -114,6 +138,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const stack = stackOrder(group);
   const gone = useAppSelector(selectGoneKeys);
   const doneCount = doneKeys([group], gone).length;
+  const totals = totalsText(group, now);
   const rename = () => {
     const name = window.prompt("Workstream name (empty resets to the generated name)", group.name);
     if (name !== null && name.trim() !== group.name) dispatch(renameWorkstream(group, name));
@@ -168,54 +193,58 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
               {group.members.length + group.moreCount} pull requests and issues
               {group.moreCount > 0 && ` (${group.moreCount} not listed)`}
             </span>
-            {group.isNew && <span className={styles.newBadge}>new workstream</span>}
+            {isNewWorkstream(group) && <span className={styles.newBadge}>new workstream</span>}
             {group.closed && <span>closed</span>}
             {group.snoozeUntil && <span>snoozed until {group.snoozeUntil.slice(0, 10)}</span>}
             {group.closedByAuthor > 0 && <span>{group.closedByAuthor} closed by author</span>}
           </div>
+          {totals && <div className={previewStyles.meta}>{totals}</div>}
         </header>
       </div>
       <div className={styles.body}>
-        <SummaryBlock summary={group.summary} />
+        {group.summary && <SummaryBlock summary={group.summary} />}
         {stack.length > 0 && (
           <ol className={styles.members}>
             {stack.map(({ key, member, unlisted }) =>
               member ? (
-                <li key={key}>
-                  <button type="button" className={styles.member} onClick={() => dispatch(selectSubject(member.key))}>
-                    <StateIcon kind={member.kind} state={member.state} draft={member.draft} merged={member.merged} />
+                <li key={key} className={styles.member}>
+                  <StateIcon kind={member.kind} state={member.state} draft={member.draft} merged={member.merged} />
+                  <button type="button" className={styles.memberMain} onClick={() => dispatch(selectSubject(member.key))}>
                     <span className={styles.memberNumber}>
                       {repoShortName(member.repo)}#{member.number}
                     </span>
                     <span className={styles.memberTitle}>{member.title}</span>
-                    {member.newMeaningfulCount > 0 && (
-                      <span className={styles.memberNew}>{member.newMeaningfulCount} new</span>
-                    )}
-                    {now !== null && <span className={styles.memberTime}>{relativeTime(member.sortAt, now)}</span>}
                   </button>
+                  {member.url && <GitHubIcon url={member.url} />}
+                  <CiDot state={member.ciState} />
+                  <ReviewBadge decision={member.reviewDecision} />
+                  {member.newMeaningfulCount > 0 && (
+                    <span className={styles.memberNew}>{member.newMeaningfulCount} new</span>
+                  )}
+                  {member.author && <span className={styles.memberAuthor}>{member.author}</span>}
+                  {now !== null && <span className={styles.memberTime}>{relativeTime(member.sortAt, now)}</span>}
                 </li>
               ) : unlisted ? (
-                <li key={key}>
-                  <a
-                    className={`${styles.member} ${styles.unlisted}`}
-                    href={unlisted.url ?? undefined}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="Opens on GitHub"
-                  >
-                    <StateIcon kind="pr" state={unlisted.state} draft={unlisted.draft} merged={unlisted.state === "MERGED"} />
+                <li key={key} className={styles.member}>
+                  <StateIcon kind="pr" state={unlisted.state} draft={unlisted.draft} merged={unlisted.state === "MERGED"} />
+                  <SubjectLink subjectKey={key} url={unlisted.url} className={styles.memberTitle} title={unlisted.title}>
                     <span className={styles.memberNumber}>
                       {repoShortName(group.repo)}
                       {unlisted.number === null ? "" : `#${unlisted.number}`}
-                    </span>
-                    <span className={styles.memberTitle}>{unlisted.title}</span>
-                    <span className={styles.memberTime}>{UNLISTED_LABELS[unlisted.why]}</span>
-                  </a>
+                    </span>{" "}
+                    {unlisted.title}
+                  </SubjectLink>
+                  <span className={styles.memberWhy}>{UNLISTED_LABELS[unlisted.why]}</span>
+                  {unlisted.author && <span className={styles.memberAuthor}>{unlisted.author}</span>}
+                  {now !== null && unlisted.updatedAt && (
+                    <span className={styles.memberTime}>{relativeTime(unlisted.updatedAt, now)}</span>
+                  )}
                 </li>
               ) : null,
             )}
           </ol>
         )}
+        <RootDescription group={group} />
       </div>
     </section>
   );
