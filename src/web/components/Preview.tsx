@@ -10,6 +10,7 @@ import { applyState } from "../store/state-api.ts";
 import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
+import { Markdown } from "./Markdown.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { StackBox, WorkstreamPane } from "./WorkstreamPreview.tsx";
 import styles from "./Preview.module.css";
@@ -162,6 +163,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
         <Header header={subject.header} subject={subject} />
       </div>
       {subject.workstream && <StackBox workstream={subject.workstream} />}
+      {subject.body && <Description key={subject.key} body={subject.body} firstVisit={subject.lastVisitAt === null} />}
       {subject.rounds.length === 0 && <p className={styles.message}>No activity stored yet.</p>}
       {subject.rounds.map((round, index) => {
         const prev = subject.rounds[index - 1];
@@ -181,6 +183,54 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
         );
       })}
     </section>
+  );
+}
+
+/**
+ * The PR or issue description. It starts open on the first visit and collapsed once the
+ * subject has been read or marked done, since a returning reader came for the new activity. Long bodies are
+ * cut to a fixed height until "Show more" is clicked.
+ */
+function Description({ body, firstVisit }: { body: string; firstVisit: boolean }) {
+  const [open, setOpen] = useState(firstVisit);
+  const [full, setFull] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const content = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = content.current;
+    if (!open || !el) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    for (const child of el.children) observer.observe(child);
+    return () => observer.disconnect();
+  }, [open, body]);
+
+  return (
+    <div className={styles.description}>
+      <button
+        type="button"
+        className={styles.descriptionToggle}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span aria-hidden>{open ? "▾" : "▸"}</span> Description
+      </button>
+      {open && (
+        <>
+          <div ref={content} className={full ? undefined : `${styles.descriptionClamp} ${overflows ? styles.faded : ""}`}>
+            <Markdown source={body} />
+          </div>
+          {(overflows || full) && (
+            <button type="button" className={styles.showMore} onClick={() => setFull((value) => !value)}>
+              {full ? "Show less" : "Show more"}
+            </button>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

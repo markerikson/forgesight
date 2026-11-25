@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { resolveConfig } from "../../config/load.ts";
 import type { RepoMode } from "../config.ts";
 import type { ItemState, SubjectRecord, ThreadRecord, TimelineItemRecord } from "../types.ts";
-import { deriveSubjectView } from "./index.ts";
+import { deriveSubjectView, subjectBody } from "./index.ts";
 
 const ME = "markerikson";
 const REPO = "replayio/backend";
@@ -517,5 +517,24 @@ describe("rounds", () => {
     ]);
     expect(view.rounds[0]?.entries.map((e) => e.type)).toEqual(["group"]);
     expect(view.hiddenStats.pushes).toBe(5);
+  });
+});
+
+describe("description", () => {
+  test("the view carries the stored description", () => {
+    expect(derive({ raw: { body: "Fixes it" } }).body).toBe("Fixes it");
+    expect(derive({}).body).toBeNull();
+  });
+
+  test.each([
+    [{ body: "Fixes it" }, "Fixes it"],
+    [{ body: "" }, null],
+    [{ body: "  \n" }, null],
+    [{ body: null }, null],
+    [{ number: 1 }, undefined],
+    [null, undefined],
+    ["text", undefined],
+  ])("subjectBody(%j)", (raw, expected) => {
+    expect(subjectBody(raw)).toBe(expected);
   });
 });

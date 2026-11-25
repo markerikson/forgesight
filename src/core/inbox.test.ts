@@ -59,6 +59,7 @@ function view(key: string, url: string | null): SubjectView {
     },
     rounds: [],
     lastVisitAt: null,
+    body: null,
     links: [],
     section: "updates",
     reasons: [],

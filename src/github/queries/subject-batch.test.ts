@@ -21,6 +21,7 @@ function prNode(overrides: Record<string, unknown> = {}): Record<string, unknown
     state: "OPEN",
     isDraft: false,
     author: { login: "alice", __typename: "User" },
+    body: "Fixes the **crash**",
     baseRefName: "main",
     headRefName: "fix",
     baseRefOid: "base-sha",
@@ -150,6 +151,7 @@ describe("parseSubjectAlias", () => {
     expect(parsed.subject.raw).not.toHaveProperty("timelineItems");
     expect(parsed.subject.raw).not.toHaveProperty("reviewThreads");
     expect(parsed.subject.raw).toHaveProperty("title", "Fix it");
+    expect(parsed.subject.raw).toHaveProperty("body", "Fixes the **crash**");
     expect(parsed.items.map((i) => [i.nodeId, i.typename, i.createdAt])).toEqual([
       ["IC_1", "IssueComment", "2026-11-23T10:00:00Z"],
       ["IC_2", "IssueComment", "2026-11-23T10:05:00Z"],

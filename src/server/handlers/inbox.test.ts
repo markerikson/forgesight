@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { entryKey, type InboxPayload, type Section, type SubjectView } from "../../core/index.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
 import { DEFAULT_ITEM_STATE, putItemState } from "../../store/item-state.ts";
+import { ensureSubjects, getSubject, recordNotFound } from "../../store/subjects.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
@@ -40,6 +41,7 @@ function view(key: string, section: Section, number: number | null): SubjectView
     },
     rounds: [],
     lastVisitAt: null,
+    body: number === 1 ? "Fixes **the** bug" : null,
     links: [],
     section,
     reasons: [],
@@ -162,5 +164,39 @@ describe("subjectHandler", () => {
   test("400s for a path that is not a subject", async () => {
     const { status } = await get(subjectHandler, "/api/subjects/acme/app/abc", seeded());
     expect(status).toBe(400);
+  });
+
+  function withRaw(raw: unknown): ServerCtx {
+    const c = seeded();
+    ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" }]);
+    c.db.query("UPDATE subjects SET raw_json = ? WHERE subject_key = ?").run(JSON.stringify(raw), "acme/app#1");
+    return c;
+  }
+
+  test("returns the PR description from the view", async () => {
+    const c = withRaw({ number: 1, body: "Fixes **the** bug" });
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ key: "acme/app#1", body: "Fixes **the** bug" });
+    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
+  });
+
+  test("queues a refetch when the stored fields predate the description", async () => {
+    const c = withRaw({ number: 1 });
+    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBe(NOW.toISOString());
+  });
+
+  test("does not queue a subject whose last fetch failed", async () => {
+    const c = withRaw({ number: 1 });
+    recordNotFound(c.db, "acme/app#1");
+    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
+  });
+
+  test("does not queue a subject that has never been enriched", async () => {
+    const c = seeded();
+    ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" }]);
+    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 });

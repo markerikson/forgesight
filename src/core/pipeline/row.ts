@@ -25,6 +25,17 @@ function str(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+/**
+ * The description from a subject's stored GraphQL fields. `undefined` means the fields were
+ * fetched before the query asked for `body`, so the subject needs another fetch.
+ */
+export function subjectBody(raw: unknown): string | null | undefined {
+  const fields = obj(raw);
+  if (!fields || !("body" in fields)) return undefined;
+  const body = str(fields.body);
+  return body && body.trim() !== "" ? body : null;
+}
+
 const CI_STATES = new Set<CiState>(["success", "failure", "pending", "error", "expected"]);
 const REVIEW_DECISIONS = new Set<ReviewDecision>(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED"]);
 
