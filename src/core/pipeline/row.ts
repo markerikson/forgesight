@@ -164,7 +164,7 @@ export function toViewRecord(
     sortAt: view.sortAt,
     score: view.score,
     repo: view.header.repo,
-    stackId: null,
+    stackId: view.stack?.workstreamId ?? null,
     row: { ...toInboxRow(view) },
     detail: { ...view },
     computedAt: meta.computedAt,

@@ -2,12 +2,18 @@ import type { Database } from "bun:sqlite";
 import type { InboxRow, SubjectKey } from "../../core/index.ts";
 import { META } from "../../core/meta-keys.ts";
 import { isValidStateOp, MAX_STATE_KEYS, type StateOp } from "../../core/state.ts";
-import { getMeta, setMeta } from "../../store/meta.ts";
+import { setMeta } from "../../store/meta.ts";
 import { applyStateOps, undoStateOp } from "../../store/state-ops.ts";
 import { getSubject } from "../../store/subjects.ts";
-import { getView } from "../../store/views.ts";
-import { deriveKeys } from "../../worker/derive.ts";
+import { mergeUndoHints, parseWorkstreamOpRecord } from "../../store/workstream-ops.ts";
+import { getWorkstream, type StoredWorkstream } from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
+import {
+  afterWorkstreamOp,
+  deriveNow,
+  type WorkstreamSnapshot,
+  workstreamIdsOf,
+} from "./derive-now.ts";
 
 export const MAX_KEYS = MAX_STATE_KEYS;
 
@@ -23,14 +29,20 @@ export interface StateResponse {
 }
 
 export type UndoResponse =
-  | { result: "undone"; githubApplied: number; rows: Record<SubjectKey, InboxRow> }
+  | {
+      result: "undone";
+      githubApplied: number;
+      rows: Record<SubjectKey, InboxRow>;
+      /** Present when the undone op was a workstream op. */
+      workstreams?: Record<string, WorkstreamSnapshot | null>;
+    }
   | { result: "superseded" | "alreadyUndone" | "notFound" };
 
-function badRequest(message: string): Response {
+export function badRequest(message: string): Response {
   return Response.json({ error: "bad_request", message }, { status: 400 });
 }
 
-async function readJson(req: Request): Promise<unknown> {
+export async function readJson(req: Request): Promise<unknown> {
   try {
     return await req.json();
   } catch {
@@ -47,24 +59,6 @@ function parseStateRequest(body: unknown): StateRequest | string {
   if (!keys.every((k) => typeof k === "string" && k.length > 0)) return "keys must be strings";
   if (!isValidStateOp(op)) return "op is not a valid state op";
   return { keys: [...new Set(keys as string[])], op };
-}
-
-/**
- * Derives `keys` right away on the write connection so the response, and any inbox refetch
- * an SSE event triggers, already shows the new state. Uses the worker's `me` fallback so the
- * stored config hash matches the worker's.
- */
-function deriveNow(ctx: ServerCtx, db: Database, keys: SubjectKey[]): Record<SubjectKey, InboxRow> {
-  const config = ctx.config.me
-    ? ctx.config
-    : { ...ctx.config, me: getMeta(db, META.viewerLogin) ?? null };
-  deriveKeys(db, keys, config, ctx.now());
-  const rows: Record<SubjectKey, InboxRow> = {};
-  for (const key of keys) {
-    const view = getView(db, key);
-    if (view) rows[key] = view.row as unknown as InboxRow;
-  }
-  return rows;
 }
 
 export async function stateHandler(req: Request, ctx: ServerCtx): Promise<Response> {
@@ -97,17 +91,33 @@ export async function undoHandler(req: Request, ctx: ServerCtx): Promise<Respons
     return badRequest("opId must be a positive integer");
   }
   const db = ctx.writeDb();
-  const keys = opKeys(db, opId);
+  const opRow = db
+    .query<{ op_json: string; prev_json: string }, [number]>("SELECT op_json, prev_json FROM state_ops WHERE id = ?")
+    .get(opId);
+  const wsRecord = opRow ? parseWorkstreamOpRecord(opRow.op_json) : null;
+  const before = wsRecord
+    ? workstreamIdsOf(wsRecord)
+        .map((id) => getWorkstream(db, id))
+        .filter((ws): ws is StoredWorkstream => ws !== undefined)
+    : [];
+  const keys = wsRecord ? [] : opKeys(db, opId);
   const result = undoStateOp(db, opId, ctx.now().toISOString());
   let res: UndoResponse;
   switch (result.kind) {
-    case "undone":
-      res = {
-        result: "undone",
-        githubApplied: result.githubApplied,
-        rows: deriveNow(ctx, db, keys),
-      };
+    case "undone": {
+      if (wsRecord) {
+        const hints = opRow && wsRecord.op.kind === "merge" ? mergeUndoHints(opRow.prev_json) : [];
+        const effects = afterWorkstreamOp(ctx, db, wsRecord, before, hints);
+        res = { result: "undone", githubApplied: result.githubApplied, ...effects };
+      } else {
+        res = {
+          result: "undone",
+          githubApplied: result.githubApplied,
+          rows: deriveNow(ctx, db, keys),
+        };
+      }
       return Response.json(res);
+    }
     case "notFound":
       res = { result: "notFound" };
       return Response.json(res, { status: 404 });

@@ -2,6 +2,7 @@
 // stored in `subject_views` and sent to the web client unchanged.
 import type { ContentLevel } from "../config.ts";
 import type { SubjectKey, SubjectKind, SubjectState } from "../types.ts";
+import type { StackContext } from "../workstreams.ts";
 
 /** Inbox section. `snoozed` overrides the other three while a snooze is active. */
 export type Section = "waiting" | "updates" | "hidden" | "snoozed";
@@ -224,6 +225,8 @@ export interface SubjectView {
   sortAt: string;
   snoozeUntil: string | null;
   unread: boolean;
+  /** Present only for members of a workstream. */
+  stack?: StackContext;
 }
 
 /** Placeholder for findings badges (M5). */

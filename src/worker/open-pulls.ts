@@ -1,7 +1,11 @@
-import { openPullsMetaKey } from "../core/meta-keys.ts";
+import { repoConfig } from "../core/config.ts";
+import { openPullsMetaKey, recentlyClosedMetaKey } from "../core/meta-keys.ts";
+import { nextRecentlyClosed } from "../core/recently-closed.ts";
 import { fetchOpenPulls, type OpenPullsListing } from "../github/queries/open-pulls.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
+import { getSubject } from "../store/subjects.ts";
 import type { Job } from "./scheduler.ts";
+import { readListing, readRecentlyClosed, rebuildWorkstreams, toWsPull } from "./workstreams.ts";
 
 function fetchedAt(text: string | undefined): number {
   if (!text) return 0;
@@ -14,15 +18,17 @@ function fetchedAt(text: string | undefined): number {
 }
 
 /**
- * Lists open PRs for each `mode: "full"` repo every `polling.openPullsMinutes` and stores the
- * listing in meta `openPulls.<repo>`. One repo per run, the one fetched longest ago.
+ * Lists open PRs for each `mode: "full"` or `view: "overview"` repo every
+ * `polling.openPullsMinutes` and stores the listing in meta `openPulls.<repo>`, plus the PRs that
+ * left the listing in the last 7 days in `openPulls.<repo>.recentlyClosed`. For overview repos
+ * it then rebuilds the repo's workstreams. One repo per run, the one fetched longest ago.
  */
 export const openPullsJob: Job = {
   name: "openPulls",
   async run(ctx) {
     const { db, config, clock, log } = ctx;
     const repos = Object.entries(config.repos)
-      .filter(([repo, rc]) => repo !== "*" && rc.mode === "full")
+      .filter(([repo, rc]) => repo !== "*" && (rc.mode === "full" || rc.view === "overview"))
       .map(([repo]) => repo);
     if (repos.length === 0) return "idle";
 
@@ -34,9 +40,31 @@ export const openPullsJob: Job = {
       .sort((a, b) => a.at - b.at)[0];
     if (!due || !ctx.governor.canSpend("graphql", "openPulls")) return "idle";
 
-    const listing = await fetchOpenPulls(ctx.gh, due.repo, clock);
-    setMeta(db, openPullsMetaKey(due.repo), JSON.stringify(listing), listing.fetchedAt);
-    log.info(`openPulls ${due.repo}: ${listing.pulls.length} open PRs`);
+    const repo = due.repo;
+    const previous = readListing(db, repo);
+    const listing = await fetchOpenPulls(ctx.gh, repo, clock);
+    const closed = nextRecentlyClosed(
+      (previous?.pulls ?? []).map((p) => toWsPull(repo, p)),
+      listing.pulls.map((p) => toWsPull(repo, p)),
+      readRecentlyClosed(db, repo),
+      (n) => getSubject(db, `${repo}#${n}`)?.state ?? null,
+      clock(),
+    );
+    db.transaction(() => {
+      setMeta(db, openPullsMetaKey(repo), JSON.stringify(listing), listing.fetchedAt);
+      setMeta(db, recentlyClosedMetaKey(repo), JSON.stringify(closed), listing.fetchedAt);
+    })();
+    log.info(`openPulls ${repo}: ${listing.pulls.length} open PRs, ${closed.length} recently closed`);
+
+    if (repoConfig(config, repo).view === "overview") {
+      const result = rebuildWorkstreams(db, config, repo, clock());
+      if (result) {
+        log.info(
+          `workstreams ${repo}: ${result.workstreams.length} (${result.shownIds.length} shown), ` +
+            `${result.addedKeys.length} new subjects, ${result.changedKeys.length} membership changes`,
+        );
+      }
+    }
     return "worked";
   },
 };

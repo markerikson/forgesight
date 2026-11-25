@@ -10,6 +10,7 @@ import { getSubject } from "../store/subjects.ts";
 import { threadsForSubject } from "../store/threads.ts";
 import { reviewThreadsFor, stickiesFor, timelineFor } from "../store/timeline.ts";
 import { changesAfter, putViews, staleViewKeys } from "../store/views.ts";
+import { stackContextsFor } from "../store/workstreams.ts";
 import type { Job, Logger } from "./scheduler.ts";
 
 export const DERIVE_BATCH = 200;
@@ -35,7 +36,9 @@ function pendingKeys(
   let maxSeq: number | null = null;
   for (const c of changesAfter(db, lastSeq)) {
     maxSeq = c.seq;
-    if ((c.kind === "raw" || c.kind === "state") && c.subjectKey) keys.add(c.subjectKey);
+    if ((c.kind === "raw" || c.kind === "state" || c.kind === "stack") && c.subjectKey) {
+      keys.add(c.subjectKey);
+    }
   }
   for (const key of snoozesEndedBetween(db, getMeta(db, META.deriveAt) ?? null, now)) {
     keys.add(key);
@@ -61,6 +64,7 @@ function deriveBatch(
   ctx: { config: Config; hash: string; now: Date; log: Logger },
 ): { views: SubjectViewRecord[]; failed: string[] } {
   const states = getItemStates(db, keys);
+  const stacks = stackContextsFor(db, keys);
   const computedAt = ctx.now.toISOString();
   const views: SubjectViewRecord[] = [];
   const failed: string[] = [];
@@ -78,6 +82,7 @@ function deriveBatch(
         config: ctx.config,
         me: ctx.config.me,
         now: ctx.now,
+        stack: stacks.get(key) ?? null,
       });
       views.push(
         toViewRecord(view, { pipelineVersion: PIPELINE_VERSION, configHash: ctx.hash, computedAt }),

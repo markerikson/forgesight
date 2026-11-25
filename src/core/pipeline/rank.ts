@@ -287,7 +287,7 @@ export function rank(input: RankInput): Rank {
  * marked ready for review after it started (when snoozed until ready). Bot comments and my own
  * never wake it. A snooze without a time has no time limit.
  */
-function snoozeActive(state: ItemState, events: ViewEvent[], me: string | null, now: Date): boolean {
+export function snoozeActive(state: ItemState, events: ViewEvent[], me: string | null, now: Date): boolean {
   const untilReady = state.snoozeUntilReady === true;
   if (state.snoozeUntil === null && !state.snoozeUntilHumanEvent && !untilReady) return false;
   if (state.snoozeUntil !== null && !isAfter(state.snoozeUntil, now.toISOString())) return false;
