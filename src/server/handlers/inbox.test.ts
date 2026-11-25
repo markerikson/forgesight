@@ -8,7 +8,7 @@ import type { OpenPull, OpenPullsListing } from "../../github/queries/open-pulls
 import { setMeta } from "../../store/meta.ts";
 import { rebuildWorkstreams } from "../../worker/workstreams.ts";
 import { DEFAULT_ITEM_STATE, putItemState } from "../../store/item-state.ts";
-import { ensureSubjects, getSubject, markDirty, recordNotFound } from "../../store/subjects.ts";
+import { ensureSubjects, getSubject, markDirty, recordEnrichError, recordNotFound } from "../../store/subjects.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
@@ -275,6 +275,20 @@ describe("subjectHandler", () => {
     expect(body).toMatchObject({ refreshable: true, fetching: false });
     expect(opened.status).toBe(200);
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
+  });
+
+  test("a failed fetch waiting to retry is not shown as loading until Refresh makes it urgent", async () => {
+    const c = withRaw({ number: 1 });
+    markDirty(c.db, ["acme/app#1"], "2026-11-23T00:00:00.000Z");
+    recordEnrichError(c.db, "acme/app#1", "timeout", "2026-11-23T00:01:00.000Z");
+    const { body, opened } = await open(c);
+    expect(body).toMatchObject({ refreshable: true, fetching: false });
+    expect(opened.status).toBe(200);
+    expect(queued(c)).toEqual({ dirtyAt: "2026-11-23T00:01:00.000Z", priority: ENRICH_PRIORITY.backlog });
+
+    await refreshSubjectHandler(new Request("http://127.0.0.1:4630/api/subjects/acme/app/1/refresh", { method: "POST" }), c);
+    const { body: after } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(after).toMatchObject({ fetching: true });
   });
 
   test("does not queue an issue when issues are not fetched", async () => {

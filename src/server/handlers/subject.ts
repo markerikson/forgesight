@@ -95,7 +95,9 @@ function fetchState(
   };
   const queued = subject.dirtyAt !== null;
   const fetchOnOpen = (queued && refreshable && subject.enrichError === null) || needsFetchOnOpen(opened, ctx.config);
-  return { refreshable, fetching: fetchOnOpen || (queued && refreshable), fetchOnOpen };
+  // A failed fetch waiting to retry at its old priority is not shown as loading, so Refresh stays enabled.
+  const urgentQueued = queued && refreshable && subject.priority >= ENRICH_PRIORITY.urgent;
+  return { refreshable, fetching: fetchOnOpen || urgentQueued, fetchOnOpen };
 }
 
 function markUrgent(ctx: ServerCtx, key: string): void {
