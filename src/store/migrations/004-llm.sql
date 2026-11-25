@@ -1,4 +1,4 @@
--- LLM work. Independent of 003: subject keys are plain text, no foreign keys.
+-- LLM work. Subject keys are plain text, no foreign keys. Also extends 003's pr_texts.
 
 -- queued model calls; one live job per (kind, subject_key)
 CREATE TABLE llm_jobs (
@@ -53,3 +53,7 @@ CREATE TABLE summaries (
   UNIQUE (kind, subject_key, input_hash)
 );
 CREATE INDEX summaries_latest ON summaries (kind, subject_key, created_at);
+
+-- PR state as of the text fetch, for members no longer in the open PR listing
+ALTER TABLE pr_texts ADD COLUMN state TEXT;                       -- OPEN | CLOSED | MERGED
+ALTER TABLE pr_texts ADD COLUMN is_draft INTEGER NOT NULL DEFAULT 0;

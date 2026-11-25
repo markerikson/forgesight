@@ -18,20 +18,33 @@ export function summaryDecision(
   return age >= SUMMARY_MIN_INTERVAL_MS ? "queue" : "wait";
 }
 
+/** The open PR listing for one repo: when it was fetched and the PRs it holds. */
+export interface ListedPulls {
+  fetchedAt: string | null;
+  pulls: ReadonlyMap<number, { updatedAt: string }>;
+}
+
 /**
  * Member numbers whose text needs fetching: never stored, or the PR listing shows an update after
- * the stored copy. Members missing from the listing (closed PRs) are fetched once.
+ * the stored copy, or the stored copy says open but a listing fetched after it no longer has the
+ * PR (it closed or merged, so its stored state is out of date).
  */
 export function prTextsToFetch(
   numbers: readonly number[],
-  stored: ReadonlyMap<number, { updatedAt: string }>,
-  listed: ReadonlyMap<number, { updatedAt: string }>,
+  stored: ReadonlyMap<number, { updatedAt: string; fetchedAt: string; state: string | null }>,
+  listed: ListedPulls,
 ): number[] {
   return numbers.filter((n) => {
     const have = stored.get(n);
     if (!have) return true;
-    const seen = listed.get(n);
-    return seen !== undefined && Date.parse(seen.updatedAt) > Date.parse(have.updatedAt);
+    const seen = listed.pulls.get(n);
+    if (seen) return Date.parse(seen.updatedAt) > Date.parse(have.updatedAt);
+    return (
+      have.state !== "CLOSED" &&
+      have.state !== "MERGED" &&
+      listed.fetchedAt !== null &&
+      Date.parse(listed.fetchedAt) > Date.parse(have.fetchedAt)
+    );
   });
 }
 

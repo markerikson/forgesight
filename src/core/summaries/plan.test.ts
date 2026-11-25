@@ -20,17 +20,28 @@ describe("summaryDecision", () => {
 });
 
 describe("prTextsToFetch", () => {
+  const text = (state: string | null) => ({
+    updatedAt: "2026-11-24T10:00:00Z",
+    fetchedAt: "2026-11-24T10:05:00Z",
+    state,
+  });
   const stored = new Map([
-    [1, { updatedAt: "2026-11-24T10:00:00Z" }],
-    [2, { updatedAt: "2026-11-24T10:00:00Z" }],
-    [3, { updatedAt: "2026-11-24T10:00:00Z" }],
+    [1, text("OPEN")],
+    [2, text("OPEN")],
+    [3, text("MERGED")],
   ]);
-  const listed = new Map([
+  const pulls = new Map([
     [1, { updatedAt: "2026-11-24T10:00:00Z" }],
     [2, { updatedAt: "2026-11-24T11:00:00Z" }],
   ]);
   test("fetches unstored and updated members only", () => {
-    expect(prTextsToFetch([1, 2, 3, 4], stored, listed)).toEqual([2, 4]);
+    expect(prTextsToFetch([1, 2, 3, 4], stored, { fetchedAt: "2026-11-24T10:00:00Z", pulls })).toEqual([2, 4]);
+  });
+  test("refetches open members that a newer listing no longer has", () => {
+    const more = new Map([...stored, [5, text("OPEN")], [6, text(null)], [7, text("CLOSED")]]);
+    expect(prTextsToFetch([3, 5, 6, 7], more, { fetchedAt: "2026-11-24T10:00:00Z", pulls })).toEqual([]);
+    expect(prTextsToFetch([3, 5, 6, 7], more, { fetchedAt: "2026-11-24T12:00:00Z", pulls })).toEqual([5, 6]);
+    expect(prTextsToFetch([5], more, { fetchedAt: null, pulls: new Map() })).toEqual([]);
   });
 });
 

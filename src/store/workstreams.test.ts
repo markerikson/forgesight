@@ -244,10 +244,11 @@ describe("pr texts", () => {
   test("put, get and list stale", () => {
     const db = memoryDb();
     putPrTexts(db, [
-      { repo: REPO, number: 1, title: "One", body: "b1", updatedAt: T0, fetchedAt: T0 },
-      { repo: REPO, number: 2, title: "Two", body: "b2", updatedAt: T1, fetchedAt: T1 },
+      { repo: REPO, number: 1, title: "One", body: "b1", updatedAt: T0, fetchedAt: T0, state: "MERGED", isDraft: false },
+      { repo: REPO, number: 2, title: "Two", body: "b2", updatedAt: T1, fetchedAt: T1, state: "OPEN", isDraft: true },
     ]);
-    expect(getPrText(db, REPO, 1)?.title).toBe("One");
+    expect(getPrText(db, REPO, 1)).toMatchObject({ title: "One", state: "MERGED", isDraft: false });
+    expect(getPrText(db, REPO, 2)).toMatchObject({ state: "OPEN", isDraft: true });
     expect(getPrText(db, REPO, 3)).toBeUndefined();
     expect([...getPrTexts(db, REPO, [1, 2, 3]).keys()].sort()).toEqual([1, 2]);
     expect(

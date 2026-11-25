@@ -34,7 +34,7 @@ import {
   saveSummary,
 } from "../store/llm.ts";
 import { getMeta } from "../store/meta.ts";
-import { getPrTexts, putPrTexts } from "../store/pr-texts.ts";
+import { getPrTexts, type PrText, putPrTexts } from "../store/pr-texts.ts";
 import { getSubject } from "../store/subjects.ts";
 import { listWorkstreams, toWorkstream } from "../store/workstreams.ts";
 import type { Job, JobContext } from "./scheduler.ts";
@@ -59,11 +59,16 @@ export interface WorkstreamSummariesDeps {
 
 const storedWorkstreams = (db: Database): Workstream[] => listWorkstreams(db).map(toWorkstream);
 
-function readListing(db: Database, repo: string): Map<number, OpenPull> {
+interface Listing {
+  fetchedAt: string | null;
+  pulls: Map<number, OpenPull>;
+}
+
+function readListing(db: Database, repo: string): Listing {
   const raw = getMeta(db, openPullsMetaKey(repo));
-  if (!raw) return new Map();
+  if (!raw) return { fetchedAt: null, pulls: new Map() };
   const listing = JSON.parse(raw) as OpenPullsListing;
-  return new Map(listing.pulls.map((p) => [p.number, p]));
+  return { fetchedAt: listing.fetchedAt, pulls: new Map(listing.pulls.map((p) => [p.number, p])) };
 }
 
 function membersByRepo(workstreams: Workstream[]): Map<string, number[]> {
@@ -79,19 +84,32 @@ function membersByRepo(workstreams: Workstream[]): Map<string, number[]> {
   return out;
 }
 
-function memberState(db: Database, key: SubjectKey, listed: OpenPull | undefined): { state: MemberState; isDraft: boolean } {
+/**
+ * The open listing is the freshest source. Otherwise the state saved with the text, which is
+ * refetched once a newer listing drops the PR. Rows saved before the state column fall back to the
+ * subject row, then to merged, the usual reason a PR leaves the listing.
+ */
+function memberState(
+  db: Database,
+  key: SubjectKey,
+  text: PrText,
+  listed: OpenPull | undefined,
+): { state: MemberState; isDraft: boolean } {
   if (listed) return { state: "open", isDraft: listed.isDraft };
+  if (text.state === "OPEN") return { state: "open", isDraft: text.isDraft };
+  if (text.state === "CLOSED") return { state: "closed", isDraft: false };
+  if (text.state === "MERGED") return { state: "merged", isDraft: false };
   const subject = getSubject(db, key);
   if (subject?.state === "OPEN") return { state: "open", isDraft: false };
   if (subject?.state === "CLOSED") return { state: "closed", isDraft: false };
-  // Not in the open listing and no subject row: the PR left the listing, almost always by merging.
   return { state: "merged", isDraft: false };
 }
 
 /**
  * Keeps workstream summaries current. Each run:
  * 1. fetches titles and descriptions for members whose stored copy is missing or older than the
- *    open PR listing says (GraphQL, `openPulls` budget class, up to 50 PRs per repo);
+ *    open PR listing says, plus members stored as open that a newer listing no longer has
+ *    (GraphQL, `openPulls` budget class, up to 50 PRs per repo);
  * 2. queues a summary when a workstream has none yet, or its input hash changed and the last
  *    summary is at least 6 hours old. Head SHAs are not part of the input, so pushes never queue;
  * 3. runs up to two queued calls at once while today's spend is under `llm.dailyCapUsd`. Over the
@@ -118,7 +136,16 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
       const fetchedAt = clock().toISOString();
       putPrTexts(
         db,
-        texts.map((t) => ({ repo, number: t.number, title: t.title, body: t.body, updatedAt: t.updatedAt, fetchedAt })),
+        texts.map((t) => ({
+          repo,
+          number: t.number,
+          title: t.title,
+          body: t.body,
+          updatedAt: t.updatedAt,
+          fetchedAt,
+          state: t.state,
+          isDraft: t.isDraft,
+        })),
       );
       for (const n of missing) unavailable.add(`${repo}#${n}`);
       log.info(`workstream summaries: fetched ${texts.length} PR texts for ${repo}`);
@@ -135,7 +162,7 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
     const model = config.llm.tasks.workstreamSummary.model;
     const numbers = membersByRepo(workstreams);
     const textsByRepo = new Map<string, ReturnType<typeof getPrTexts>>();
-    const listings = new Map<string, Map<number, OpenPull>>();
+    const listings = new Map<string, Listing>();
     let queued = 0;
 
     for (const ws of workstreams) {
@@ -150,7 +177,7 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
         const n = subjectNumber(key);
         const text = n === null ? undefined : stored.get(n);
         if (!n || !text) continue;
-        texts.set(key, { number: n, title: text.title, body: text.body, ...memberState(db, key, listed.get(n)) });
+        texts.set(key, { number: n, title: text.title, body: text.body, ...memberState(db, key, text, listed.pulls.get(n)) });
       }
       // Wait for every member's text unless GitHub has none to give.
       const pending = ws.members.some((k) => !texts.has(k) && !unavailable.has(k));

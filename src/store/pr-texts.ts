@@ -1,5 +1,7 @@
 import type { Database } from "bun:sqlite";
 
+export type PrState = "OPEN" | "CLOSED" | "MERGED";
+
 /** A PR's title and description, as fetched for workstream summaries. */
 export interface PrText {
   repo: string;
@@ -10,6 +12,9 @@ export interface PrText {
   /** The PR's `updatedAt` when fetched. */
   updatedAt: string;
   fetchedAt: string;
+  /** State when fetched; `null` for rows stored before the column existed. */
+  state: PrState | null;
+  isDraft: boolean;
 }
 
 interface PrTextRow {
@@ -19,6 +24,8 @@ interface PrTextRow {
   body: string;
   updated_at: string;
   fetched_at: string;
+  state: PrState | null;
+  is_draft: number;
 }
 
 const fromRow = (r: PrTextRow): PrText => ({
@@ -28,6 +35,8 @@ const fromRow = (r: PrTextRow): PrText => ({
   body: r.body,
   updatedAt: r.updated_at,
   fetchedAt: r.fetched_at,
+  state: r.state,
+  isDraft: r.is_draft === 1,
 });
 
 export function getPrText(db: Database, repo: string, number: number): PrText | undefined {
@@ -49,14 +58,17 @@ export function getPrTexts(db: Database, repo: string, numbers: number[]): Map<n
 
 export function putPrTexts(db: Database, texts: PrText[]): void {
   const upsert = db.query(
-    `INSERT INTO pr_texts (repo, number, title, body, updated_at, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?)
+    `INSERT INTO pr_texts (repo, number, title, body, updated_at, fetched_at, state, is_draft)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT (repo, number) DO UPDATE SET
        title = excluded.title, body = excluded.body,
-       updated_at = excluded.updated_at, fetched_at = excluded.fetched_at`,
+       updated_at = excluded.updated_at, fetched_at = excluded.fetched_at,
+       state = excluded.state, is_draft = excluded.is_draft`,
   );
   db.transaction(() => {
-    for (const t of texts) upsert.run(t.repo, t.number, t.title, t.body, t.updatedAt, t.fetchedAt);
+    for (const t of texts) {
+      upsert.run(t.repo, t.number, t.title, t.body, t.updatedAt, t.fetchedAt, t.state, t.isDraft ? 1 : 0);
+    }
   })();
 }
 

@@ -27,6 +27,7 @@ interface Pr {
   title: string;
   body: string;
   updatedAt: string;
+  state?: "OPEN" | "CLOSED" | "MERGED";
 }
 
 function setup(user: UserConfig = {}) {
@@ -44,7 +45,7 @@ function setup(user: UserConfig = {}) {
     for (const [, alias, n] of query.matchAll(/(p\d+): pullRequest\(number: (\d+)\)/g)) {
       const pr = prs.get(Number(n));
       repository[alias as string] = pr
-        ? { number: pr.number, title: pr.title, bodyText: pr.body, updatedAt: pr.updatedAt, isDraft: false, state: "OPEN" }
+        ? { number: pr.number, title: pr.title, bodyText: pr.body, updatedAt: pr.updatedAt, isDraft: false, state: pr.state ?? "OPEN" }
         : null;
       if (!pr && !flaky.has(Number(n))) {
         errors.push({ message: "Could not resolve", type: "NOT_FOUND", path: ["repository", alias as string] });
@@ -72,7 +73,8 @@ function setup(user: UserConfig = {}) {
   };
   const setPr = (pr: Pr) => {
     prs.set(pr.number, pr);
-    writeListing(db, [...prs.values()], now.toISOString());
+    const open = [...prs.values()].filter((p) => (p.state ?? "OPEN") === "OPEN");
+    writeListing(db, open, now.toISOString());
   };
   return { db, gh, ctx, prs, flaky, setPr, advance, clock };
 }
@@ -178,6 +180,31 @@ describe("workstream summaries job", () => {
     await job.run(ctx);
     expect(llm.requests).toHaveLength(3);
     expect(latestWorkstreamSummaries(db).size).toBe(1);
+  });
+
+  test("a member that leaves the open listing is refetched for its closed state", async () => {
+    const { db, gh, ctx, setPr, advance } = setup();
+    setPr(pr(1));
+    setPr(pr(2));
+    const llm = new FakeLlmClient();
+    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1, 2])] });
+    await job.run(ctx);
+    expect(getPrTexts(db, REPO, [2]).get(2)).toMatchObject({ state: "OPEN" });
+
+    // #2 is closed without merging. The new listing drops it and there is no subject row.
+    advance(7 * HOUR);
+    setPr({ ...pr(2, "2026-11-24T18:00:00Z"), state: "CLOSED" });
+    await job.run(ctx);
+    expect(gh.calls).toHaveLength(2);
+    expect(getPrTexts(db, REPO, [2]).get(2)).toMatchObject({ state: "CLOSED" });
+    expect(llm.requests).toHaveLength(2);
+    expect(llm.requests[1]?.user).toContain("## #2 Step 2 [closed]");
+
+    // Once stored as closed, it is not asked for again.
+    advance(HOUR);
+    setPr(pr(3));
+    expect(await job.run(ctx)).toBe("idle");
+    expect(gh.calls).toHaveLength(2);
   });
 
   test("runs at most two calls per pass", async () => {
