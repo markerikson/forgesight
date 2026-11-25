@@ -18,6 +18,7 @@ import type { RankReason, Round, Section, SubjectView, ViewEvent } from "./types
 
 export { describe } from "./rank.ts";
 export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
+export { typenameLabel } from "./text.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
 export const PIPELINE_VERSION = 4;
@@ -102,7 +103,7 @@ function rankFromThreads(input: DeriveInput): Rank {
     reasons,
     score: 0,
     newMeaningfulCount: 0,
-    summaryLine: newest ? threadReasonLine(newest.reason) : "",
+    summaryLine: (newest && threadReasonLine(newest.reason)) || "not loaded yet",
     hiddenStats: { pushes: 0, merged: 0, closed: 0 },
     sortAt,
   };

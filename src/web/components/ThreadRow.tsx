@@ -1,7 +1,7 @@
 import { memo, type MouseEvent } from "react";
 import type { InboxRow } from "../../core/index.ts";
 import { isMuted } from "../store/actions.ts";
-import { relativeTime, repoShortName } from "../format.ts";
+import { relativeTime, repoShortName, rowByline } from "../format.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import styles from "./ThreadRow.module.css";
 
@@ -33,6 +33,7 @@ export const ThreadRow = memo(function ThreadRow({
   member = false,
 }: Props) {
   const muted = isMuted(row);
+  const byline = rowByline(row.author, row.summaryLine, row.latestActor);
   const act = (e: MouseEvent, fn: () => void) => {
     e.stopPropagation();
     fn();
@@ -45,17 +46,6 @@ export const ThreadRow = memo(function ThreadRow({
       className={`${styles.row} ${selected ? styles.selected : ""} ${row.unread ? styles.unread : ""} ${gone ? styles.gone : ""} ${member ? styles.member : ""}`}
       onClick={() => onSelect(row.key, index)}
     >
-      <div className={styles.actions}>
-        <button type="button" title="Snooze (s)" onClick={(e) => act(e, () => onSnooze(row, e.currentTarget))}>
-          Snooze
-        </button>
-        <button type="button" title={muted ? "Unmute (m)" : "Mute (m)"} onClick={(e) => act(e, () => onMute(row))}>
-          {muted ? "Unmute" : "Mute"}
-        </button>
-        <button type="button" className={styles.done} title="Done (e)" onClick={(e) => act(e, () => onDone(row))}>
-          Done
-        </button>
-      </div>
       <div className={styles.line}>
         <StateIcon kind={row.kind} state={row.state} draft={row.draft} merged={row.merged} />
         <span className={styles.repo}>
@@ -73,6 +63,17 @@ export const ThreadRow = memo(function ThreadRow({
         <DraftBadge draft={row.draft} />
         <CiDot state={row.ciState} />
         <ReviewBadge decision={row.reviewDecision} />
+        <div className={styles.actions}>
+          <button type="button" title="Snooze (s)" onClick={(e) => act(e, () => onSnooze(row, e.currentTarget))}>
+            Snooze
+          </button>
+          <button type="button" title={muted ? "Unmute (m)" : "Mute (m)"} onClick={(e) => act(e, () => onMute(row))}>
+            {muted ? "Unmute" : "Mute"}
+          </button>
+          <button type="button" className={styles.done} title="Done (e)" onClick={(e) => act(e, () => onDone(row))}>
+            Done
+          </button>
+        </div>
       </div>
       <div className={`${styles.line} ${styles.sub}`}>
         {row.author && (
@@ -80,13 +81,17 @@ export const ThreadRow = memo(function ThreadRow({
             {row.author}
           </span>
         )}
-        <span className={styles.summary}>{row.summaryLine}</span>
+        <span className={styles.summary}>{byline.summary}</span>
         {row.enrichError && (
           <span className={styles.stale} title={row.enrichError}>
             stale
           </span>
         )}
-        {row.latestActor && <span className={styles.actor}>{row.latestActor}</span>}
+        {byline.actor && (
+          <span className={styles.actor} title={`Latest activity by ${byline.actor}`}>
+            {byline.actor}
+          </span>
+        )}
         {now !== null && <span className={styles.time}>{relativeTime(row.sortAt, now)}</span>}
       </div>
     </li>

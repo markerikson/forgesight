@@ -1,4 +1,4 @@
-import type { Event, SubjectRef } from "../core/index.ts";
+import { typenameLabel, type Event, type SubjectRef } from "../core/index.ts";
 
 function shortSha(sha: string | undefined): string {
   return sha ? sha.slice(0, 7) : "";
@@ -78,10 +78,15 @@ export function describeEvent(event: Event): string {
       return `marked as a duplicate of ${refText(d.ref)}`;
     case "transferred":
       return d.from ? `transferred from ${d.from}` : "transferred";
-    case "subIssue":
-      return `${d.added === false ? "removed sub-issue" : "added sub-issue"} ${refText(d.ref)}`;
+    case "subIssue": {
+      const what = d.typename.startsWith("ParentIssue") ? "parent issue" : "sub-issue";
+      return `${d.added === false ? "removed" : "added"} ${what} ${refText(d.ref)}`;
+    }
+    case "milestoned":
+      if (d.added === false) return d.milestone ? `removed this from milestone ${d.milestone}` : "removed the milestone";
+      return d.milestone ? `added this to milestone ${d.milestone}` : "set the milestone";
     case "unknown":
-      return d.typename;
+      return typenameLabel(d.typename);
   }
 }
 

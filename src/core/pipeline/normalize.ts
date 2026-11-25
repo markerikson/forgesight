@@ -165,13 +165,55 @@ function mapItem(typename: string, raw: Raw, repo: string): MappedItem {
     case "TransferredEvent":
       return { kind: "transferred", actor, data: { from: str(obj(raw.fromRepository)?.nameWithOwner) } };
     case "SubIssueAddedEvent":
-      return { kind: "subIssue", actor, data: { ref: subjectRef(raw.subIssue, repo) } };
+    case "SubIssueRemovedEvent":
+      return {
+        kind: "subIssue",
+        actor,
+        data: { ref: subjectRef(raw.subIssue, repo), added: typename === "SubIssueAddedEvent" },
+      };
     case "ParentIssueAddedEvent":
-      return { kind: "subIssue", actor, data: { ref: subjectRef(raw.parent, repo) } };
+    case "ParentIssueRemovedEvent":
+      return {
+        kind: "subIssue",
+        actor,
+        data: { ref: subjectRef(raw.parent, repo), added: typename === "ParentIssueAddedEvent" },
+      };
+    case "MilestonedEvent":
+    case "DemilestonedEvent":
+      return {
+        kind: "milestoned",
+        actor,
+        data: { milestone: str(raw.milestoneTitle), added: typename === "MilestonedEvent" },
+      };
     default:
       return { kind: "unknown", actor };
   }
 }
+
+/**
+ * Timeline item types that say nothing a reader needs: subscriptions, branch deletion after
+ * merge, deployments, project board moves. They are dropped before classification, so they
+ * never show, count as hidden, or count as new activity.
+ */
+const NOISE_TYPENAMES: ReadonlySet<string> = new Set([
+  "SubscribedEvent",
+  "UnsubscribedEvent",
+  "HeadRefDeletedEvent",
+  "HeadRefRestoredEvent",
+  "DeployedEvent",
+  "DeploymentEnvironmentChangedEvent",
+  "CommentDeletedEvent",
+  "AddedToProjectEvent",
+  "AddedToProjectV2Event",
+  "MovedColumnsInProjectEvent",
+  "RemovedFromProjectEvent",
+  "RemovedFromProjectV2Event",
+  "ProjectV2ItemStatusChangedEvent",
+  "ConvertedNoteToIssueEvent",
+  "ConvertedFromDraftEvent",
+  "UserBlockedEvent",
+  "PullRequestRevisionMarker",
+]);
 
 function withoutUndefined(data: LooseData & { typename: string }): EventData {
   const out: Raw = {};
@@ -224,7 +266,7 @@ export function normalize(input: {
   const events: Event[] = [];
   const seen = new Set<string>();
   for (const item of input.items) {
-    if (seen.has(item.nodeId)) continue;
+    if (seen.has(item.nodeId) || NOISE_TYPENAMES.has(item.typename)) continue;
     seen.add(item.nodeId);
     const raw = obj(item.raw) ?? {};
     const p = mapItem(item.typename, raw, input.repo);

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Event } from "../core/index.ts";
 import { describeEvent } from "./events.ts";
-import { relativeTime, repoShortName, stateBadge } from "./format.ts";
+import { relativeTime, repoShortName, rowByline, stateBadge } from "./format.ts";
 import { parseUrlState } from "./hooks/useUrlState.ts";
 
 function event(kind: Event["kind"], data: Partial<Event["data"]> = {}): Event {
@@ -30,8 +30,25 @@ describe("describeEvent", () => {
     expect(describeEvent(event("labeled", { label: "bug", added: false }))).toBe("removed label bug");
   });
 
-  test("unknown events fall back to the typename", () => {
-    expect(describeEvent(event("unknown", { typename: "PinnedEvent" }))).toBe("PinnedEvent");
+  test("unknown events fall back to a readable typename", () => {
+    expect(describeEvent(event("unknown", { typename: "AutoMergeEnabledEvent" }))).toBe("auto merge enabled");
+  });
+
+  test("milestone changes name the milestone when it is known", () => {
+    expect(describeEvent(event("milestoned", { milestone: "6.0", added: true }))).toBe("added this to milestone 6.0");
+    expect(describeEvent(event("milestoned", { added: false }))).toBe("removed the milestone");
+  });
+});
+
+describe("rowByline", () => {
+  test("drops the author's login from the summary and repeated latest actors", () => {
+    expect(rowByline("Domiii", "Domiii pushed: fix", "Domiii")).toEqual({ summary: "pushed: fix", actor: null });
+    expect(rowByline("bob", "alice commented: hi", "alice")).toEqual({ summary: "alice commented: hi", actor: null });
+  });
+
+  test("keeps a latest actor who is named nowhere else", () => {
+    expect(rowByline("bob", "referenced in o/r#4", "carol")).toEqual({ summary: "referenced in o/r#4", actor: "carol" });
+    expect(rowByline(null, "", "carol")).toEqual({ summary: "", actor: "carol" });
   });
 });
 
