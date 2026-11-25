@@ -184,5 +184,7 @@ describe("parseWorkstreamSummary", () => {
     expect(parseWorkstreamSummary({ name: "X" })).toHaveProperty("error");
     expect(parseWorkstreamSummary({ name: "", summary: "Y" })).toHaveProperty("error");
     expect(parseWorkstreamSummary("nope")).toHaveProperty("error");
+    expect(parseWorkstreamSummary({ name: "...", summary: "Y" })).toHaveProperty("error");
+    expect(parseWorkstreamSummary({ name: "X", summary: "  " })).toHaveProperty("error");
   });
 });

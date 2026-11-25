@@ -7,6 +7,7 @@ import type { Workstream } from "../core/workstreams.ts";
 import { Governor, MemoryApiCallLog } from "../github/budget.ts";
 import { FakeGitHubClient } from "../github/fake.ts";
 import type { OpenPull, OpenPullsListing } from "../github/queries/open-pulls.ts";
+import type { GqlErrorEntry } from "../github/types.ts";
 import { FakeLlmClient } from "../llm/fake.ts";
 import { LlmError } from "../llm/types.ts";
 import { latestWorkstreamSummaries, llmSpendSince } from "../store/llm.ts";
@@ -35,15 +36,28 @@ function setup(user: UserConfig = {}) {
   const db = memoryDb();
   const gh = new FakeGitHubClient(clock);
   const prs = new Map<number, Pr>();
+  /** PR numbers that come back null without a NOT_FOUND error. */
+  const flaky = new Set<number>();
   gh.graphqlHandler = (query) => {
     const repository: Record<string, unknown> = {};
+    const errors: GqlErrorEntry[] = [];
     for (const [, alias, n] of query.matchAll(/(p\d+): pullRequest\(number: (\d+)\)/g)) {
       const pr = prs.get(Number(n));
       repository[alias as string] = pr
         ? { number: pr.number, title: pr.title, bodyText: pr.body, updatedAt: pr.updatedAt, isDraft: false, state: "OPEN" }
         : null;
+      if (!pr && !flaky.has(Number(n))) {
+        errors.push({ message: "Could not resolve", type: "NOT_FOUND", path: ["repository", alias as string] });
+      }
     }
-    return { data: { repository }, cost: 1, remaining: 4000, resetAt: new Date(now.getTime() + HOUR), gatewayErrors: 0 };
+    return {
+      data: { repository },
+      cost: 1,
+      remaining: 4000,
+      resetAt: new Date(now.getTime() + HOUR),
+      gatewayErrors: 0,
+      ...(errors.length > 0 ? { errors } : {}),
+    };
   };
   const ctx: JobContext = {
     db,
@@ -60,7 +74,7 @@ function setup(user: UserConfig = {}) {
     prs.set(pr.number, pr);
     writeListing(db, [...prs.values()], now.toISOString());
   };
-  return { db, gh, ctx, prs, setPr, advance, clock };
+  return { db, gh, ctx, prs, flaky, setPr, advance, clock };
 }
 
 function writeListing(db: Database, prs: Pr[], at: string): void {
@@ -247,6 +261,42 @@ describe("workstream summaries job", () => {
     expect(llm.requests[0]?.user).toContain("(description not available)");
     await job.run(ctx);
     expect(gh.calls).toHaveLength(1);
+  });
+
+  test("a member that comes back empty without NOT_FOUND is asked for again", async () => {
+    const { ctx, gh, setPr, flaky, advance } = setup();
+    setPr(pr(1));
+    flaky.add(2);
+    const llm = new FakeLlmClient();
+    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1, 2])] });
+    await job.run(ctx);
+    expect(llm.requests).toHaveLength(0);
+
+    flaky.delete(2);
+    setPr(pr(2));
+    advance(HOUR);
+    await job.run(ctx);
+    expect(gh.calls).toHaveLength(2);
+    expect(llm.requests).toHaveLength(1);
+    expect(llm.requests[0]?.user).toContain("## #2 Step 2");
+  });
+
+  test("a non-retryable failure is not queued again for the same input", async () => {
+    const { db, ctx, setPr, advance } = setup();
+    setPr(pr(1));
+    const llm = new FakeLlmClient(() => {
+      throw new LlmError("bad request", 400, false);
+    });
+    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
+    await job.run(ctx);
+    expect(llm.requests).toHaveLength(1);
+    for (let i = 0; i < 3; i++) {
+      advance(HOUR);
+      // oxlint-disable-next-line no-await-in-loop -- each pass depends on the previous one
+      expect(await job.run(ctx)).toBe("idle");
+    }
+    expect(llm.requests).toHaveLength(1);
+    expect(latestWorkstreamSummaries(db).size).toBe(0);
   });
 
   test("by default summarizes the stored workstreams", async () => {

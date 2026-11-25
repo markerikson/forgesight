@@ -99,7 +99,7 @@ function memberState(db: Database, key: SubjectKey, listed: OpenPull | undefined
  */
 export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job {
   const loadShown = deps.workstreams ?? storedWorkstreams;
-  /** PRs GitHub returned nothing for; not asked for again until the worker restarts. */
+  /** PRs GitHub reports as not found; not asked for again until the worker restarts. */
   const unavailable = new Set<string>();
   let capLoggedFor: string | null = null;
 
@@ -114,7 +114,7 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
       if (wanted.length === 0) continue;
       if (!governor.canSpend("graphql", "openPulls")) return fetched;
       // oxlint-disable-next-line no-await-in-loop -- one repo at a time keeps GraphQL spend serial
-      const { texts, missing } = await fetchPrTexts(gh, repo, wanted);
+      const { texts, missing, failed } = await fetchPrTexts(gh, repo, wanted);
       const fetchedAt = clock().toISOString();
       putPrTexts(
         db,
@@ -122,7 +122,9 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
       );
       for (const n of missing) unavailable.add(`${repo}#${n}`);
       log.info(`workstream summaries: fetched ${texts.length} PR texts for ${repo}`);
-      fetched = true;
+      if (failed.length > 0) log.warn(`workstream summaries: ${failed.length} PR texts for ${repo} failed; retrying later`);
+      // A pass where every PR failed counts as idle, so the retry waits for the next tick.
+      if (texts.length > 0 || missing.length > 0) fetched = true;
     }
     return fetched;
   }
@@ -158,7 +160,8 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
       const latest = latestSummary(db, "workstream", ws.id);
       if (summaryDecision(latest, request.inputHash, now) !== "queue") continue;
       const last = lastLlmJobFor(db, "workstream", ws.id, request.inputHash);
-      if (last?.status === "failed" && last.attempts >= LLM_MAX_ATTEMPTS) continue;
+      // A failed job is final for this input; a changed input gets a new hash and a new job.
+      if (last?.status === "failed") continue;
 
       const payload: StoredRequest = { ...request, model };
       const before = last?.status;

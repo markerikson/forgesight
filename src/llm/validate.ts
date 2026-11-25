@@ -15,6 +15,7 @@ export function parseWorkstreamSummary(raw: unknown): WorkstreamSummaryOutput | 
     name: out.name.trim().replace(/[.\s]+$/, ""),
     summary: out.summary.trim(),
   };
+  if (!result.name || !result.summary) return { error: "Invalid workstream summary: empty name or summary" };
   const status = out.status?.trim();
   if (status) result.status = status;
   return result;

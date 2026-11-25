@@ -29,10 +29,12 @@ describe("buildPrTextsQuery", () => {
 });
 
 describe("parsePrTexts", () => {
-  test("maps aliases back to numbers and reports nulls as missing", () => {
+  test("maps aliases back to numbers and reports NOT_FOUND nulls as missing", () => {
     const raw = { repository: { p0: pr(12, { isDraft: true }), p1: null, p2: pr(41, { state: "MERGED" }) } };
-    const { texts, missing } = parsePrTexts(raw, [12, 40, 41]);
+    const errors = [{ message: "Could not resolve", type: "NOT_FOUND", path: ["repository", "p1"] }];
+    const { texts, missing, failed } = parsePrTexts(raw, [12, 40, 41], errors);
     expect(missing).toEqual([40]);
+    expect(failed).toEqual([]);
     expect(texts).toEqual([
       { number: 12, title: "PR 12", body: "Body of 12", updatedAt: "2026-11-20T10:00:00Z", isDraft: true, state: "OPEN" },
       { number: 41, title: "PR 41", body: "Body of 41", updatedAt: "2026-11-20T10:00:00Z", isDraft: false, state: "MERGED" },
@@ -44,8 +46,15 @@ describe("parsePrTexts", () => {
     expect(parsePrTexts(raw, [1]).texts[0]?.body).toHaveLength(PR_BODY_LIMIT);
   });
 
-  test("treats a missing repository as all missing", () => {
-    expect(parsePrTexts({ repository: null }, [1, 2])).toEqual({ texts: [], missing: [1, 2] });
+  test("reports nulls with other errors or no error as failed", () => {
+    const raw = { repository: { p0: null, p1: null } };
+    const errors = [{ message: "Something went wrong", type: "INTERNAL", path: ["repository", "p0"] }];
+    expect(parsePrTexts(raw, [1, 2], errors)).toEqual({ texts: [], missing: [], failed: [1, 2] });
+  });
+
+  test("treats a repository GitHub cannot find as all missing", () => {
+    const errors = [{ message: "Could not resolve", type: "NOT_FOUND", path: ["repository"] }];
+    expect(parsePrTexts({ repository: null }, [1, 2], errors)).toEqual({ texts: [], missing: [1, 2], failed: [] });
   });
 
   test("throws on an unexpected shape", () => {
@@ -75,7 +84,7 @@ describe("fetchPrTexts", () => {
 
   test("makes no call for an empty list and rejects oversized batches", async () => {
     const gh = new FakeGitHubClient();
-    expect(await fetchPrTexts(gh, "acme/app", [])).toEqual({ texts: [], missing: [] });
+    expect(await fetchPrTexts(gh, "acme/app", [])).toEqual({ texts: [], missing: [], failed: [] });
     expect(gh.calls).toHaveLength(0);
     const tooMany = Array.from({ length: PR_TEXTS_MAX + 1 }, (_, i) => i + 1);
     await expect(fetchPrTexts(gh, "acme/app", tooMany)).rejects.toThrow();
