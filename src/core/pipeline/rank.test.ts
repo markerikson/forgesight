@@ -51,6 +51,7 @@ interface Opts {
   itemState?: Partial<ItemState>;
   enriched?: boolean;
   bots?: Parameters<typeof resolveConfig>[0]["bots"];
+  enrichIssues?: boolean;
 }
 
 function derive(opts: Opts) {
@@ -111,6 +112,7 @@ function derive(opts: Opts) {
       me: ME,
       repos: { [REPO]: { mode: opts.mode ?? "full" } },
       ...(opts.bots ? { bots: opts.bots } : {}),
+      ...(opts.enrichIssues === undefined ? {} : { polling: { enrichIssues: opts.enrichIssues } }),
     }),
     me: ME,
     now: NOW,
@@ -124,6 +126,12 @@ describe("rank", () => {
     expect(mention.summaryLine).toBe("mentioned you");
     expect(mention.section).toBe("waiting");
     expect(derive({ enriched: false, reason: "ci_activity" }).summaryLine).toBe("ci activity");
+  });
+
+  test("subjects the worker never fetches do not claim to be loading", () => {
+    expect(derive({ enriched: false, kind: "other" }).summaryLine).toBe("");
+    expect(derive({ enriched: false, kind: "issue", enrichIssues: false }).summaryLine).toBe("");
+    expect(derive({ enriched: false, kind: "issue" }).summaryLine).toBe("not loaded yet");
   });
 
   test("a mention in the description (MentionedEvent with me as actor) is waiting", () => {
