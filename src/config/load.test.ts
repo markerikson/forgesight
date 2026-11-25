@@ -131,6 +131,19 @@ describe("resolveConfig", () => {
     ).toThrow(/repos\["a\/b"\]\.workstreams\.groups\[0\]\.titles\[0\]/);
   });
 
+  test("workstream title aliases compile case-insensitively", () => {
+    const config = resolveConfig({
+      repos: { "a/b": { workstreams: { titleAliases: [{ match: "^(?:cg|callgraph)\\b", replace: "CallGraph" }] } } },
+    });
+    const [alias] = repoConfig(config, "a/b").workstreams.titleAliases;
+    expect(alias?.match.test("CG links")).toBe(true);
+    expect(alias?.replace).toBe("CallGraph");
+    expect(repoConfig(config, "a/c").workstreams.titleAliases).toEqual([]);
+    expect(() =>
+      resolveConfig({ repos: { "a/b": { workstreams: { titleAliases: [{ match: "(", replace: "x" }] } } } }),
+    ).toThrow(/repos\["a\/b"\]\.workstreams\.titleAliases\[0\]\.match/);
+  });
+
   test("a workstream group needs a title or branch pattern", () => {
     expect(() =>
       resolveConfig({ repos: { "a/b": { workstreams: { groups: [{ name: "x", authors: ["bob"] }] } } } }),

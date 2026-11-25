@@ -89,6 +89,7 @@ export const defaultConfig = {
         // "[never merge]", "[base, never merge]", "CI vehicle (never merge)" ...
         cutBelow: ["[[(][^\\])]*never merge[^\\])]*[\\])]"],
         genericPrefixes: [],
+        titleAliases: [],
         botAuthors: [],
         groups: [],
       },

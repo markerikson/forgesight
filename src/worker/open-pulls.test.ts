@@ -5,7 +5,7 @@ import { Governor, MemoryApiCallLog } from "../github/budget.ts";
 import { FakeGitHubClient } from "../github/fake.ts";
 import type { GqlResult } from "../github/types.ts";
 import { getMeta } from "../store/meta.ts";
-import { getSubject } from "../store/subjects.ts";
+import { ensureSubjects, getSubject } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { changesAfter, latestChangeSeq } from "../store/views.ts";
 import { DEFAULT_WORKSTREAM_STATE } from "../core/workstream-state.ts";
@@ -174,6 +174,26 @@ describe("openPullsJob with view: overview", () => {
     ]);
     expect(listOverrides(t.db, REPO).map((o) => o.override)).toEqual([
       { kind: "merge", keys: [`${REPO}#11`, `${REPO}#21`] },
+    ]);
+  });
+
+  test("a notified PR that closed before the first listing still joins its stack", async () => {
+    const t = setup(STACK.filter((p) => p.number !== 11));
+    const key = `${REPO}#11`;
+    const closedAt = "2026-11-23T10:00:00Z";
+    ensureSubjects(t.db, [{ subjectKey: key, repo: REPO, number: 11, kind: "pr", origin: "thread" }]);
+    t.db
+      .query(
+        `UPDATE subjects SET state = 'CLOSED', author = 'mark', head_ref = 'b', base_ref = 'a', updated_at = ?, raw_json = ?
+         WHERE subject_key = ?`,
+      )
+      .run(closedAt, JSON.stringify({ title: "PR 11", closedAt }), key);
+    await openPullsJob.run(t.ctx);
+
+    const ws = getWorkstream(t.db, `${REPO}:ws:10`);
+    expect(ws?.members.map((m) => [m.key, m.listingOnly])).toEqual([
+      [`${REPO}#10`, false],
+      [key, false],
     ]);
   });
 });

@@ -49,6 +49,12 @@ function resolveWorkstreams(
       ? patterns(entry.cutBelow, `${at}.cutBelow`)
       : required(base?.cutBelow, `${at}.cutBelow`),
     genericPrefixes: (entry?.genericPrefixes ?? base?.genericPrefixes ?? []).map((p) => p.toLowerCase()),
+    titleAliases: entry?.titleAliases
+      ? entry.titleAliases.map((a, i) => ({
+          match: compile(a.match, `${at}.titleAliases[${i}].match`, "i"),
+          replace: a.replace,
+        }))
+      : (base?.titleAliases ?? []),
     botAuthors: entry?.botAuthors ?? base?.botAuthors ?? [],
     groups: entry?.groups
       ? entry.groups.map((g, i) => {
