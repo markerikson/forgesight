@@ -1,5 +1,5 @@
 import type { Database } from "bun:sqlite";
-import type { QueuedSubject } from "../core/enrich-plan.ts";
+import { ENRICH_PRIORITY, type QueuedSubject } from "../core/enrich-plan.ts";
 import type { StoredPull } from "../core/recently-closed.ts";
 import type { EnrichmentResult, SubjectKind, SubjectOrigin, SubjectRecord, SubjectState } from "../core/types.ts";
 import { bool, jsonList, subjectFromRow, type SubjectRow, toJson } from "./rows.ts";
@@ -166,16 +166,18 @@ export function saveEnrichment(db: Database, result: EnrichmentResult, now: stri
 /**
  * Records a failed enrichment. Below the attempt limit the subject stays dirty with
  * `dirty_at = now`, moving it behind older work of the same priority; at the limit it
- * leaves the queue until the next `markDirty`.
+ * leaves the queue until the next `markDirty`. An urgent subject drops out of the urgent
+ * tier, so its retries wait their turn instead of running back to back.
  */
 export function recordEnrichError(db: Database, key: string, error: string, now: string): void {
   db.query(
     `UPDATE subjects SET
        enrich_error = ?1,
        enrich_attempts = enrich_attempts + 1,
+       priority = MIN(priority, ?5),
        dirty_at = CASE WHEN enrich_attempts + 1 >= ?2 THEN NULL ELSE ?3 END
      WHERE subject_key = ?4`,
-  ).run(error, MAX_ENRICH_ATTEMPTS, now, key);
+  ).run(error, MAX_ENRICH_ATTEMPTS, now, key, ENRICH_PRIORITY.direct);
 }
 
 /** Records that GitHub no longer has the subject (deleted or no access) and takes it off the queue. */

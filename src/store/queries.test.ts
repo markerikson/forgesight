@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ENRICH_PRIORITY } from "../core/enrich-plan.ts";
 import type { EnrichmentResult, SubjectViewRecord, ThreadUpsert } from "../core/types.ts";
 import { hourlySpendSince, pruneApiCalls, recordApiCall, spendSince } from "./api-calls.ts";
 import { getItemState, getItemStates, initDismissedAt, putItemState } from "./item-state.ts";
@@ -261,6 +262,18 @@ describe("subjects", () => {
     expect(s?.enrichAttempts).toBe(MAX_ENRICH_ATTEMPTS);
     expect(s?.enrichError).toBe("boom");
     expect(dirtyQueue(db)).toEqual([]);
+  });
+
+  test("recordEnrichError moves an urgent subject out of the urgent tier", () => {
+    const db = memoryDb();
+    ensureSubjects(db, [pr("o/r#1"), pr("o/r#2")]);
+    markDirty(db, ["o/r#1"], T0, ENRICH_PRIORITY.urgent);
+    markDirty(db, ["o/r#2"], T0, ENRICH_PRIORITY.backlog);
+    recordEnrichError(db, "o/r#1", "boom", T1);
+    recordEnrichError(db, "o/r#2", "boom", T1);
+    expect(getSubject(db, "o/r#1")?.priority).toBe(ENRICH_PRIORITY.direct);
+    expect(getSubject(db, "o/r#2")?.priority).toBe(ENRICH_PRIORITY.backlog);
+    expect(dirtyQueue(db, ENRICH_PRIORITY.urgent)).toEqual([]);
   });
 
   test("markDirty keeps the attempt count of a dirty subject and resets a clean one", () => {
