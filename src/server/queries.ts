@@ -7,6 +7,7 @@ export const WORKER_META = {
   status: META.workerStatus,
   heartbeatAt: META.heartbeatAt,
   viewerLogin: META.viewerLogin,
+  outboxDryRun: META.outboxDryRun,
   lastPollStartedAt: META.lastPollStartedAt,
   lastCheckAt: META.lastCheckAt,
   lastFullAt: META.lastFullAt,

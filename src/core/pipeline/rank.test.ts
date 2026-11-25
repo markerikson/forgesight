@@ -100,6 +100,7 @@ function derive(opts: Opts) {
       snoozeUntilReady: false,
       snoozedAt: null,
       doneAt: null,
+      readAt: null,
       muted: false,
       ...opts.itemState,
     },
@@ -342,8 +343,18 @@ describe("rank", () => {
 
   test("an unread thread counts as read once it is read locally", () => {
     expect(derive({}).unread).toBe(true);
-    expect(derive({ itemState: { dismissedAt: "2026-11-21T00:00:00Z" } }).unread).toBe(false);
-    expect(derive({ enriched: false, itemState: { dismissedAt: "2026-11-22T00:00:00Z" } }).unread).toBe(false);
+    expect(derive({ itemState: { readAt: "2026-11-21T00:00:00Z" } }).unread).toBe(false);
+    expect(derive({ enriched: false, itemState: { readAt: "2026-11-22T00:00:00Z" } }).unread).toBe(false);
+  });
+
+  test("a thread backfill dismissed without reading stays hidden but still shows unread", () => {
+    const backfilled = { dismissedAt: "2026-11-21T00:00:00Z", readAt: null };
+    const enriched = derive({ itemState: backfilled });
+    expect(enriched.section).toBe("hidden");
+    expect(enriched.unread).toBe(true);
+    const unenriched = derive({ enriched: false, itemState: backfilled });
+    expect(unenriched.section).toBe("hidden");
+    expect(unenriched.unread).toBe(true);
   });
 
   test("snooze until a human event ignores bots and my own comments", () => {

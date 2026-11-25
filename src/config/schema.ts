@@ -85,6 +85,10 @@ export const userConfigSchema = type({
     "enabled?": "boolean",
     "method?": "'api' | 'range_diff'",
   },
+  "outbox?": {
+    "+": "reject",
+    "dryRun?": "boolean",
+  },
   "server?": {
     "+": "reject",
     "port?": "1 <= number.integer <= 65535",

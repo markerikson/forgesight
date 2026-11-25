@@ -149,6 +149,7 @@ export function resolveConfig(user: UserConfig, defaults: UserConfig = defaultCo
     polling: required(defaults.polling, "polling"),
     budget: required(defaults.budget, "budget"),
     rebase: required(defaults.rebase, "rebase"),
+    outbox: required(defaults.outbox, "outbox"),
     server: required(defaults.server, "server"),
   };
   return {
@@ -194,6 +195,9 @@ export function resolveConfig(user: UserConfig, defaults: UserConfig = defaultCo
     rebase: {
       enabled: required(user.rebase?.enabled ?? d.rebase.enabled, "rebase.enabled"),
       method: required(user.rebase?.method ?? d.rebase.method, "rebase.method"),
+    },
+    outbox: {
+      dryRun: required(user.outbox?.dryRun ?? d.outbox.dryRun, "outbox.dryRun"),
     },
     server: {
       port: required(user.server?.port ?? d.server.port, "server.port"),

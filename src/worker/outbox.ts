@@ -55,6 +55,23 @@ function message(error: unknown): string {
 }
 
 /**
+ * Completes due rows without calling GitHub, so a scratch database can be tested against a
+ * real account. Local threads are not updated, since GitHub never saw the write.
+ */
+function dryRun(ctx: JobContext): "worked" | "idle" {
+  const { db, clock } = ctx;
+  let completed = false;
+  for (const row of dueOutbox(db, clock().toISOString(), OUTBOX_BATCH)) {
+    const now = clock().toISOString();
+    if (!claimOutbox(db, row.id, now)) continue;
+    completeOutbox(db, row.id, now, "dry_run");
+    ctx.log.info(`outbox dry run: would ${row.op} ${row.threadId} (${row.subjectKey})`);
+    completed = true;
+  }
+  return completed ? "worked" : "idle";
+}
+
+/**
  * Sends queued GitHub writes (Done, read, unsubscribe, resubscribe) once their undo window
  * has passed. Rate limits and token errors release the claim and go to the scheduler; other
  * errors back off per row and give up after `MAX_ATTEMPTS`.
@@ -63,6 +80,7 @@ export const outboxJob: Job = {
   name: "outbox",
   async run(ctx: JobContext) {
     const { db, gh, governor, clock } = ctx;
+    if (ctx.config.outbox.dryRun) return dryRun(ctx);
     if (!governor.canSpend("rest", "writeback")) return "idle";
     let sent = false;
     for (const row of dueOutbox(db, clock().toISOString(), OUTBOX_BATCH)) {

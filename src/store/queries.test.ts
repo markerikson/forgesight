@@ -283,6 +283,7 @@ describe("item state", () => {
     expect(getItemState(db, "o/r#1")).toEqual({
       dismissedAt: null,
       doneAt: null,
+      readAt: null,
       keepUnread: false,
       snoozeUntil: null,
       snoozeUntilHumanEvent: false,

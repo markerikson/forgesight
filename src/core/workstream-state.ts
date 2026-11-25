@@ -143,6 +143,7 @@ export function workstreamSnoozeActive(
   const item: ItemState = {
     dismissedAt: null,
     doneAt: null,
+    readAt: null,
     keepUnread: false,
     snoozeUntil: state.snoozeUntil,
     snoozeUntilHumanEvent: state.snoozeUntilHumanEvent,
@@ -196,4 +197,18 @@ export function isShownWorkstream(
     const f = facts.get(key);
     return f !== undefined && isInvolved(f, me);
   });
+}
+
+/**
+ * Whether the inbox lists a workstream: shown ones, plus muted ones Mark is not involved in,
+ * which go to Hidden instead of leaving the list. The worker still uses `isShownWorkstream`, so
+ * new members of a muted workstream do not become subjects.
+ */
+export function isListedWorkstream(
+  ws: Pick<Workstream, "members">,
+  facts: ReadonlyMap<SubjectKey, MemberFacts>,
+  me: Login | null,
+  state: Pick<WorkstreamState, "priority" | "seenAt"> | null,
+): boolean {
+  return state?.priority === "muted" || isShownWorkstream(ws, facts, me, state?.seenAt ?? null);
 }

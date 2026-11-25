@@ -67,9 +67,9 @@ export function applyStateOp(
 ): ItemState {
   switch (op.kind) {
     case "done":
-      return { ...state, ...NO_SNOOZE, dismissedAt: now, doneAt: now, keepUnread: false };
+      return { ...state, ...NO_SNOOZE, dismissedAt: now, doneAt: now, readAt: now, keepUnread: false };
     case "read":
-      return { ...state, dismissedAt: now, keepUnread: false };
+      return { ...state, dismissedAt: now, readAt: now, keepUnread: false };
     case "unread":
       return {
         ...state,
@@ -113,6 +113,25 @@ export function outboxOpFor(op: StateOp, state: ItemState): OutboxOp | null {
   }
 }
 
+/**
+ * The unsent GitHub write an op cancels, given the item's state before the op. GitHub has
+ * no "mark unread", so Keep unread can only stop a `read` that has not gone out yet. Unmute
+ * cancels a waiting unsubscribe (and then resubscribes only threads whose unsubscribe was
+ * sent), and unsubscribe cancels a waiting resubscribe.
+ */
+export function cancelledOutboxOp(op: StateOp, state: ItemState): OutboxOp | null {
+  switch (op.kind) {
+    case "unread":
+      return "read";
+    case "unmute":
+      return state.muted ? "unsubscribe" : null;
+    case "unsubscribe":
+      return "resubscribe";
+    default:
+      return null;
+  }
+}
+
 /** Ids of the threads that get an outbox row for `op`. */
 export function outboxThreads(op: OutboxOp, threads: readonly OutboxThread[]): string[] {
   const wanted = threads.filter((t) => {
@@ -133,6 +152,7 @@ export function outboxThreads(op: OutboxOp, threads: readonly OutboxThread[]): s
 /**
  * The optimistic version of a list row after `op`, or null when the row leaves the list.
  * A row that moves to Hidden is returned with section `hidden` when `includeHidden` is set.
+ * Done leaves every list, Hidden included, matching `isDoneQuiet`.
  * Mute keeps a snoozed row in Snoozed, matching `applyOverrides`.
  */
 export function patchRow(
@@ -145,7 +165,7 @@ export function patchRow(
     opts.includeHidden ? { ...from, section: "hidden" } : null;
   switch (op.kind) {
     case "done":
-      return toHidden({ ...row, unread: false, newMeaningfulCount: 0 });
+      return null;
     case "mute":
     case "unsubscribe": {
       const muted = row.reasons.includes("muted") ? row : { ...row, reasons: [...row.reasons, "muted" as const] };
@@ -181,9 +201,13 @@ export function patchInbox(
 ): InboxPayload {
   const includeHidden = opts.includeHidden ?? listsHidden(payload);
   const targets = new Set(keys);
-  const patch = (row: InboxRow): InboxRow => (targets.has(row.key) ? (patchRow(row, op, now, { includeHidden: true }) ?? row) : row);
-  const entries: InboxEntry[] = payload.rows.map((entry) =>
-    isGroup(entry) ? { ...entry, members: entry.members.map(patch) } : patch(entry),
+  const patch = (row: InboxRow): InboxRow[] => {
+    if (!targets.has(row.key)) return [row];
+    const next = patchRow(row, op, now, { includeHidden: true });
+    return next ? [next] : [];
+  };
+  const entries = payload.rows.flatMap<InboxEntry>((entry) =>
+    isGroup(entry) ? [{ ...entry, members: entry.members.flatMap(patch) }] : patch(entry),
   );
   return settleInbox(payload, entries, includeHidden);
 }

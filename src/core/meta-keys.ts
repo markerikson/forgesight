@@ -3,6 +3,8 @@ export const META = {
   workerStatus: "worker.status",
   heartbeatAt: "worker.heartbeatAt",
   viewerLogin: "viewer.login",
+  /** "1" when the running worker completes outbox rows without sending them to GitHub. */
+  outboxDryRun: "outbox.dryRun",
   etag: "notifications.etag",
   nextPollAt: "notifications.nextPollAt",
   /** Anchor of the `since=` window for the next changed poll. */

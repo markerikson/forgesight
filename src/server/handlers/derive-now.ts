@@ -1,7 +1,8 @@
 import type { Database } from "bun:sqlite";
-import type { Config, InboxRow, SubjectKey } from "../../core/index.ts";
+import { type Config, type InboxRow, isDoneQuiet, type SubjectKey } from "../../core/index.ts";
 import { META } from "../../core/meta-keys.ts";
 import type { WorkstreamState } from "../../core/workstream-state.ts";
+import { getItemStates } from "../../store/item-state.ts";
 import { getMeta } from "../../store/meta.ts";
 import { getView } from "../../store/views.ts";
 import type { WorkstreamOpRecord } from "../../store/workstream-ops.ts";
@@ -15,17 +16,28 @@ export function workerConfig(ctx: ServerCtx, db: Database): Config {
   return ctx.config.me ? ctx.config : { ...ctx.config, me: getMeta(db, META.viewerLogin) ?? null };
 }
 
+/** Drops rows marked Done with no activity since, so they leave Hidden and its counts. */
+export function withoutQuietDone(db: Database, rows: InboxRow[]): InboxRow[] {
+  const hidden = rows.filter((r) => r.section === "hidden").map((r) => r.key);
+  if (hidden.length === 0) return rows;
+  const states = getItemStates(db, hidden);
+  return rows.filter((r) => !isDoneQuiet(r, states.get(r.key)?.doneAt ?? null));
+}
+
 /**
  * Derives `keys` right away on the write connection so the response, and any inbox refetch
- * an SSE event triggers, already shows the new state.
+ * an SSE event triggers, already shows the new state. Rows marked Done with nothing new are
+ * left out, as the inbox read leaves them out.
  */
 export function deriveNow(ctx: ServerCtx, db: Database, keys: SubjectKey[]): Record<SubjectKey, InboxRow> {
   deriveKeys(db, keys, workerConfig(ctx, db), ctx.now());
-  const rows: Record<SubjectKey, InboxRow> = {};
+  const views: InboxRow[] = [];
   for (const key of keys) {
     const view = getView(db, key);
-    if (view) rows[key] = view.row as unknown as InboxRow;
+    if (view) views.push(view.row as unknown as InboxRow);
   }
+  const rows: Record<SubjectKey, InboxRow> = {};
+  for (const row of withoutQuietDone(db, views)) rows[row.key] = row;
   return rows;
 }
 

@@ -53,8 +53,11 @@ function seeded(): Database {
 
 function outboxRows(db: Database) {
   return db
-    .query<{ op: string; thread_id: string; subject_key: string; run_after: string }, []>(
-      "SELECT op, thread_id, subject_key, run_after FROM outbox ORDER BY id",
+    .query<
+      { op: string; thread_id: string; subject_key: string; run_after: string; cancelled_by: number | null },
+      []
+    >(
+      "SELECT op, thread_id, subject_key, run_after, cancelled_by FROM outbox ORDER BY id",
     )
     .all();
 }
@@ -69,7 +72,7 @@ describe("applyStateOps", () => {
     expect(JSON.parse(op?.op_json ?? "")).toEqual({ kind: "done" });
     expect(Object.keys(JSON.parse(op?.prev_json ?? "{}"))).toEqual(["acme/app#1", "acme/app#2"]);
 
-    expect(getItemState(db, "acme/app#1")).toEqual({ ...DEFAULT_ITEM_STATE, dismissedAt: T0, doneAt: T0 });
+    expect(getItemState(db, "acme/app#1")).toEqual({ ...DEFAULT_ITEM_STATE, dismissedAt: T0, doneAt: T0, readAt: T0 });
     expect(getItemState(db, "acme/app#2").doneAt).toBe(T0);
     expect(
       changesAfter(db, 0)
@@ -81,8 +84,8 @@ describe("applyStateOps", () => {
     ]);
 
     expect(outboxRows(db)).toEqual([
-      { op: "done", thread_id: "10", subject_key: "acme/app#1", run_after: DUE },
-      { op: "done", thread_id: "11", subject_key: "acme/app#1", run_after: DUE },
+      { op: "done", thread_id: "10", subject_key: "acme/app#1", run_after: DUE, cancelled_by: null },
+      { op: "done", thread_id: "11", subject_key: "acme/app#1", run_after: DUE, cancelled_by: null },
     ]);
     expect(result.outboxIds).toHaveLength(2);
   });
@@ -107,16 +110,60 @@ describe("applyStateOps", () => {
   test("an opposite write queued in between does not count as the same write waiting", () => {
     const db = seeded();
     applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
-    applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
-    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T2);
-    expect(outboxRows(db).map((r) => [r.op, r.thread_id])).toEqual([
-      ["unsubscribe", "10"],
-      ["unsubscribe", "11"],
-      ["resubscribe", "10"],
-      ["resubscribe", "11"],
-      ["unsubscribe", "10"],
-      ["unsubscribe", "11"],
+    for (const row of dueOutbox(db, DUE, 10)) completeOutbox(db, row.id, T1);
+    const unmute = applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
+    claimOutbox(db, unmute.outboxIds[0] ?? 0, T1);
+    const unsubscribe = applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T2);
+    expect(outboxRows(db).map((r) => [r.op, r.thread_id, r.cancelled_by])).toEqual([
+      ["unsubscribe", "10", null],
+      ["unsubscribe", "11", null],
+      ["resubscribe", "10", null],
+      ["resubscribe", "11", unsubscribe.opId],
+      ["unsubscribe", "10", null],
+      ["unsubscribe", "11", null],
     ]);
+  });
+
+  test("keep unread cancels a read still waiting, and undoing it revives the read", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "read" }, T0);
+    const unread = applyStateOps(db, ["acme/app#1"], { kind: "unread" }, T1);
+    expect(outboxRows(db).map((r) => [r.op, r.thread_id, r.cancelled_by])).toEqual([
+      ["read", "10", unread.opId],
+    ]);
+    expect(dueOutbox(db, T2, 10)).toEqual([]);
+    expect(outboxSummary(db).pending).toBe(0);
+
+    expect(undoStateOp(db, unread.opId, T2)).toEqual({ kind: "undone", githubApplied: 0 });
+    expect(dueOutbox(db, T2, 10).map((r) => r.op)).toEqual(["read"]);
+  });
+
+  test("read after a cancelled read queues the write again", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "read" }, T0);
+    applyStateOps(db, ["acme/app#1"], { kind: "unread" }, T1);
+    expect(applyStateOps(db, ["acme/app#1"], { kind: "read" }, T2).outboxIds).toHaveLength(1);
+    expect(dueOutbox(db, "2026-01-02T00:00:00.000Z", 10).map((r) => r.op)).toEqual(["read"]);
+  });
+
+  test("keep unread does not cancel a read already claimed", () => {
+    const db = seeded();
+    const read = applyStateOps(db, ["acme/app#1"], { kind: "read" }, T0);
+    claimOutbox(db, read.outboxIds[0] ?? 0, DUE);
+    applyStateOps(db, ["acme/app#1"], { kind: "unread" }, T1);
+    expect(outboxRows(db).map((r) => r.cancelled_by)).toEqual([null]);
+  });
+
+  test("unmute cancels an unsubscribe still waiting instead of queuing a resubscribe", () => {
+    const db = seeded();
+    applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
+    const unmute = applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
+    expect(unmute.outboxIds).toEqual([]);
+    expect(outboxRows(db).map((r) => [r.op, r.cancelled_by])).toEqual([
+      ["unsubscribe", unmute.opId],
+      ["unsubscribe", unmute.opId],
+    ]);
+    expect(dueOutbox(db, T2, 10)).toEqual([]);
   });
 
   test("ops without a GitHub write queue nothing", () => {
@@ -137,7 +184,12 @@ describe("applyStateOps", () => {
     applyStateOps(db, ["acme/app#1"], { kind: "read" }, T1);
     expect(getItemState(db, "acme/app#1").dismissedAt).toBe(T1);
     applyStateOps(db, ["acme/app#1"], { kind: "unread" }, T2);
-    expect(getItemState(db, "acme/app#1")).toEqual({ ...DEFAULT_ITEM_STATE, dismissedAt: T0, keepUnread: true });
+    expect(getItemState(db, "acme/app#1")).toEqual({
+      ...DEFAULT_ITEM_STATE,
+      dismissedAt: T0,
+      readAt: T1,
+      keepUnread: true,
+    });
   });
 
   test("unread after a later done keeps the done's dismissedAt", () => {
@@ -173,6 +225,7 @@ describe("applyStateOps", () => {
     applyStateOps(db, ["acme/app#1"], { kind: "unsubscribe" }, T0);
     const [first, second] = dueOutbox(db, DUE, 10);
     if (!first || !second) throw new Error("expected two outbox rows");
+    completeOutbox(db, first.id, T1);
     failOutbox(db, second.id, "boom", T1);
     applyStateOps(db, ["acme/app#1"], { kind: "unmute" }, T1);
     expect(outboxRows(db).map((r) => [r.op, r.thread_id])).toEqual([

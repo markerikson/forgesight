@@ -260,16 +260,12 @@ describe("patchWorkstream", () => {
 });
 
 describe("patchInbox on group members", () => {
-  test("done on members drops them from the group", () => {
+  test("done on members drops them from the group and from its unlisted members", () => {
     const payload = build([input()]);
     const next = patchInbox(payload, [K1, K3], { kind: "done" }, NOW_ISO, { includeHidden: false });
     expect(groupOf(next).members.map((m) => m.key)).toEqual([K2]);
     expect(groupOf(next).moreCount).toBe(3);
-    expect(groupOf(next).unlisted.map((m) => [m.key, m.why])).toEqual([
-      [K1, "hidden"],
-      [K3, "hidden"],
-      [K4, "hidden"],
-    ]);
+    expect(groupOf(next).unlisted.map((m) => [m.key, m.why])).toEqual([[K4, "hidden"]]);
   });
 
   test("done on every shown member drops the group row", () => {

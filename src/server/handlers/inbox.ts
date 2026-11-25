@@ -6,17 +6,18 @@ import {
   buildInboxPayload,
 } from "../../core/index.ts";
 import type { SubjectKey } from "../../core/types.ts";
-import { isShownWorkstream, type MemberFacts, workstreamSnoozeActive } from "../../core/workstream-state.ts";
+import { isListedWorkstream, type MemberFacts, workstreamSnoozeActive } from "../../core/workstream-state.ts";
 import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { getPrTexts } from "../../store/pr-texts.ts";
 import { readListing } from "../../worker/workstreams.ts";
 import { listViews } from "../../store/views.ts";
 import { getWorkstreamStates, listWorkstreams, memberFacts, toWorkstream } from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
-import { workerConfig } from "./derive-now.ts";
+import { withoutQuietDone, workerConfig } from "./derive-now.ts";
 
 /**
- * Every workstream that gets a row: Mark is involved in a member, or has not seen it yet.
+ * Every workstream that gets a row: Mark is involved in a member, has not seen it yet, or
+ * muted it (it shows in Hidden).
  * Members with no subject row (listing-only) count as authored by the stack's author.
  */
 export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<SubjectKey> = new Set()): WorkstreamInput[] {
@@ -40,7 +41,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
     }
     const workstream = toWorkstream(s);
     const state = states.get(s.id) ?? null;
-    if (!isShownWorkstream(workstream, facts, me, state?.seenAt ?? null)) continue;
+    if (!isListedWorkstream(workstream, facts, me, state)) continue;
     // Wake on time only; human-event and ready wakes need member events the inbox read does not load.
     const snoozed = state !== null && workstreamSnoozeActive(state, [], me, now);
     const pulls = listedPulls(
@@ -83,8 +84,13 @@ function listedPulls(ctx: ServerCtx, repo: string, keys: SubjectKey[]): Record<S
 export function readInbox(ctx: ServerCtx, includeHidden: boolean): InboxPayload {
   // The worker writes `row` with `toViewRecord`, so the stored JSON is an InboxRow.
   const rows = listViews(ctx.db, { includeHidden: true }).map((view) => view.row as unknown as InboxRow);
+  // Keys of every row, Done ones included, so a Done member is not listed as having no thread.
   const rowKeys = new Set(rows.map((r) => r.key));
-  return buildInboxPayload(rows, { includeHidden, now: ctx.now(), workstreams: loadWorkstreamInputs(ctx, rowKeys) });
+  return buildInboxPayload(withoutQuietDone(ctx.db, rows), {
+    includeHidden,
+    now: ctx.now(),
+    workstreams: loadWorkstreamInputs(ctx, rowKeys),
+  });
 }
 
 export async function inboxHandler(req: Request, ctx: ServerCtx): Promise<Response> {

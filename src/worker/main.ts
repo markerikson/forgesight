@@ -72,6 +72,8 @@ if (config.me && config.me !== viewer) {
 }
 const effectiveConfig = config.me ? config : { ...config, me: viewer };
 log.info(`Signed in as ${viewer}`);
+setMeta(db, META.outboxDryRun, config.outbox.dryRun ? "1" : "0", clock().toISOString());
+if (config.outbox.dryRun) log.warn("Outbox dry run: GitHub writes are completed locally and not sent.");
 
 const stopHeartbeat = startHeartbeat(db, clock);
 const poller = createPoller();

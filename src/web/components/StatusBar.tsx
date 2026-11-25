@@ -42,6 +42,11 @@ export function StatusBar() {
         {enrichQueue.pending > 0 && <span>{enrichQueue.pending} to refresh</span>}
         {enrichQueue.failing > 0 && <span className={styles.bad}>{enrichQueue.failing} failing</span>}
         {backfill.inProgress && <span>Backfilling</span>}
+        {outbox.dryRun && (
+          <span className={styles.warn} title="outbox.dryRun is on: writes are completed locally and not sent to GitHub">
+            Outbox dry run
+          </span>
+        )}
         {outbox.pending > 0 && <span>Outbox: {outbox.pending} pending</span>}
         {outbox.failed > 0 && (
           <span className={styles.warn} title={outbox.lastError ?? undefined}>

@@ -117,6 +117,21 @@ describe("outboxJob", () => {
     expect(threadsForSubject(db, KEY)[0]?.unread).toBe(false);
   });
 
+  test("dry run completes due rows without calling GitHub or touching threads", async () => {
+    ctx = { ...ctx, config: resolveConfig({ outbox: { dryRun: true } }) };
+    applyStateOps(db, [KEY], { kind: "done" }, now.toISOString());
+    advance(9_000);
+    expect(await outboxJob.run(ctx)).toBe("idle");
+    expect(outboxRow()?.completed_at).toBeNull();
+
+    advance(1_000);
+    expect(await outboxJob.run(ctx)).toBe("worked");
+    expect(gh.calls).toEqual([]);
+    expect(outboxRow()).toMatchObject({ completed_at: now.toISOString(), last_error: "dry_run" });
+    expect(threadsForSubject(db, KEY)[0]?.ghDoneAt).toBeNull();
+    expect(outboxSummary(db)).toEqual({ pending: 0, failed: 0, lastError: null });
+  });
+
   test("a 404 completes the row with a note", async () => {
     applyStateOps(db, [KEY], { kind: "done" }, now.toISOString());
     advance(10_000);

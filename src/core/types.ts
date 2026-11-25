@@ -118,12 +118,17 @@ export interface EnrichmentResult {
   timelineSyncedUntil: string | null;
 }
 
-/** User state for a subject. Web writes; the poller only seeds `dismissedAt` during backfill. */
+/** User state for a subject. Web writes; the poller only seeds `dismissedAt` during backfill, never `readAt`. */
 export interface ItemState {
   /** Nothing before this counts as new. Set by read and Done. */
   dismissedAt: string | null;
   /** Set only by Done; an open review request older than this no longer counts. */
   doneAt: string | null;
+  /**
+   * Last read or Done here. A thread unread on GitHub and updated after this shows unread.
+   * Backfill never sets it, so a dismissed old thread that is unread on GitHub still says so.
+   */
+  readAt: string | null;
   keepUnread: boolean;
   snoozeUntil: string | null;
   snoozeUntilHumanEvent: boolean;
