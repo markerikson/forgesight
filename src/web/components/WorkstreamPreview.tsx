@@ -5,12 +5,13 @@ import { relativeTime, repoShortName } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
 import {
   doneAllWorkstream,
+  doneKeys,
   openWorkstreamSnooze,
   renameWorkstream,
   setWorkstreamPriority,
 } from "../store/actions.ts";
-import { useAppDispatch } from "../store/hooks.ts";
-import { selectSubject } from "../store/view.ts";
+import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
+import { selectGoneKeys, selectSubject } from "../store/view.ts";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { StateIcon } from "./Badges.tsx";
 import { UNLISTED_LABELS } from "./GroupRow.tsx";
@@ -111,6 +112,8 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const dispatch = useAppDispatch();
   const now = useNow();
   const stack = stackOrder(group);
+  const gone = useAppSelector(selectGoneKeys);
+  const doneCount = doneKeys([group], gone).length;
   const rename = () => {
     const name = window.prompt("Workstream name (empty resets to the generated name)", group.name);
     if (name !== null && name.trim() !== group.name) dispatch(renameWorkstream(group, name));
@@ -123,11 +126,11 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
           <button
             type="button"
             className={previewStyles.primary}
-            disabled={group.section === "hidden" || group.members.length === 0}
+            disabled={group.section === "hidden" || doneCount === 0}
             title="Mark the listed members done (e)"
             onClick={() => dispatch(doneAllWorkstream(group))}
           >
-            Done all ({group.members.length})
+            Done all ({doneCount})
           </button>
           <button
             type="button"

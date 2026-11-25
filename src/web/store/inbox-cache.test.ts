@@ -72,4 +72,21 @@ describe("replaceRows", () => {
       ["acme/app#13", m3.title],
     ]);
   });
+
+  test("a rollback replaces every cached copy of a restored member", () => {
+    const m1 = row("acme/app#11", "updates");
+    const m2 = row("acme/app#12", "updates");
+    const original = group("g1", [m1, m2]);
+    const snoozed = { ...m1, section: "snoozed" as const, snoozeUntil: "2026-12-01T00:00:00Z" };
+    const patched = inbox([{ ...original, members: [m2] }, snoozed], 0);
+    const result = replaceRows(patched, { [m1.key]: m1 }, false, { g1: original });
+    expect(result.rows.map(entryKey)).toEqual(["workstream:g1"]);
+    const [entry] = result.rows;
+    if (!entry || !isGroup(entry)) throw new Error("expected a group");
+    expect(entry.members.map((m) => [m.key, m.section])).toEqual([
+      ["acme/app#11", "updates"],
+      ["acme/app#12", "updates"],
+    ]);
+    expect(result.sidebar.sections.snoozed).toBe(0);
+  });
 });

@@ -6,7 +6,9 @@ import { DEFAULT_ITEM_STATE, putItemState } from "../store/item-state.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
 import { ensureSubjects, saveEnrichment } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
-import { getView } from "../store/views.ts";
+import { changesAfter, getView } from "../store/views.ts";
+import { putWorkstreamState } from "../store/workstreams.ts";
+import { DEFAULT_WORKSTREAM_STATE } from "../core/workstream-state.ts";
 import { deriveViews } from "./derive.ts";
 import type { Logger } from "./scheduler.ts";
 
@@ -85,6 +87,27 @@ describe("deriveViews", () => {
     expect(deriveViews(db, config, new Date("2026-11-23T12:00:00Z"), quietLog).derived).toBe(0);
     expect(deriveViews(db, config, new Date("2026-11-23T13:30:00Z"), quietLog).derived).toBe(1);
     expect(getView(db, KEY)?.section).toBe("waiting");
+  });
+
+  test("announces a workstream whose snooze ended", () => {
+    const { db, config } = setup();
+    deriveViews(db, config, new Date("2026-11-23T11:00:00Z"), quietLog);
+    putWorkstreamState(
+      db,
+      "ws1",
+      { ...DEFAULT_WORKSTREAM_STATE, snoozeUntil: "2026-11-23T13:00:00.000Z" },
+      "2026-11-23T11:01:00Z",
+    );
+    const workstreamChanges = () =>
+      changesAfter(db, 0).filter((c) => c.kind === "workstream" && c.subjectKey === "ws1").length;
+    const before = workstreamChanges();
+
+    deriveViews(db, config, new Date("2026-11-23T12:00:00Z"), quietLog);
+    expect(workstreamChanges()).toBe(before);
+    deriveViews(db, config, new Date("2026-11-23T13:30:00Z"), quietLog);
+    expect(workstreamChanges()).toBe(before + 1);
+    deriveViews(db, config, new Date("2026-11-23T14:00:00Z"), quietLog);
+    expect(workstreamChanges()).toBe(before + 1);
   });
 
   test("subjects whose derivation failed are retried on the next run", () => {

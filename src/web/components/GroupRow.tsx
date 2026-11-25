@@ -4,12 +4,13 @@ import type { WsPriority as WorkstreamPriority } from "../../core/workstream-sta
 import { firstLine } from "../../core/pipeline/text.ts";
 import {
   doneAllWorkstream,
+  doneKeys,
   openWorkstreamSnooze,
   renameWorkstream,
   setWorkstreamPriority,
 } from "../store/actions.ts";
-import { useAppDispatch } from "../store/hooks.ts";
-import { MEMBER_CAP, toggleWorkstream } from "../store/view.ts";
+import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
+import { MEMBER_CAP, selectGoneKeys, toggleWorkstream } from "../store/view.ts";
 import { relativeTime, repoShortName } from "../format.ts";
 import { StateIcon } from "./Badges.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
@@ -34,7 +35,8 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
   const [summaryOpen, setSummaryOpen] = useState(false);
   const key = groupKey(group.id);
   const count = group.members.length + group.moreCount;
-  const doneCount = group.members.length;
+  const gone = useAppSelector(selectGoneKeys);
+  const doneCount = doneKeys([group], gone).length;
   const summaryFirst = group.summary ? firstLine(group.summary.text) : "";
   const summaryMore = group.summary !== null && group.summary.text.trim() !== summaryFirst;
 

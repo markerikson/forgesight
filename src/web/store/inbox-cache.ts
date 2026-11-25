@@ -16,10 +16,13 @@ export function replaceRows(
   const pending = new Map(Object.entries(changed));
   const pendingGroups = new Map(Object.entries(changedGroups));
   if (pending.size === 0 && pendingGroups.size === 0) return payload;
+  // A row can be cached twice (a rollback group lists it and its patched copy sits elsewhere),
+  // so replace every copy; reflow keeps one.
+  const replaced = new Set<string>();
   const replace = (row: InboxRow): InboxRow => {
     const next = pending.get(row.key);
     if (!next) return row;
-    pending.delete(row.key);
+    replaced.add(row.key);
     return next;
   };
   const entries: InboxEntry[] = [];
@@ -54,6 +57,7 @@ export function replaceRows(
     if (!includeHidden) returned += 1;
   }
   for (const next of pending.values()) {
+    if (replaced.has(next.key)) continue;
     if (next.section === "hidden") {
       if (includeHidden) entries.push(next);
       continue;

@@ -5,6 +5,7 @@ import { snoozeChoices } from "../ops.ts";
 import { applyState, applyWorkstream } from "./state-api.ts";
 import {
   moveSelection,
+  selectGoneKeys,
   selectInbox,
   snoozeMenuClosed,
   snoozeMenuOpened,
@@ -77,9 +78,13 @@ export function confirmDoneAll(count: number): boolean {
 
 /**
  * Subject keys "Done all" acts on: loose rows plus the members each group shows. Muted groups in
- * Hidden are skipped: their members are live Waiting or Updates rows, not hidden ones.
+ * Hidden are skipped: their members are live Waiting or Updates rows, not hidden ones. Keys in
+ * `gone` (dimmed rows that already left the live list) are skipped too.
  */
-export function doneKeys(entries: readonly InboxEntry[]): SubjectKey[] {
+export function doneKeys(
+  entries: readonly InboxEntry[],
+  gone: ReadonlySet<string> = new Set(),
+): SubjectKey[] {
   const keys = new Set<SubjectKey>();
   for (const entry of entries) {
     if (isGroup(entry)) {
@@ -87,13 +92,13 @@ export function doneKeys(entries: readonly InboxEntry[]): SubjectKey[] {
     }
     else keys.add(entry.key);
   }
-  return [...keys];
+  return [...keys].filter((key) => !gone.has(key));
 }
 
-/** Marks the group's shown members done, one per-subject done op for the batch. */
+/** Marks the group's live shown members done, one per-subject done op for the batch. */
 export function doneAllWorkstream(group: InboxGroup): ViewThunk {
-  return (dispatch) => {
-    const keys = doneKeys([group]);
+  return (dispatch, getState) => {
+    const keys = doneKeys([group], selectGoneKeys(getState()));
     if (keys.length === 0 || !confirmDoneAll(keys.length)) return;
     dispatch(markDone(keys));
   };
