@@ -22,6 +22,9 @@ export type OutboxOp = "done" | "read" | "unsubscribe" | "resubscribe";
 
 export const OUTBOX_OPS: readonly OutboxOp[] = ["done", "read", "unsubscribe", "resubscribe"];
 
+/** Most subject keys one state request may carry; the client splits larger requests. */
+export const MAX_STATE_KEYS = 1000;
+
 /** What `outboxThreads` needs to know about a subject's notification thread. */
 export interface OutboxThread {
   threadId: string;
@@ -137,7 +140,7 @@ export function patchRow(
     opts.includeHidden ? { ...from, section: "hidden" } : null;
   switch (op.kind) {
     case "done":
-      return toHidden();
+      return toHidden({ ...row, unread: false, newMeaningfulCount: 0 });
     case "mute":
     case "unsubscribe": {
       const muted = row.reasons.includes("muted") ? row : { ...row, reasons: [...row.reasons, "muted" as const] };

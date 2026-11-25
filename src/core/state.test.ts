@@ -170,7 +170,17 @@ describe("patchRow", () => {
 
   test("done removes the row, or moves it to hidden when hidden rows are listed", () => {
     expect(patchRow(waiting, { kind: "done" }, NOW)).toBeNull();
-    expect(patchRow(waiting, { kind: "done" }, NOW, { includeHidden: true })?.section).toBe("hidden");
+    expect(patchRow(waiting, { kind: "done" }, NOW, { includeHidden: true })).toEqual({
+      ...waiting,
+      section: "hidden",
+      unread: false,
+      newMeaningfulCount: 0,
+    });
+  });
+
+  test("done keeps a Hidden row in Hidden, read", () => {
+    const hidden = row("acme/app#1", "hidden", { unread: true });
+    expect(patchRow(hidden, { kind: "done" }, NOW, { includeHidden: true })).toEqual({ ...hidden, unread: false });
   });
 
   test.each(["mute", "unsubscribe"] as const)("%s hides a plain row", (kind) => {

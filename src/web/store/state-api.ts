@@ -1,6 +1,6 @@
 import { current, type Draft } from "@reduxjs/toolkit";
 import type { InboxPayload, InboxRow, SubjectKey } from "../../core/index.ts";
-import { patchInbox, type StateOp } from "../../core/state.ts";
+import { MAX_STATE_KEYS, patchInbox, type StateOp } from "../../core/state.ts";
 import type { StateRequest, StateResponse, UndoResponse } from "../../server/handlers/state.ts";
 import { opLabel } from "../ops.ts";
 import { api, type InboxArg } from "./api.ts";
@@ -155,13 +155,18 @@ export const stateApi = api.injectEndpoints({
   }),
 });
 
-/** Applies `op` to `keys`, optimistically; does nothing for an empty list. */
+/**
+ * Applies `op` to `keys`, optimistically; does nothing for an empty list. More than
+ * `MAX_STATE_KEYS` keys go as several requests, each its own undo entry.
+ */
 export function applyState(keys: SubjectKey[], op: StateOp): ViewThunk {
   return (dispatch) => {
-    if (keys.length === 0) return;
-    // Results live in the inbox cache and the undo stack, so drop each mutation entry once it settles.
-    const request = dispatch(stateApi.endpoints.applyState.initiate({ keys, op }));
-    void request.then(() => request.reset());
+    for (let start = 0; start < keys.length; start += MAX_STATE_KEYS) {
+      const chunk = keys.slice(start, start + MAX_STATE_KEYS);
+      // Results live in the inbox cache and the undo stack, so drop each mutation entry once it settles.
+      const request = dispatch(stateApi.endpoints.applyState.initiate({ keys: chunk, op }));
+      void request.then(() => request.reset());
+    }
   };
 }
 

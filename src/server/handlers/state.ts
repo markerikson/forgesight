@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { InboxRow, SubjectKey } from "../../core/index.ts";
 import { META } from "../../core/meta-keys.ts";
-import { isValidStateOp, type StateOp } from "../../core/state.ts";
+import { isValidStateOp, MAX_STATE_KEYS, type StateOp } from "../../core/state.ts";
 import { getMeta, setMeta } from "../../store/meta.ts";
 import { applyStateOps, undoStateOp } from "../../store/state-ops.ts";
 import { getSubject } from "../../store/subjects.ts";
@@ -9,7 +9,7 @@ import { getView } from "../../store/views.ts";
 import { deriveKeys } from "../../worker/derive.ts";
 import type { ServerCtx } from "../ctx.ts";
 
-export const MAX_KEYS = 200;
+export const MAX_KEYS = MAX_STATE_KEYS;
 
 export interface StateRequest {
   keys: SubjectKey[];

@@ -9,6 +9,7 @@ import { getView } from "../../store/views.ts";
 import { originGuard } from "../guards.ts";
 import { testCtx } from "../test-ctx.ts";
 import {
+  MAX_KEYS,
   refreshHandler,
   stateHandler,
   type StateResponse,
@@ -22,7 +23,7 @@ function key(n: number): string {
   return `octo/repo#${n}`;
 }
 
-function seed(db: Database, count: number): string[] {
+function seed(db: Database, count: number, reason = "review_requested"): string[] {
   const keys = Array.from({ length: count }, (_, i) => key(i + 1));
   ensureSubjects(
     db,
@@ -41,7 +42,7 @@ function seed(db: Database, count: number): string[] {
       subjectKey,
       repo: "octo/repo",
       subjectType: "PullRequest",
-      reason: "review_requested",
+      reason,
       unread: true,
       updatedAt: "2026-11-23T10:00:00Z",
       lastReadAt: null,
@@ -66,7 +67,7 @@ describe("stateHandler", () => {
     ["not json", "{"],
     ["no keys", { op: { kind: "done" } }],
     ["empty keys", { keys: [], op: { kind: "done" } }],
-    ["too many keys", { keys: Array.from({ length: 201 }, (_, i) => key(i)), op: { kind: "done" } }],
+    ["too many keys", { keys: Array.from({ length: MAX_KEYS + 1 }, (_, i) => key(i)), op: { kind: "done" } }],
     ["non-string key", { keys: [5], op: { kind: "done" } }],
     ["unknown op", { keys: [key(1)], op: { kind: "explode" } }],
     ["bad snooze", { keys: [key(1)], op: { kind: "snooze", until: "soon" } }],
@@ -104,6 +105,23 @@ describe("stateHandler", () => {
     expect(Object.keys(body.rows).sort()).toEqual([key(1), key(2)]);
     expect(getItemState(ctx.db, key(1))?.doneAt).toBe(NOW.toISOString());
     expect(body.rows[key(1)]).toEqual(getView(ctx.db, key(1))?.row as never);
+  });
+
+  test("Done on a muted Hidden subject queues the GitHub write", async () => {
+    const ctx = testCtx(NOW);
+    seed(ctx.db, 1, "subscribed");
+    const muted = (await (
+      await stateHandler(post("/api/state", { keys: [key(1)], op: { kind: "mute" } }), ctx)
+    ).json()) as StateResponse;
+    expect(muted.rows[key(1)]?.section).toBe("hidden");
+
+    const res = await stateHandler(post("/api/state", { keys: [key(1)], op: { kind: "done" } }), ctx);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as StateResponse;
+    expect(body.outboxIds).toHaveLength(1);
+    const queued = ctx.db.query<{ thread_id: string; op: string }, []>("SELECT thread_id, op FROM outbox").all();
+    expect(queued).toEqual([{ thread_id: "T1", op: "done" }]);
+    expect(body.rows[key(1)]).toMatchObject({ section: "hidden", unread: false });
   });
 
   test("200-key Done is one op that one undo restores", async () => {

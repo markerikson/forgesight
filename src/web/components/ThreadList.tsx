@@ -64,8 +64,10 @@ export function ThreadList() {
     [dispatch],
   );
 
+  // Dimmed rows already left the live list (and the sidebar count), so Done all skips them.
+  const doneAllKeys = rows.filter((row) => !gone.has(row.key)).map((row) => row.key);
   const doneAll = () => {
-    const keys = rows.map((row) => row.key);
+    const keys = doneAllKeys;
     if (keys.length > CONFIRM_DONE_ALL && !window.confirm(`Mark all ${keys.length} items done?`)) return;
     dispatch(markDone(keys));
   };
@@ -82,9 +84,9 @@ export function ThreadList() {
           {SECTION_LABELS[view.section]}
           {view.repo && <span className={styles.repo}> · {repoShortName(view.repo)}</span>}
         </span>
-        {view.section !== "hidden" && rows.length > 0 && (
+        {doneAllKeys.length > 0 && (
           <button type="button" className={styles.doneAll} onClick={doneAll}>
-            Done all ({rows.length})
+            Done all ({doneAllKeys.length})
           </button>
         )}
       </header>
