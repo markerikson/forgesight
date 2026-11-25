@@ -3,11 +3,11 @@ import type { InboxRow, SubjectDetail, SubjectHeader } from "../../core/index.ts
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { keepNewFlags } from "../new-flags.ts";
-import { isMuted, markDone, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
+import { isMuted, markDone, markWorkstreamSeen, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
 import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState } from "../store/state-api.ts";
-import { rowRead, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
+import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
@@ -40,6 +40,19 @@ export function Preview() {
     dispatch(rowRead({ ...row, unread: false, newMeaningfulCount: 0 }));
     dispatch(applyState([row.key], { kind: "read" }));
   }, [dispatch, row, loaded]);
+
+  // A workstream is marked seen when the user moves off it, not when it opens: seen groups lose
+  // their place at the top of Updates, and reordering the list under the cursor is disorienting.
+  // Moving between a group and its own members keeps it open.
+  const parentGroup = useAppSelector((state) => (row ? selectGroupOf(state).get(row.key) : undefined));
+  const currentGroup = group ?? parentGroup ?? null;
+  const currentGroupId = currentGroup?.id ?? null;
+  const openGroup = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = openGroup.current;
+    openGroup.current = currentGroupId;
+    if (previous !== null && previous !== currentGroupId) dispatch(markWorkstreamSeen(previous));
+  }, [dispatch, currentGroupId]);
 
   if (!row) {
     if (group) return <WorkstreamPane group={group} />;

@@ -255,6 +255,20 @@ describe("workstream groups", () => {
     expect(flattenEntries(entries, ["s1"], ["s1"])).toHaveLength(2 + members.length);
   });
 
+  test("withLingering puts a read member back inside its group, in stack order", () => {
+    const live = group("s1", [members[0]!, members[2]!], {
+      memberKeys: members.slice(0, 3).map((m) => m.key),
+      moreCount: 1,
+    });
+    const result = withLingering([live], [members[1]!], "updates", null);
+    expect(result.map(entryKey)).toEqual(["workstream:s1"]);
+    const joined = result[0]!;
+    expect("members" in joined ? joined.members.map((m) => m.key) : []).toEqual(
+      members.slice(0, 3).map((m) => m.key),
+    );
+    expect("moreCount" in joined ? joined.moreCount : -1).toBe(0);
+  });
+
   test("selecting a group row exposes it as the selected group, not a row", () => {
     const store = storeWith(entries);
     store.dispatch(sectionSelected("updates"));

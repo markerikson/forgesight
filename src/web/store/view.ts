@@ -335,7 +335,28 @@ export function withLingering(
   if (lingering.length === 0) return visible;
   const liveKeys = listedKeys(live);
   const extra = filterRows(lingering, section, repo).filter((row) => !liveKeys.has(row.key));
-  return extra.length === 0 ? visible : [...visible, ...extra].sort(compareRows);
+  if (extra.length === 0) return visible;
+
+  // A read member stays inside its workstream, in stack order, rather than as a loose row.
+  const joined = new Map<string, InboxRow[]>();
+  const loose: InboxRow[] = [];
+  for (const row of extra) {
+    const owner = visible.find((entry) => isGroup(entry) && entry.memberKeys.includes(row.key));
+    if (owner) joined.set(entryKey(owner), [...(joined.get(entryKey(owner)) ?? []), row]);
+    else loose.push(row);
+  }
+  const entries: InboxEntry[] = [];
+  for (const entry of visible) {
+    const rows = isGroup(entry) ? joined.get(entryKey(entry)) : undefined;
+    if (!isGroup(entry) || !rows) {
+      entries.push(entry);
+      continue;
+    }
+    const order = (row: InboxRow) => entry.memberKeys.indexOf(row.key);
+    const members = [...entry.members, ...rows].sort((a, b) => order(a) - order(b));
+    entries.push({ ...entry, members, moreCount: Math.max(0, entry.moreCount - rows.length) });
+  }
+  return loose.length === 0 ? entries : [...entries, ...loose].sort(compareRows);
 }
 
 const selectLiveRows = (state: ViewRootState) => selectInbox(state)?.rows ?? emptyRows;

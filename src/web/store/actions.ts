@@ -5,6 +5,7 @@ import { snoozeChoices } from "../ops.ts";
 import { applyState, applyWorkstream } from "./state-api.ts";
 import {
   moveSelection,
+  selectInbox,
   snoozeMenuClosed,
   snoozeMenuOpened,
   type SnoozeMenuState,
@@ -107,10 +108,15 @@ export function renameWorkstream(group: InboxGroup, name: string): ViewThunk {
   return applyWorkstream(group.id, { kind: "rename", name: trimmed === "" ? null : trimmed });
 }
 
-/** Records that the group was opened, clearing "new workstream" and "summary changed". */
-export function markWorkstreamSeen(group: InboxGroup): ViewThunk {
-  return (dispatch) => {
-    if (!group.isNew && !group.summary?.changed) return;
+/**
+ * Records that the group was opened, clearing "new workstream" and "summary changed". Reads the
+ * group's current entry: one that an op already moved out of the list, or that a priority change
+ * already marked seen, is left alone, so the seen op cannot supersede that op's undo.
+ */
+export function markWorkstreamSeen(id: string): ViewThunk {
+  return (dispatch, getState) => {
+    const group = selectInbox(getState())?.rows.find((entry) => isGroup(entry) && entry.id === id);
+    if (!group || !isGroup(group) || (!group.isNew && !group.summary?.changed)) return;
     dispatch(applyWorkstream(group.id, { kind: "seen", summaryHash: group.summary?.hash ?? null }));
   };
 }

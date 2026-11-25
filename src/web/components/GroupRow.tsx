@@ -75,9 +75,6 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
               </option>
             ))}
           </select>
-          <button type="button" title="Rename" onClick={(e) => act(e, () => setEditing(true))}>
-            Rename
-          </button>
           <button
             type="button"
             title="Snooze (s)"
@@ -120,7 +117,11 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
             onBlur={(e) => finishRename(e.currentTarget.value)}
           />
         ) : (
-          <span className={rowStyles.title} title={group.name}>
+          <span
+            className={rowStyles.title}
+            title={`${group.name} (double-click to rename)`}
+            onDoubleClick={(e) => act(e, () => setEditing(true))}
+          >
             {group.name}
           </span>
         )}

@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import type { GroupSummary, InboxGroup, SubjectWorkstream } from "../../core/inbox.ts";
 import type { SubjectKey } from "../../core/types.ts";
 import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
@@ -6,7 +5,6 @@ import { relativeTime, repoShortName } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
 import {
   doneAllWorkstream,
-  markWorkstreamSeen,
   openWorkstreamSnooze,
   renameWorkstream,
   setWorkstreamPriority,
@@ -102,15 +100,6 @@ export function StackBox({ workstream }: { workstream: SubjectWorkstream }) {
 export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const dispatch = useAppDispatch();
   const now = useNow();
-  const seenFor = useRef<string | null>(null);
-
-  // Opening the group marks it seen: it stops being "new" and its current summary counts as read.
-  useEffect(() => {
-    if (seenFor.current === group.id) return;
-    seenFor.current = group.id;
-    dispatch(markWorkstreamSeen(group));
-  }, [dispatch, group]);
-
   const rename = () => {
     const name = window.prompt("Workstream name (empty resets to the generated name)", group.name);
     if (name !== null && name.trim() !== group.name) dispatch(renameWorkstream(group, name));
