@@ -32,7 +32,7 @@ describe("statusHandler", () => {
     expect(s.backfill.inProgress).toBe(false);
     expect(s.enrichQueue).toEqual({ pending: 0, failing: 0 });
     expect(s.spend).toEqual({ since: "2026-11-23T11:00:00.000Z", graphql: 0, rest: 0, byClass: [] });
-    expect(s.outbox).toEqual({ pending: 0, failed: 0, lastError: null });
+    expect(s.outbox).toEqual({ pending: 0, failed: 0, lastError: null, dryRun: false });
     expect(s.configError).toBeNull();
   });
 
@@ -87,6 +87,14 @@ describe("statusHandler", () => {
     markDirty(c.db, ["o/r#1"], NOW.toISOString());
     const s = await status(c);
     expect(s.enrichQueue.pending).toBe(1);
+  });
+
+  test("reports the worker's outbox dry run", async () => {
+    const c = ctx();
+    setMeta(c.db, "outbox.dryRun", "1", NOW.toISOString());
+    expect((await status(c)).outbox.dryRun).toBe(true);
+    setMeta(c.db, "outbox.dryRun", "0", NOW.toISOString());
+    expect((await status(c)).outbox.dryRun).toBe(false);
   });
 
   test("passes the config error through", async () => {

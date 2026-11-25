@@ -81,6 +81,7 @@ describe("first run", () => {
     expect(getItemState(db, "octo/repo#3").dismissedAt).toBe(ago(20 * DAY));
     expect(getItemState(db, "octo/repo#2").dismissedAt).toBe(ago(4 * DAY));
     expect(getItemState(db, "octo/repo#1").dismissedAt).toBe(ago(HOUR + 2 * DAY));
+    expect(getItemState(db, "octo/repo#3").readAt).toBeNull();
   });
 
   test("first poll takes page 1 only; later polls fetch since the last one", async () => {

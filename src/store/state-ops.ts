@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import {
   applyStateOp,
+  cancelledOutboxOp,
   type OutboxOp,
   type OutboxThread,
   outboxOpFor,
@@ -73,9 +74,28 @@ function outboxFromRow(r: OutboxTableRow): OutboxRow {
   };
 }
 
-/** SQL condition on an outbox row (aliased `alias`): its op has not been undone. */
+/**
+ * SQL condition on an outbox row (aliased `alias`): its op has not been undone, and no live
+ * op cancelled it. Undoing the cancelling op makes the row live again.
+ */
 function liveOp(alias: string): string {
-  return `NOT EXISTS (SELECT 1 FROM state_ops s WHERE s.id = ${alias}.state_op_id AND s.undone_at IS NOT NULL)`;
+  return `NOT EXISTS (SELECT 1 FROM state_ops s WHERE s.id = ${alias}.state_op_id AND s.undone_at IS NOT NULL)
+    AND (${alias}.cancelled_by IS NULL
+         OR EXISTS (SELECT 1 FROM state_ops c WHERE c.id = ${alias}.cancelled_by AND c.undone_at IS NOT NULL))`;
+}
+
+/**
+ * Cancels `key`'s unsent, unclaimed `op` rows on behalf of state op `opId`. A row already
+ * claimed is in flight and goes out anyway.
+ */
+function cancelQueued(db: Database, key: string, op: OutboxOp, opId: number): number {
+  return db
+    .query(
+      `UPDATE outbox SET cancelled_by = ?
+       WHERE subject_key = ? AND op = ? AND claimed_at IS NULL AND completed_at IS NULL
+         AND failed_at IS NULL AND ${liveOp("outbox")}`,
+    )
+    .run(opId, key, op).changes;
 }
 
 /**
@@ -179,6 +199,8 @@ export function applyStateOps(db: Database, keys: SubjectKey[], op: StateOp, now
       const before = prev[key] ?? { ...DEFAULT_ITEM_STATE };
       const opts = op.kind === "unread" ? { dismissedBeforeRead: dismissedBeforeRead(db, key, opId) } : {};
       putItemState(db, key, applyStateOp(before, op, now, opts), now);
+      const cancelled = cancelledOutboxOp(op, before);
+      if (cancelled !== null) cancelQueued(db, key, cancelled, opId);
       const outboxOp = outboxOpFor(op, before);
       if (outboxOp === null) continue;
       for (const threadId of outboxTargets(db, key, outboxOp)) {
@@ -229,7 +251,8 @@ export function undoStateOp(db: Database, opId: number, now: string): UndoResult
       .get(opId);
     for (const key of keys) {
       const state = prev[key];
-      if (state) putItemState(db, key, state, now);
+      // Ops recorded before a field existed lack it; the default fills the gap.
+      if (state) putItemState(db, key, { ...DEFAULT_ITEM_STATE, ...state }, now);
     }
     db.query("UPDATE state_ops SET undone_at = ? WHERE id = ?").run(now, opId);
     return { kind: "undone", githubApplied: applied?.n ?? 0 };
@@ -330,7 +353,8 @@ export function outboxSummary(db: Database): OutboxSummary {
 
 /**
  * Deletes outbox rows created before `before` that were sent or belong to an undone op,
- * then state ops with no rows left. Failed rows stay, and so do the ops they belong to.
+ * then state ops no row belongs to or was cancelled by. Failed rows stay, and so do the ops
+ * they belong to.
  * Each thread's newest sent unsubscribe/resubscribe row stays too: unmute reads it to
  * decide whether to resubscribe.
  */
@@ -350,7 +374,8 @@ export function pruneStateOps(db: Database, before: string): { outbox: number; s
     const stateOps = db
       .query(
         `DELETE FROM state_ops WHERE created_at < ?
-         AND NOT EXISTS (SELECT 1 FROM outbox WHERE outbox.state_op_id = state_ops.id)`,
+         AND NOT EXISTS (SELECT 1 FROM outbox WHERE outbox.state_op_id = state_ops.id)
+         AND NOT EXISTS (SELECT 1 FROM outbox WHERE outbox.cancelled_by = state_ops.id)`,
       )
       .run(before).changes;
     return { outbox, stateOps };

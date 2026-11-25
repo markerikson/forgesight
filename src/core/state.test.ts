@@ -20,6 +20,7 @@ const LATER = "2026-11-25T09:00:00.000Z";
 const BASE: ItemState = {
   dismissedAt: null,
   doneAt: null,
+  readAt: null,
   keepUnread: false,
   snoozeUntil: null,
   snoozeUntilHumanEvent: false,
@@ -70,12 +71,12 @@ function row(key: string, section: Section, overrides: Partial<InboxRow> = {}): 
 describe("applyStateOp", () => {
   test("done dismisses, records doneAt, and clears snooze and keepUnread", () => {
     const next = applyStateOp({ ...SNOOZED, keepUnread: true }, { kind: "done" }, NOW);
-    expect(next).toEqual({ ...BASE, dismissedAt: NOW, doneAt: NOW });
+    expect(next).toEqual({ ...BASE, dismissedAt: NOW, doneAt: NOW, readAt: NOW });
   });
 
-  test("read dismisses and clears keepUnread", () => {
+  test("read dismisses, records readAt, and clears keepUnread", () => {
     const next = applyStateOp({ ...SNOOZED, keepUnread: true }, { kind: "read" }, NOW);
-    expect(next).toEqual({ ...SNOOZED, dismissedAt: NOW });
+    expect(next).toEqual({ ...SNOOZED, dismissedAt: NOW, readAt: NOW });
   });
 
   test("unread sets keepUnread and restores dismissedAt from before the read", () => {
@@ -168,19 +169,14 @@ describe("outboxThreads", () => {
 describe("patchRow", () => {
   const waiting = row("acme/app#1", "waiting", { unread: true, newMeaningfulCount: 3 });
 
-  test("done removes the row, or moves it to hidden when hidden rows are listed", () => {
+  test("done removes the row, even when hidden rows are listed", () => {
     expect(patchRow(waiting, { kind: "done" }, NOW)).toBeNull();
-    expect(patchRow(waiting, { kind: "done" }, NOW, { includeHidden: true })).toEqual({
-      ...waiting,
-      section: "hidden",
-      unread: false,
-      newMeaningfulCount: 0,
-    });
+    expect(patchRow(waiting, { kind: "done" }, NOW, { includeHidden: true })).toBeNull();
   });
 
-  test("done keeps a Hidden row in Hidden, read", () => {
+  test("done removes a Hidden row", () => {
     const hidden = row("acme/app#1", "hidden", { unread: true });
-    expect(patchRow(hidden, { kind: "done" }, NOW, { includeHidden: true })).toEqual({ ...hidden, unread: false });
+    expect(patchRow(hidden, { kind: "done" }, NOW, { includeHidden: true })).toBeNull();
   });
 
   test.each(["mute", "unsubscribe"] as const)("%s hides a plain row", (kind) => {
@@ -231,20 +227,20 @@ describe("patchInbox", () => {
     row("acme/app#5", "hidden"),
   ];
 
-  test("done drops the rows and moves them into the hidden count", () => {
+  test("done drops the rows without adding them to the hidden count", () => {
     const payload = buildInboxPayload(rows, { includeHidden: false, now: new Date(NOW) });
     const next = patchInbox(payload, ["acme/app#1", "acme/lib#3"], { kind: "done" }, NOW);
     expect(next.rows.map(entryKey)).toEqual(["acme/app#2", "acme/app#4"]);
-    expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 1, snoozed: 0, hidden: 3 });
+    expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 1, snoozed: 0, hidden: 1 });
     expect(next.sidebar.repos).toEqual([{ repo: "acme/app", waiting: 1, updates: 1 }]);
     expect(next.countLines).toBe(payload.countLines);
   });
 
-  test("keeps done rows as hidden when the list shows hidden rows", () => {
+  test("done drops rows from a list that shows hidden rows, Hidden ones included", () => {
     const payload = buildInboxPayload(rows, { includeHidden: true, now: new Date(NOW) });
-    const next = patchInbox(payload, ["acme/app#1"], { kind: "done" }, NOW);
-    expect(next.rows.map(entryKey)).toEqual(["acme/app#2", "acme/lib#3", "acme/app#4", "acme/app#1", "acme/app#5"]);
-    expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 2, snoozed: 0, hidden: 2 });
+    const next = patchInbox(payload, ["acme/app#1", "acme/app#5"], { kind: "done" }, NOW);
+    expect(next.rows.map(entryKey)).toEqual(["acme/app#2", "acme/lib#3", "acme/app#4"]);
+    expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 2, snoozed: 0, hidden: 0 });
   });
 
   test("snooze re-sorts the row into the snoozed section", () => {

@@ -95,7 +95,7 @@ describe("stateHandler", () => {
     const ctx = testCtx(NOW);
     seed(ctx.db, 2);
     const res = await stateHandler(
-      post("/api/state", { keys: [key(1), key(2)], op: { kind: "done" } }),
+      post("/api/state", { keys: [key(1), key(2)], op: { kind: "read" } }),
       ctx,
     );
     expect(res.status).toBe(200);
@@ -103,8 +103,22 @@ describe("stateHandler", () => {
     expect(body.opId).toBeGreaterThan(0);
     expect(body.outboxIds).toHaveLength(2);
     expect(Object.keys(body.rows).sort()).toEqual([key(1), key(2)]);
-    expect(getItemState(ctx.db, key(1))?.doneAt).toBe(NOW.toISOString());
+    expect(getItemState(ctx.db, key(1))?.dismissedAt).toBe(NOW.toISOString());
     expect(body.rows[key(1)]).toEqual(getView(ctx.db, key(1))?.row as never);
+  });
+
+  test("Done leaves the rows out of the response; they stay derived as Hidden", async () => {
+    const ctx = testCtx(NOW);
+    seed(ctx.db, 2);
+    const res = await stateHandler(
+      post("/api/state", { keys: [key(1), key(2)], op: { kind: "done" } }),
+      ctx,
+    );
+    const body = (await res.json()) as StateResponse;
+    expect(body.outboxIds).toHaveLength(2);
+    expect(body.rows).toEqual({});
+    expect(getItemState(ctx.db, key(1))?.doneAt).toBe(NOW.toISOString());
+    expect(getView(ctx.db, key(1))?.section).toBe("hidden");
   });
 
   test("Done on a muted Hidden subject queues the GitHub write", async () => {
@@ -121,7 +135,7 @@ describe("stateHandler", () => {
     expect(body.outboxIds).toHaveLength(1);
     const queued = ctx.db.query<{ thread_id: string; op: string }, []>("SELECT thread_id, op FROM outbox").all();
     expect(queued).toEqual([{ thread_id: "T1", op: "done" }]);
-    expect(body.rows[key(1)]).toMatchObject({ section: "hidden", unread: false });
+    expect(body.rows).toEqual({});
   });
 
   test("200-key Done is one op that one undo restores", async () => {
@@ -130,7 +144,7 @@ describe("stateHandler", () => {
     const res = await stateHandler(post("/api/state", { keys, op: { kind: "done" } }), ctx);
     expect(res.status).toBe(200);
     const body = (await res.json()) as StateResponse;
-    expect(Object.keys(body.rows)).toHaveLength(200);
+    expect(Object.keys(body.rows)).toHaveLength(0);
     const ops = ctx.db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM state_ops").get();
     expect(ops?.n).toBe(1);
 

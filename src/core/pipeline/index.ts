@@ -60,12 +60,18 @@ function threadReasonLine(reason: string): string {
   return THREAD_REASON_LINES[reason] ?? reason.replaceAll("_", " ");
 }
 
-/**
- * Unread on GitHub and updated after the last local read or done. A local read clears the
- * row right away, before the outbox marks the thread read on GitHub.
- */
+/** Unread on GitHub and updated after the last dismissal, so it ranks as an update. */
 function isFreshUnread(thread: ThreadRecord, state: ItemState): boolean {
   return thread.unread && (state.dismissedAt === null || isAfter(thread.updatedAt, state.dismissedAt));
+}
+
+/**
+ * Unread on GitHub and updated after the last local read or done. A local read clears the
+ * flag right away, before the outbox marks the thread read on GitHub. Uses `readAt`, not
+ * `dismissedAt`, so a thread backfill dismissed without reading still shows unread.
+ */
+function isUnreadHere(thread: ThreadRecord, state: ItemState): boolean {
+  return thread.unread && (state.readAt === null || isAfter(thread.updatedAt, state.readAt));
 }
 
 /**
@@ -151,7 +157,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     hiddenStats: r.hiddenStats,
     sortAt: r.sortAt,
     snoozeUntil: state.snoozeUntil,
-    unread: threads.some((t) => isFreshUnread(t, state)) || state.keepUnread,
+    unread: threads.some((t) => isUnreadHere(t, state)) || state.keepUnread,
     ...(input.stack ? { stack: input.stack } : {}),
   };
 }

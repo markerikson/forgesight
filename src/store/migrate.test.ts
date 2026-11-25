@@ -90,9 +90,11 @@ describe("migrations", () => {
     setMeta(db, "k", "v", "2026-01-01T00:00:00Z");
 
     expect(runMigrations(db, migrations.slice(0, 2))).toEqual({ from: 1, to: 2 });
+    runMigrations(db);
     expect(getItemState(db, "acme/app#1")).toEqual({
       dismissedAt: "2026-01-01T00:00:00Z",
       doneAt: null,
+      readAt: null,
       keepUnread: true,
       snoozeUntil: "2026-02-01T00:00:00Z",
       snoozeUntilHumanEvent: false,

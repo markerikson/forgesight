@@ -93,6 +93,7 @@ export interface ItemStateRow {
   done_at: string | null;
   snoozed_at: string | null;
   snooze_until_ready: number;
+  read_at: string | null;
 }
 
 export interface StateOpRow {
@@ -116,6 +117,7 @@ export interface OutboxTableRow {
   last_error: string | null;
   completed_at: string | null;
   failed_at: string | null;
+  cancelled_by: number | null;
 }
 
 export interface SubjectViewRow {
@@ -233,6 +235,7 @@ export function itemStateFromRow(r: ItemStateRow): ItemState {
   return {
     dismissedAt: r.dismissed_at,
     doneAt: r.done_at,
+    readAt: r.read_at,
     keepUnread: r.keep_unread !== 0,
     snoozeUntil: r.snooze_until,
     snoozeUntilHumanEvent: r.snooze_until_human_event !== 0,

@@ -6,6 +6,7 @@ import { setMeta } from "../../store/meta.ts";
 import { getWorkstream, getWorkstreamState } from "../../store/workstreams.ts";
 import { rebuildWorkstreams } from "../../worker/workstreams.ts";
 import { testCtx } from "../test-ctx.ts";
+import { readInbox } from "./inbox.ts";
 import { undoHandler, type UndoResponse } from "./state.ts";
 import {
   workstreamsHandler,
@@ -146,6 +147,24 @@ describe("workstreamStateHandler", () => {
     const res = await call(ctx, { id: A, op: { kind: "rename", name: "Auth rework" } });
     const body = (await res.json()) as WorkstreamStateResponse;
     expect(body.workstreams[A]?.name).toBe("Auth rework");
+  });
+});
+
+describe("muted workstreams in the inbox", () => {
+  const groupIds = (ctx: ReturnType<typeof setup>, includeHidden: boolean) =>
+    readInbox(ctx, includeHidden).rows.flatMap((e) => ("kind" in e && e.kind === "workstream" ? [e.id] : []));
+
+  test("a seen workstream Mark is not involved in leaves the list, and goes to Hidden once muted", async () => {
+    const ctx = setup();
+    expect(groupIds(ctx, false)).toEqual([A, B]);
+    await call(ctx, { id: A, op: { kind: "seen", summaryHash: null } });
+    expect(groupIds(ctx, true)).toEqual([B]);
+
+    await call(ctx, { id: A, op: { kind: "setPriority", priority: "muted" } });
+    expect(groupIds(ctx, false)).toEqual([B]);
+    expect(readInbox(ctx, false).sidebar.sections.hidden).toBe(1);
+    const hidden = readInbox(ctx, true).rows.find((e) => "kind" in e && e.kind === "workstream" && e.id === A);
+    expect(hidden).toMatchObject({ section: "hidden", priority: "muted", members: [] });
   });
 });
 

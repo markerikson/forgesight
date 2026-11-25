@@ -66,6 +66,10 @@ export interface Config {
   };
   budget: { graphqlPerHour: number; restPerHour: number };
   rebase: { enabled: boolean; method: RebaseMethod };
+  outbox: {
+    /** Log queued GitHub writes and mark them sent without calling GitHub. For scratch databases. */
+    dryRun: boolean;
+  };
   server: { port: number; allowedHosts: string[] };
   llm: {
     /** Spend stops for the rest of the UTC day once LLM calls total this much. */

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { buildInboxPayload, buildSubjectDetail, entryKey } from "./inbox.ts";
+import { buildInboxPayload, buildSubjectDetail, entryKey, isDoneQuiet } from "./inbox.ts";
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
 import type { ThreadRecord } from "./types.ts";
 
@@ -88,6 +88,24 @@ function thread(reason: string, subjectUrl: string | null): ThreadRecord {
     raw: {},
   };
 }
+
+describe("isDoneQuiet", () => {
+  const DONE = "2026-11-05T12:00:00.000Z";
+
+  test("a Hidden row with nothing newer than the Done is quiet", () => {
+    expect(isDoneQuiet(row("a#1", "hidden", { sortAt: "2026-11-05T12:00:00Z" }), DONE)).toBe(true);
+    expect(isDoneQuiet(row("a#1", "hidden", { sortAt: "2026-11-01T00:00:00Z" }), DONE)).toBe(true);
+  });
+
+  test("activity after the Done brings the row back", () => {
+    expect(isDoneQuiet(row("a#1", "hidden", { sortAt: "2026-11-05T12:00:01Z" }), DONE)).toBe(false);
+  });
+
+  test("a row never marked Done, or listed outside Hidden, is not quiet", () => {
+    expect(isDoneQuiet(row("a#1", "hidden", { sortAt: "2026-11-01T00:00:00Z" }), null)).toBe(false);
+    expect(isDoneQuiet(row("a#1", "waiting", { sortAt: "2026-11-01T00:00:00Z" }), DONE)).toBe(false);
+  });
+});
 
 describe("buildInboxPayload", () => {
   const rows = [

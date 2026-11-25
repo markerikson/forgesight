@@ -51,8 +51,7 @@ describe("applyState", () => {
   test("removes done rows at once, moves the selection, and records the undo", async () => {
     const store = storeWith(rows);
     store.dispatch(rowSelected({ key: "acme/app#2", index: 1 }));
-    const doneRow: InboxRow = { ...rows[1]!, section: "hidden" };
-    replies.push({ status: 200, body: { opId: 1, outboxIds: [1], rows: { "acme/app#2": doneRow } } });
+    replies.push({ status: 200, body: { opId: 1, outboxIds: [1], rows: {} } });
 
     store.dispatch(applyState(["acme/app#2"], { kind: "done" }));
     expect(selectVisibleRows(store.getState()).map(entryKey)).toEqual(["acme/app#1", "acme/app#3"]);
@@ -60,7 +59,7 @@ describe("applyState", () => {
 
     await settle();
     expect(sent).toEqual([{ url: "/api/state", body: { keys: ["acme/app#2"], op: { kind: "done" } } }]);
-    expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 1 });
+    expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 0 });
     expect(store.getState().view.undo).toMatchObject([{ opId: 1, label: "Done", keys: ["acme/app#2"] }]);
     expect(store.getState().view.toast).toMatchObject({ message: "Done", opId: 1 });
   });
@@ -80,9 +79,8 @@ describe("applyState", () => {
 
   test("a refused change keeps another change that succeeded meanwhile", async () => {
     const store = storeWith(rows);
-    const doneRow: InboxRow = { ...rows[1]!, section: "hidden" };
     replies.push({ status: 500, body: { error: "boom" }, delayMs: 20 });
-    replies.push({ status: 200, body: { opId: 3, outboxIds: [3], rows: { "acme/app#2": doneRow } } });
+    replies.push({ status: 200, body: { opId: 3, outboxIds: [3], rows: {} } });
 
     store.dispatch(applyState(["acme/app#1"], { kind: "mute" }));
     store.dispatch(applyState(["acme/app#2"], { kind: "done" }));
@@ -90,7 +88,7 @@ describe("applyState", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 40));
     expect(selectVisibleRows(store.getState()).map(entryKey)).toEqual(["acme/app#1", "acme/app#3"]);
-    expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 1 });
+    expect(cached(store).sidebar.sections).toMatchObject({ waiting: 2, hidden: 0 });
   });
 
   test("a refused Done brings back the read row it took out of the list", async () => {

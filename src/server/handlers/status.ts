@@ -26,8 +26,11 @@ export interface StatusPayload {
   enrichQueue: EnrichQueue;
   /** Last hour. `graphql` is summed point cost, `rest` is calls excluding 304s (the budget caps' units). */
   spend: { since: string; graphql: number; rest: number; byClass: ApiSpend[] };
-  /** GitHub writes waiting to be sent, given up on, and the newest error among unsent rows. */
-  outbox: OutboxSummary;
+  /**
+   * GitHub writes waiting to be sent, given up on, and the newest error among unsent rows.
+   * `dryRun` is true when the worker completes writes without sending them.
+   */
+  outbox: OutboxSummary & { dryRun: boolean };
   configError: string | null;
 }
 
@@ -63,7 +66,7 @@ export function readStatus(ctx: ServerCtx): StatusPayload {
       rest: resourceSpendSince(ctx.db, "rest", since),
       byClass: spendSince(ctx.db, since),
     },
-    outbox: outboxSummary(ctx.db),
+    outbox: { ...outboxSummary(ctx.db), dryRun: meta.outboxDryRun === "1" },
     configError: ctx.configError,
   };
 }

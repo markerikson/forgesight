@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { entryKey, type InboxPayload, type Section, type SubjectView } from "../../core/index.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
+import { DEFAULT_ITEM_STATE, putItemState } from "../../store/item-state.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
@@ -103,6 +104,24 @@ describe("inboxHandler", () => {
   test("includes hidden rows with includeHidden=1", async () => {
     const { body } = await get(inboxHandler, "/api/inbox?includeHidden=1", seeded());
     expect((body as InboxPayload).rows.map(entryKey)).toContain("acme/app#2");
+  });
+
+  test("leaves out a Hidden row marked Done with nothing newer, from the list and the counts", async () => {
+    const c = seeded();
+    putItemState(c.db, "acme/app#2", { ...DEFAULT_ITEM_STATE, doneAt: "2026-11-02T00:00:00.000Z" }, NOW.toISOString());
+    const closed = (await get(inboxHandler, "/api/inbox", c)).body as InboxPayload;
+    expect(closed.sidebar.sections.hidden).toBe(0);
+    expect(closed.countLines).toEqual([]);
+    const open = (await get(inboxHandler, "/api/inbox?includeHidden=1", c)).body as InboxPayload;
+    expect(open.rows.map(entryKey)).not.toContain("acme/app#2");
+  });
+
+  test("lists a Done Hidden row again once it has newer activity", async () => {
+    const c = seeded();
+    putItemState(c.db, "acme/app#2", { ...DEFAULT_ITEM_STATE, doneAt: "2026-10-30T00:00:00.000Z" }, NOW.toISOString());
+    const payload = (await get(inboxHandler, "/api/inbox?includeHidden=1", c)).body as InboxPayload;
+    expect(payload.rows.map(entryKey)).toContain("acme/app#2");
+    expect(payload.sidebar.sections.hidden).toBe(1);
   });
 
   test("returns an empty inbox before the worker has derived anything", async () => {

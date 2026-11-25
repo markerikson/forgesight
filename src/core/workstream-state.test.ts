@@ -3,6 +3,7 @@ import { nextRecentlyClosed } from "./recently-closed.ts";
 import {
   applyWorkstreamOp,
   DEFAULT_WORKSTREAM_STATE,
+  isListedWorkstream,
   isShownWorkstream,
   isValidWorkstreamOp,
   type MemberFacts,
@@ -38,6 +39,19 @@ describe("isShownWorkstream", () => {
     expect(isShownWorkstream(ws, new Map([["o/r#2", facts({ threadSection: "hidden" })]]), "mark", T0)).toBe(
       false,
     );
+  });
+});
+
+describe("isListedWorkstream", () => {
+  const ws = { members: ["o/r#1"] };
+  const notInvolved = new Map([["o/r#1", facts({ author: "alice" })]]);
+
+  test("lists a seen workstream Mark is not involved in only when he muted it", () => {
+    expect(isListedWorkstream(ws, notInvolved, "mark", { ...DEFAULT_WORKSTREAM_STATE, seenAt: T0 })).toBe(false);
+    expect(
+      isListedWorkstream(ws, notInvolved, "mark", { ...DEFAULT_WORKSTREAM_STATE, seenAt: T0, priority: "muted" }),
+    ).toBe(true);
+    expect(isListedWorkstream(ws, notInvolved, "mark", null)).toBe(true);
   });
 });
 
