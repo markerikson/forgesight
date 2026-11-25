@@ -1,8 +1,11 @@
-import { current, type Draft } from "@reduxjs/toolkit";
+import { current, type Draft, type ThunkDispatch, type UnknownAction } from "@reduxjs/toolkit";
 import type { InboxPayload, InboxRow, SubjectKey } from "../../core/index.ts";
-import { MAX_STATE_KEYS, patchInbox, type StateOp } from "../../core/state.ts";
+import { entryKey, type InboxEntry, type InboxGroup, isGroup } from "../../core/inbox.ts";
+import { MAX_STATE_KEYS, patchInbox, patchWorkstream, type StateOp } from "../../core/state.ts";
+import type { WorkstreamOp } from "../../core/workstream-state.ts";
 import type { StateRequest, StateResponse, UndoResponse } from "../../server/handlers/state.ts";
-import { opLabel } from "../ops.ts";
+import type { WorkstreamStateRequest, WorkstreamStateResponse } from "../../server/handlers/workstreams.ts";
+import { opLabel, workstreamOpLabel } from "../ops.ts";
 import { api, type InboxArg } from "./api.ts";
 import { replaceRows } from "./inbox-cache.ts";
 import {
@@ -10,7 +13,7 @@ import {
   resolveSelection,
   rowRead,
   rowSelected,
-  selectSelectedRow,
+  selectSelectedEntry,
   selectVisibleRows,
   toastShown,
   undoPushed,
@@ -38,26 +41,82 @@ function cachedInboxArgs(state: ViewRootState): InboxArg[] {
   return api.util.selectCachedArgsForQuery(state, "getInbox");
 }
 
+function cachedRows(state: ViewRootState, arg: InboxArg): readonly InboxEntry[] {
+  return api.endpoints.getInbox.select(arg)(state).data?.rows ?? [];
+}
+
+/** Rows for `keys` wherever the entries list them, at the top level or inside a group. */
+function rowsFor(entries: readonly InboxEntry[], keys: ReadonlySet<string>): Record<string, InboxRow> {
+  const rows: Record<string, InboxRow> = {};
+  for (const entry of entries) {
+    for (const row of isGroup(entry) ? entry.members : [entry]) {
+      if (keys.has(row.key)) rows[row.key] = row;
+    }
+  }
+  return rows;
+}
+
+/** Groups that list any of `keys` among their members. */
+function groupsFor(entries: readonly InboxEntry[], keys: ReadonlySet<string>): Record<string, InboxGroup> {
+  const groups: Record<string, InboxGroup> = {};
+  for (const entry of entries) {
+    if (isGroup(entry) && entry.members.some((member) => keys.has(member.key))) groups[entry.id] = entry;
+  }
+  return groups;
+}
+
+function workstreamTags(ids: readonly string[], withInbox: boolean) {
+  const tags = ids.map((id) => ({ type: "Workstream" as const, id }));
+  return withInbox ? [...tags, { type: "Inbox" as const, id: "LIST" }] : tags;
+}
+
+type Dispatch = ThunkDispatch<unknown, unknown, UnknownAction>;
+
+/** Keeps the selection on the entry that took the place of one that left the list. */
+function pinSelection(dispatch: Dispatch, getState: () => unknown, selected: InboxEntry | null, index: number) {
+  if (!selected) return;
+  const visible = selectVisibleRows(getState() as ViewRootState);
+  const key = entryKey(selected);
+  if (visible.some((entry) => entryKey(entry) === key)) return;
+  const next = resolveSelection(visible, key, index);
+  if (next) dispatch(rowSelected({ key: entryKey(next), index: visible.indexOf(next) }));
+}
+
+/**
+ * A rolled-back group the cache no longer lists may have left as Hidden (one entry) or been
+ * dropped empty (its members counted one by one), so only the server knows the Hidden count.
+ */
+function refetchAfterGroupRollback(
+  dispatch: Dispatch,
+  originals: readonly { groups: Readonly<Record<string, InboxGroup | null>> }[],
+) {
+  if (originals.some(({ groups }) => Object.keys(groups).length > 0)) {
+    dispatch(api.util.invalidateTags([{ type: "Inbox", id: "LIST" }]));
+  }
+}
+
+function selectionBefore(state: ViewRootState) {
+  const selected = selectSelectedEntry(state);
+  return { selected, index: selected ? selectVisibleRows(state).indexOf(selected) : 0 };
+}
+
 export const stateApi = api.injectEndpoints({
   endpoints: (build) => ({
     applyState: build.mutation<StateResponse, StateRequest>({
       query: (body) => ({ url: "state", method: "POST", body }),
       async onQueryStarted({ keys, op }, { dispatch, getState, queryFulfilled }) {
         const before = getState() as ViewRootState;
-        const selected = selectSelectedRow(before);
-        const selectedIndex = selected ? selectVisibleRows(before).indexOf(selected) : 0;
+        const { selected, index: selectedIndex } = selectionBefore(before);
         const now = new Date().toISOString();
         const keySet = new Set<string>(keys);
         const lingering = before.view.lingering.filter((row) => keySet.has(row.key));
 
         if (op.kind !== "read" && op.kind !== "unread") dispatch(lingeringDropped(keys));
         // Rollback puts back only these rows, so changes that land meanwhile survive a failure.
+        // Groups holding these rows come back too: the patch can empty a group and drop it.
         const originals = cachedInboxArgs(before).map((arg) => {
-          const rows: Record<string, InboxRow> = {};
-          for (const row of api.endpoints.getInbox.select(arg)(before).data?.rows ?? []) {
-            if (keySet.has(row.key)) rows[row.key] = row;
-          }
-          return { arg, rows };
+          const entries = cachedRows(before, arg);
+          return { arg, rows: rowsFor(entries, keySet), groups: groupsFor(entries, keySet) };
         });
         for (const { arg } of originals) {
           dispatch(
@@ -67,15 +126,7 @@ export const stateApi = api.injectEndpoints({
           );
         }
 
-        // Pin the selection on the row that took the place of one that left the list.
-        if (op.kind !== "read" && selected) {
-          const after = getState() as ViewRootState;
-          const visible = selectVisibleRows(after);
-          if (!visible.some((row) => row.key === selected.key)) {
-            const next = resolveSelection(visible, selected.key, selectedIndex);
-            if (next) dispatch(rowSelected({ key: next.key, index: visible.indexOf(next) }));
-          }
-        }
+        if (op.kind !== "read") pinSelection(dispatch, getState, selected, selectedIndex);
 
         const label = opLabel(op, keys.length);
         try {
@@ -99,15 +150,75 @@ export const stateApi = api.injectEndpoints({
           );
           dispatch(toastShown(label, { opId: data.opId }));
         } catch {
-          for (const { arg, rows } of originals) {
+          for (const { arg, rows, groups } of originals) {
             dispatch(
               api.util.updateQueryData("getInbox", arg, (draft) =>
-                replaceRows(asPayload(draft), rows, arg.includeHidden),
+                replaceRows(asPayload(draft), rows, arg.includeHidden, groups),
               ),
             );
           }
+          refetchAfterGroupRollback(dispatch, originals);
           if (op.kind !== "read" && op.kind !== "unread") for (const row of lingering) dispatch(rowRead(row));
           if (op.kind !== "read") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
+        }
+      },
+    }),
+    applyWorkstream: build.mutation<WorkstreamStateResponse, WorkstreamStateRequest>({
+      query: (body) => ({ url: "workstreams/state", method: "POST", body }),
+      async onQueryStarted({ id: targetId, op }, { dispatch, getState, queryFulfilled }) {
+        const before = getState() as ViewRootState;
+        const { selected, index: selectedIndex } = selectionBefore(before);
+        const now = new Date().toISOString();
+        const ids = op.kind === "merge" ? [targetId, op.from] : [targetId];
+        let name = targetId;
+
+        // Rollback puts back only the touched groups and their member rows.
+        const originals = cachedInboxArgs(before).map((arg) => {
+          const groups: Record<string, InboxGroup | null> = {};
+          const rows: Record<string, InboxRow> = {};
+          for (const entry of cachedRows(before, arg)) {
+            if (!isGroup(entry) || !ids.includes(entry.id)) continue;
+            groups[entry.id] = entry;
+            if (entry.id === targetId) name = entry.name;
+            for (const member of entry.members) rows[member.key] = member;
+          }
+          return { arg, groups, rows };
+        });
+        for (const { arg } of originals) {
+          dispatch(
+            api.util.updateQueryData("getInbox", arg, (draft) =>
+              patchWorkstream(asPayload(draft), targetId, op, now, { includeHidden: arg.includeHidden }),
+            ),
+          );
+        }
+        if (op.kind !== "seen") pinSelection(dispatch, getState, selected, selectedIndex);
+
+        const label = workstreamOpLabel(op, name);
+        try {
+          const { data } = await queryFulfilled;
+          for (const arg of cachedInboxArgs(getState() as ViewRootState)) {
+            dispatch(
+              api.util.updateQueryData("getInbox", arg, (draft) =>
+                replaceRows(asPayload(draft), data.rows, arg.includeHidden),
+              ),
+            );
+          }
+          // The response carries stored workstreams, not inbox groups, so refetch the groups.
+          // Subject previews show the workstream name and summary too.
+          dispatch(api.util.invalidateTags(workstreamTags(ids, op.kind !== "seen")));
+          if (op.kind === "seen") return;
+          dispatch(undoPushed({ opId: data.opId, label, keys: [], workstream: targetId, at: now }));
+          dispatch(toastShown(label, { opId: data.opId }));
+        } catch {
+          for (const { arg, groups, rows } of originals) {
+            dispatch(
+              api.util.updateQueryData("getInbox", arg, (draft) =>
+                replaceRows(asPayload(draft), rows, arg.includeHidden, groups),
+              ),
+            );
+          }
+          refetchAfterGroupRollback(dispatch, originals);
+          if (op.kind !== "seen") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
         }
       },
     }),
@@ -124,6 +235,7 @@ export const stateApi = api.injectEndpoints({
             );
           }
           const entry = (getState() as ViewRootState).view.undo.find((e) => e.opId === opId);
+          if (data.workstreams) dispatch(api.util.invalidateTags(workstreamTags(Object.keys(data.workstreams), true)));
           dispatch(undoRemoved(opId));
           for (const row of entry?.lingering ?? []) dispatch(rowRead(row));
           const label = entry?.label ?? "last change";
@@ -167,6 +279,14 @@ export function applyState(keys: SubjectKey[], op: StateOp): ViewThunk {
       const request = dispatch(stateApi.endpoints.applyState.initiate({ keys: chunk, op }));
       void request.then(() => request.reset());
     }
+  };
+}
+
+/** Applies `op` to workstream `id`, optimistically. */
+export function applyWorkstream(id: string, op: WorkstreamOp): ViewThunk {
+  return (dispatch) => {
+    const request = dispatch(stateApi.endpoints.applyWorkstream.initiate({ id, op }));
+    void request.then(() => request.reset());
   };
 }
 

@@ -16,6 +16,8 @@ interface Props {
   onDone: (row: InboxRow) => void;
   onSnooze: (row: InboxRow, button: Element) => void;
   onMute: (row: InboxRow) => void;
+  /** Listed under an expanded workstream group. */
+  member?: boolean;
 }
 
 export const ThreadRow = memo(function ThreadRow({
@@ -28,6 +30,7 @@ export const ThreadRow = memo(function ThreadRow({
   onDone,
   onSnooze,
   onMute,
+  member = false,
 }: Props) {
   const muted = isMuted(row);
   const act = (e: MouseEvent, fn: () => void) => {
@@ -39,7 +42,7 @@ export const ThreadRow = memo(function ThreadRow({
       id={rowDomId(row.key)}
       role="option"
       aria-selected={selected}
-      className={`${styles.row} ${selected ? styles.selected : ""} ${row.unread ? styles.unread : ""} ${gone ? styles.gone : ""}`}
+      className={`${styles.row} ${selected ? styles.selected : ""} ${row.unread ? styles.unread : ""} ${gone ? styles.gone : ""} ${member ? styles.member : ""}`}
       onClick={() => onSelect(row.key, index)}
     >
       <div className={styles.actions}>

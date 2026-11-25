@@ -1,0 +1,157 @@
+.group {
+  background: var(--bg-sidebar);
+}
+
+.group:hover {
+  background: var(--bg-hover);
+}
+
+.group[aria-selected="true"] {
+  background: var(--bg-active);
+}
+
+/* The selected group keeps "Done all (N)" visible; leave room for it. */
+.group[aria-selected="true"] > div:nth-of-type(2) {
+  padding-right: 110px;
+}
+
+.group[aria-selected="true"]:not(:hover, :focus-within) .priority {
+  display: none;
+}
+
+.toggle {
+  flex: none;
+  width: 1em;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-mute);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toggle:hover {
+  color: var(--accent);
+}
+
+.count {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg-mute);
+  font-size: 11px;
+  line-height: 14px;
+  text-align: center;
+}
+
+.newBadge,
+.changed,
+.badge {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.newBadge {
+  background: var(--new);
+  color: #fff;
+}
+
+.changed {
+  border: 1px solid var(--new);
+  color: var(--new);
+}
+
+.badge {
+  border: 1px solid var(--border);
+  color: var(--fg-mute);
+}
+
+.status {
+  color: var(--fg);
+}
+
+.closed {
+  flex: none;
+  color: var(--fg-fade);
+}
+
+.more {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.summaryText {
+  margin: 2px 0 4px calc(1em + 6px);
+  color: var(--fg-mute);
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.rename {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+}
+
+.priority {
+  padding: 0 2px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.unlisted {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 32px;
+  color: var(--fg-fade);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.unlistedTitle {
+  overflow: hidden;
+  min-width: 0;
+  color: inherit;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+a.unlistedTitle:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.why {
+  flex: none;
+  margin-left: auto;
+  font-size: 11px;
+}
+
+.footer {
+  padding: 2px 10px 4px 32px;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg-fade);
+  font-size: 12px;
+}

@@ -1,6 +1,15 @@
-import { type SubjectDetail, type SubjectView, buildSubjectDetail } from "../../core/index.ts";
+import {
+  type SubjectDetail,
+  type SubjectView,
+  type SubjectWorkstream,
+  buildSubjectDetail,
+  subjectWorkstream,
+} from "../../core/index.ts";
+import { latestWorkstreamSummaries } from "../../store/llm.ts";
+import { getPrTexts } from "../../store/pr-texts.ts";
 import { threadsForSubject } from "../../store/threads.ts";
 import { getView } from "../../store/views.ts";
+import { getWorkstreamState, toWorkstream, workstreamForSubject } from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
 
 /**
@@ -31,7 +40,27 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
   const view = getView(ctx.db, key);
   if (!view) return null;
   // The worker writes `detail` with `toViewRecord`, so the stored JSON is a SubjectView.
-  return buildSubjectDetail(view.detail as unknown as SubjectView, threadsForSubject(ctx.db, key));
+  const stored = workstreamForSubject(ctx.db, key);
+  let workstream: SubjectWorkstream | null = null;
+  if (stored) {
+    const ws = toWorkstream(stored);
+    const listed = getPrTexts(
+      ctx.db,
+      ws.repo,
+      ws.members.map((k) => Number(k.slice(k.lastIndexOf("#") + 1))).filter((n) => Number.isInteger(n) && n > 0),
+    );
+    const titleOf = (k: string) => {
+      const row = getView(ctx.db, k)?.row as { title?: string } | undefined;
+      return row?.title ?? listed.get(Number(k.slice(k.lastIndexOf("#") + 1)))?.title ?? null;
+    };
+    const input = {
+      workstream: ws,
+      state: getWorkstreamState(ctx.db, ws.id),
+      summary: latestWorkstreamSummaries(ctx.db, [ws.id]).get(ws.id) ?? null,
+    };
+    workstream = subjectWorkstream(input, key, titleOf);
+  }
+  return buildSubjectDetail(view.detail as unknown as SubjectView, threadsForSubject(ctx.db, key), workstream);
 }
 
 export async function subjectHandler(req: Request, ctx: ServerCtx): Promise<Response> {

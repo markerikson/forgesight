@@ -17,6 +17,10 @@ describe("keyAction", () => {
     expect(keyAction(key("o"), false)).toEqual({ type: "open" });
     expect(keyAction(key("Enter"), false)).toEqual({ type: "open" });
     expect(keyAction(key("x"), false)).toEqual({ type: "toggleGroups" });
+    expect(keyAction(key("l"), false)).toEqual({ type: "expand" });
+    expect(keyAction(key("ArrowRight"), false)).toEqual({ type: "expand" });
+    expect(keyAction(key("h"), false)).toEqual({ type: "collapse" });
+    expect(keyAction(key("ArrowLeft"), false)).toEqual({ type: "collapse" });
     expect(keyAction(key("?"), false)).toEqual({ type: "help" });
     expect(keyAction(key("g"), false)).toEqual({ type: "prefix" });
   });

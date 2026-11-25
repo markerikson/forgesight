@@ -1,27 +1,37 @@
-import { useCallback, useEffect } from "react";
+import { Fragment, useCallback, useEffect } from "react";
 import type { InboxRow } from "../../core/index.ts";
-import { markDone, openSnoozeMenu, toggleMute } from "../store/actions.ts";
+import { entryKey, type InboxEntry, isGroup } from "../../core/inbox.ts";
+import { confirmDoneAll, doneKeys, markDone, openSnoozeMenu, toggleMute } from "../store/actions.ts";
 import { useGetInboxQuery, usePrefetch } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { SECTION_LABELS } from "../store/types.ts";
 import {
   inboxArgFor,
+  MEMBER_CAP,
   rowSelected,
   selectGoneKeys,
+  selectGroupOf,
   selectInbox,
   selectPollInterval,
   selectSelectedIndex,
+  selectTopEntries,
   selectVisibleRows,
   selectView,
+  workstreamShowAll,
 } from "../store/view.ts";
 import { repoShortName } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
+import { GroupFooter, GroupRow } from "./GroupRow.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { rowDomId, ThreadRow } from "./ThreadRow.tsx";
 import styles from "./ThreadList.module.css";
 
-/** "Done all" asks for confirmation above this many rows. */
-export const CONFIRM_DONE_ALL = 20;
+export { CONFIRM_DONE_ALL } from "../store/actions.ts";
+
+/** Subject key worth prefetching for an entry; groups have no subject page. */
+function subjectKeyOf(entry: InboxEntry | undefined): string | undefined {
+  return entry && !isGroup(entry) ? entry.key : undefined;
+}
 
 export function ThreadList() {
   const dispatch = useAppDispatch();
@@ -35,9 +45,13 @@ export function ThreadList() {
   const prefetchSubject = usePrefetch("getSubject");
   const now = useNow();
 
-  const selectedKey = rows[selectedIndex]?.key;
-  const prevKey = rows[selectedIndex - 1]?.key;
-  const nextKey = rows[selectedIndex + 1]?.key;
+  const topEntries = useAppSelector(selectTopEntries);
+  const groupOf = useAppSelector(selectGroupOf);
+
+  const selectedEntry = rows[selectedIndex];
+  const selectedKey = selectedEntry && entryKey(selectedEntry);
+  const prevKey = subjectKeyOf(rows[selectedIndex - 1]);
+  const nextKey = subjectKeyOf(rows[selectedIndex + 1]);
 
   // Store the row actually shown as selected (the implicit first row, or the neighbor that replaced a
   // row that left the list), so later polls that insert or remove rows don't move the selection.
@@ -64,12 +78,13 @@ export function ThreadList() {
     [dispatch],
   );
 
+  const onShowAll = useCallback((id: string) => dispatch(workstreamShowAll(id)), [dispatch]);
+
   // Dimmed rows already left the live list (and the sidebar count), so Done all skips them.
-  const doneAllKeys = rows.filter((row) => !gone.has(row.key)).map((row) => row.key);
+  const doneAllKeys = doneKeys(topEntries).filter((key) => !gone.has(key));
   const doneAll = () => {
-    const keys = doneAllKeys;
-    if (keys.length > CONFIRM_DONE_ALL && !window.confirm(`Mark all ${keys.length} items done?`)) return;
-    dispatch(markDone(keys));
+    if (!confirmDoneAll(doneAllKeys.length)) return;
+    dispatch(markDone(doneAllKeys));
   };
 
   let empty: string | null = null;
@@ -94,20 +109,59 @@ export function ThreadList() {
         <p className={styles.empty}>{empty}</p>
       ) : (
         <ul className={styles.rows} role="listbox" aria-label={SECTION_LABELS[view.section]}>
-          {rows.map((row, index) => (
-            <ThreadRow
-              key={row.key}
-              row={row}
-              index={index}
-              selected={index === selectedIndex}
-              gone={gone.has(row.key)}
-              now={now}
-              onSelect={onSelect}
-              onDone={onDone}
-              onSnooze={onSnooze}
-              onMute={onMute}
-            />
-          ))}
+          {rows.map((row, index) => {
+            if (isGroup(row)) {
+              const expanded = view.expandedWorkstreams.includes(row.id);
+              return (
+                <Fragment key={entryKey(row)}>
+                  <GroupRow
+                    group={row}
+                    index={index}
+                    selected={index === selectedIndex}
+                    expanded={expanded}
+                    now={now}
+                    onSelect={onSelect}
+                  />
+                  {expanded && row.members.length === 0 && (
+                    <GroupFooter
+                      group={row}
+                      capped={0}
+                      full={view.fullWorkstreams.includes(row.id)}
+                      onShowAll={onShowAll}
+                    />
+                  )}
+                </Fragment>
+              );
+            }
+            const group = groupOf.get(row.key);
+            const member = group !== undefined && view.expandedWorkstreams.includes(group.id);
+            const next = rows[index + 1];
+            const lastMember = member && (next === undefined || isGroup(next) || groupOf.get(next.key) !== group);
+            return (
+              <Fragment key={row.key}>
+                <ThreadRow
+                  row={row}
+                  index={index}
+                  selected={index === selectedIndex}
+                  gone={gone.has(row.key)}
+                  now={now}
+                  onSelect={onSelect}
+                  onDone={onDone}
+                  onSnooze={onSnooze}
+                  onMute={onMute}
+                  member={member}
+                />
+                {lastMember && (
+                  <GroupFooter
+                    group={group}
+                    capped={view.fullWorkstreams.includes(group.id) ? 0 : Math.max(0, group.members.length - MEMBER_CAP)}
+                    full={view.fullWorkstreams.includes(group.id)}
+                    onShowAll={onShowAll}
+                  />
+                )}
+              </Fragment>
+            );
+          })}
         </ul>
       )}
       {inbox && inbox.countLines.length > 0 && (

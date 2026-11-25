@@ -37,6 +37,7 @@ import {
 import { getMeta } from "../store/meta.ts";
 import { getPrTexts, type PrText, putPrTexts } from "../store/pr-texts.ts";
 import { getSubject } from "../store/subjects.ts";
+import { appendChange } from "../store/views.ts";
 import { listWorkstreams, toWorkstream } from "../store/workstreams.ts";
 import type { Job, JobContext } from "./scheduler.ts";
 
@@ -253,6 +254,7 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
         costUsd: cost,
         createdAt: finishedAt,
       });
+      appendChange(db, "workstream", job.subjectKey, finishedAt);
       completeLlmJob(db, job.id, finishedAt);
       log.info(`workstream summaries: summarized ${job.subjectKey} ($${cost.toFixed(4)})`);
     } catch (err) {

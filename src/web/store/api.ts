@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { InboxPayload, SubjectDetail } from "../../core/index.ts";
+import { type InboxPayload, isGroup, type SubjectDetail } from "../../core/index.ts";
 import type { StatusPayload } from "../../server/handlers/status.ts";
 
 export interface InboxArg {
@@ -17,19 +17,30 @@ export function subjectPath(key: string): string {
 
 export const api = createApi({
   baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
-  tagTypes: ["Inbox", "Subject", "Status"],
+  tagTypes: ["Inbox", "Subject", "Status", "Workstream"],
   refetchOnFocus: true,
   endpoints: (build) => ({
     getInbox: build.query<InboxPayload, InboxArg>({
       query: ({ includeHidden }) => `inbox?includeHidden=${includeHidden ? 1 : 0}`,
-      providesTags: (result) => [
-        { type: "Inbox", id: "LIST" },
-        ...(result?.rows ?? []).map((row) => ({ type: "Subject" as const, id: row.key })),
-      ],
+      providesTags: (result) => {
+        const tags: { type: "Inbox" | "Subject" | "Workstream"; id: string }[] = [{ type: "Inbox", id: "LIST" }];
+        for (const entry of result?.rows ?? []) {
+          if (!isGroup(entry)) {
+            tags.push({ type: "Subject", id: entry.key });
+            continue;
+          }
+          tags.push({ type: "Workstream", id: entry.id });
+          for (const m of entry.members) tags.push({ type: "Subject", id: m.key });
+        }
+        return tags;
+      },
     }),
     getSubject: build.query<SubjectDetail, string>({
       query: (key) => `subjects/${subjectPath(key)}`,
-      providesTags: (_result, _error, key) => [{ type: "Subject", id: key }],
+      providesTags: (result, _error, key) => [
+        { type: "Subject", id: key },
+        ...(result?.workstream ? [{ type: "Workstream" as const, id: result.workstream.id }] : []),
+      ],
     }),
     getStatus: build.query<StatusPayload, void>({
       query: () => "status",

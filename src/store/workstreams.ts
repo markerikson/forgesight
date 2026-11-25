@@ -443,6 +443,22 @@ export function getWorkstreamState(db: Database, id: string): WorkstreamState {
 }
 
 /** States for the given workstreams. Ids without a stored row are absent from the map. */
+/** Workstreams whose snooze ended in `(after, until]`; `after` null means any time up to `until`. */
+export function workstreamSnoozesEndedBetween(
+  db: Database,
+  after: string | null,
+  until: string,
+): string[] {
+  return db
+    .query<{ workstream_id: string }, [string, string]>(
+      `SELECT workstream_id FROM workstream_state
+       WHERE snooze_until IS NOT NULL AND snooze_until > ? AND snooze_until <= ?
+       ORDER BY workstream_id`,
+    )
+    .all(after ?? "", until)
+    .map((r) => r.workstream_id);
+}
+
 export function getWorkstreamStates(db: Database, ids: string[]): Map<string, WorkstreamState> {
   const rows = db
     .query<WorkstreamStateRow, [string]>(

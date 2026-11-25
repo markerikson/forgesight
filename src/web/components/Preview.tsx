@@ -3,14 +3,15 @@ import type { InboxRow, SubjectDetail, SubjectHeader } from "../../core/index.ts
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { keepNewFlags } from "../new-flags.ts";
-import { isMuted, markDone, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
+import { isMuted, markDone, markWorkstreamSeen, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
 import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState } from "../store/state-api.ts";
-import { rowRead, selectSelectedRow } from "../store/view.ts";
+import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
+import { StackBox, WorkstreamPane } from "./WorkstreamPreview.tsx";
 import styles from "./Preview.module.css";
 
 /** True when opening the row should mark it read on GitHub and here. */
@@ -21,6 +22,7 @@ export function hasNewActivity(row: InboxRow): boolean {
 export function Preview() {
   const dispatch = useAppDispatch();
   const row = useAppSelector(selectSelectedRow);
+  const group = useAppSelector(selectSelectedGroup);
   const { data, isError, isFetching } = useGetSubjectQuery(row?.key ?? "", { skip: !row });
   const loaded = data !== undefined && data.key === row?.key ? data : undefined;
   const me = useGetStatusQuery().data?.viewer.login ?? null;
@@ -39,7 +41,21 @@ export function Preview() {
     dispatch(applyState([row.key], { kind: "read" }));
   }, [dispatch, row, loaded]);
 
+  // A workstream is marked seen when the user moves off it, not when it opens: seen groups lose
+  // their place at the top of Updates, and reordering the list under the cursor is disorienting.
+  // Moving between a group and its own members keeps it open.
+  const parentGroup = useAppSelector((state) => (row ? selectGroupOf(state).get(row.key) : undefined));
+  const currentGroup = group ?? parentGroup ?? null;
+  const currentGroupId = currentGroup?.id ?? null;
+  const openGroup = useRef<string | null>(null);
+  useEffect(() => {
+    const previous = openGroup.current;
+    openGroup.current = currentGroupId;
+    if (previous !== null && previous !== currentGroupId) dispatch(markWorkstreamSeen(previous));
+  }, [dispatch, currentGroupId]);
+
   if (!row) {
+    if (group) return <WorkstreamPane group={group} />;
     return (
       <section className={styles.preview} aria-label="Preview">
         <p className={styles.message}>Pick a thread, or press j to start at the top.</p>
@@ -145,6 +161,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
         <ActionBar row={row} url={subject.githubUrl ?? subject.header.url} />
         <Header header={subject.header} subject={subject} />
       </div>
+      {subject.workstream && <StackBox workstream={subject.workstream} />}
       {subject.rounds.length === 0 && <p className={styles.message}>No activity stored yet.</p>}
       {subject.rounds.map((round, index) => {
         const prev = subject.rounds[index - 1];

@@ -21,8 +21,31 @@ interface Subscriber {
   statusKey: string | null;
 }
 
-function changedEvent(seq: number, keys: string[]): string {
-  return `event: changed\nid: ${seq}\ndata: ${JSON.stringify({ seq, keys })}\n\n`;
+interface ChangeBatch {
+  seq: number;
+  keys: string[];
+  workstreams: string[];
+}
+
+function changedEvent(batch: ChangeBatch): string {
+  const data = batch.workstreams.length > 0 ? batch : { seq: batch.seq, keys: batch.keys };
+  return `event: changed\nid: ${batch.seq}\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
+/** Subject keys from `view` changes and workstream ids from `workstream` changes. */
+function collect(changes: ReturnType<typeof changesAfter>, upTo = Infinity): Omit<ChangeBatch, "seq"> {
+  const keys = new Set<string>();
+  const workstreams = new Set<string>();
+  for (const c of changes) {
+    if (c.seq > upTo || !c.subjectKey) continue;
+    if (c.kind === "view") keys.add(c.subjectKey);
+    else if (c.kind === "workstream") workstreams.add(c.subjectKey);
+  }
+  return { keys: [...keys], workstreams: [...workstreams] };
+}
+
+function hasChanges(batch: Omit<ChangeBatch, "seq">): boolean {
+  return batch.keys.length > 0 || batch.workstreams.length > 0;
 }
 
 function statusEvent(status: object): string {
@@ -34,16 +57,12 @@ function statusKey(status: ReturnType<typeof readStatus>): string {
   return JSON.stringify({ ...status, now: null, spend: { ...status.spend, since: null } });
 }
 
-/** `view` changes after `after` as the max seq read plus the distinct subject keys. */
-function viewChanges(ctx: ServerCtx, after: number): { seq: number; keys: string[] } | null {
+/** Changes after `after` as the max seq read plus the distinct subject keys and workstream ids. */
+function viewChanges(ctx: ServerCtx, after: number): ChangeBatch | null {
   const changes = changesAfter(ctx.db, after);
   const last = changes.at(-1);
   if (!last) return null;
-  const keys = new Set<string>();
-  for (const c of changes) {
-    if (c.kind === "view" && c.subjectKey) keys.add(c.subjectKey);
-  }
-  return { seq: last.seq, keys: [...keys] };
+  return { seq: last.seq, ...collect(changes) };
 }
 
 /**
@@ -96,7 +115,7 @@ export class EventHub {
       const batch = viewChanges(this.ctx, this.cursor);
       if (batch) {
         this.cursor = batch.seq;
-        if (batch.keys.length > 0) this.broadcast(changedEvent(batch.seq, batch.keys));
+        if (hasChanges(batch)) this.broadcast(changedEvent(batch));
       }
       if (this.ticks % STATUS_TICKS === 0) {
         const status = readStatus(this.ctx);
@@ -137,11 +156,8 @@ export class EventHub {
       sub.client.send("event: reset\ndata: {}\n\n");
       return;
     }
-    const keys = new Set<string>();
-    for (const c of changesAfter(this.ctx.db, from)) {
-      if (c.seq <= this.cursor && c.kind === "view" && c.subjectKey) keys.add(c.subjectKey);
-    }
-    if (keys.size > 0) sub.client.send(changedEvent(this.cursor, [...keys]));
+    const changes = collect(changesAfter(this.ctx.db, from), this.cursor);
+    if (hasChanges(changes)) sub.client.send(changedEvent({ seq: this.cursor, ...changes }));
   }
 
   private sendStatus(sub: Subscriber, status: ReturnType<typeof readStatus>): void {

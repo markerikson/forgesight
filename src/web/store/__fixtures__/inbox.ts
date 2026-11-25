@@ -1,5 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
-import type { InboxPayload, InboxRow, Section } from "../../../core/index.ts";
+import type { InboxEntry, InboxGroup, InboxPayload, InboxRow, Section } from "../../../core/index.ts";
 import { api } from "../api.ts";
 import { viewSlice } from "../view.ts";
 
@@ -32,7 +32,30 @@ export function row(key: string, section: Section, repo = "acme/app", extra: Par
   };
 }
 
-export function payload(rows: InboxRow[]): InboxPayload {
+export function group(id: string, members: InboxRow[], extra: Partial<InboxGroup> = {}): InboxGroup {
+  return {
+    kind: "workstream",
+    id,
+    repo: members[0]?.repo ?? "acme/app",
+    name: `Stack ${id}`,
+    summary: null,
+    priority: "normal",
+    isNew: false,
+    section: members.some((m) => m.section === "waiting") ? "waiting" : "updates",
+    sortAt: members.map((m) => m.sortAt).sort().at(-1) ?? "",
+    members,
+    memberKeys: members.map((m) => m.key),
+    moreCount: 0,
+    unlisted: [],
+    closedByAuthor: 0,
+    closed: false,
+    snoozed: false,
+    snoozeUntil: null,
+    ...extra,
+  };
+}
+
+export function payload(rows: InboxEntry[]): InboxPayload {
   return {
     rows,
     sidebar: {
@@ -47,7 +70,7 @@ export function payload(rows: InboxRow[]): InboxPayload {
   };
 }
 
-export function storeWith(rows: InboxRow[], includeHidden = false) {
+export function storeWith(rows: InboxEntry[], includeHidden = false) {
   const store = configureStore({
     reducer: { [api.reducerPath]: api.reducer, view: viewSlice.reducer },
     middleware: (gDM) => gDM().concat(api.middleware),

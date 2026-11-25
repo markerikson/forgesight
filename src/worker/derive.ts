@@ -9,8 +9,8 @@ import { getMeta, setMeta } from "../store/meta.ts";
 import { getSubject } from "../store/subjects.ts";
 import { threadsForSubject } from "../store/threads.ts";
 import { reviewThreadsFor, stickiesFor, timelineFor } from "../store/timeline.ts";
-import { changesAfter, putViews, staleViewKeys } from "../store/views.ts";
-import { stackContextsFor } from "../store/workstreams.ts";
+import { appendChange, changesAfter, putViews, staleViewKeys } from "../store/views.ts";
+import { stackContextsFor, workstreamSnoozesEndedBetween } from "../store/workstreams.ts";
 import type { Job, Logger } from "./scheduler.ts";
 
 export const DERIVE_BATCH = 200;
@@ -139,6 +139,10 @@ export function deriveViews(
   const changed = derived.changed.length;
   const failed = derived.failed;
   if (maxSeq !== null) setMeta(db, META.deriveSeq, String(maxSeq), nowIso);
+  // A workstream snooze that lapses writes nothing, so announce it for the inbox to regroup.
+  for (const id of workstreamSnoozesEndedBetween(db, getMeta(db, META.deriveAt) ?? null, nowIso)) {
+    appendChange(db, "workstream", id, nowIso);
+  }
   setMeta(db, META.deriveAt, nowIso, nowIso);
   // Failed keys are kept so the next run retries them even when their stored view is current.
   setMeta(db, META.deriveFailed, JSON.stringify(failed), nowIso);
