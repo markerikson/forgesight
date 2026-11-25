@@ -1,0 +1,23 @@
+{
+  "repo": "acme/widgets",
+  "fetchedAt": "2026-11-25T01:03:59.940Z",
+  "config": {
+    "trunks": [
+      "master",
+      "main"
+    ],
+    "workstreams": {
+      "groups": [
+        {
+          "name": "Case work",
+          "branches": [
+            "^case/"
+          ],
+          "authors": [
+            "user8"
+          ]
+        }
+      ]
+    }
+  }
+}

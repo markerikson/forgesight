@@ -79,7 +79,20 @@ const contentRules: UserRule[] = [
 /** Built-in defaults, in the same shape as the user file. */
 export const defaultConfig = {
   repos: {
-    "*": { mode: "normal", batchSize: 10 },
+    "*": {
+      mode: "normal",
+      batchSize: 10,
+      view: "triage",
+      trunks: ["master", "main"],
+      workstreams: {
+        forkMinSize: 5,
+        // "[never merge]", "[base, never merge]", "CI vehicle (never merge)" ...
+        cutBelow: ["[[(][^\\])]*never merge[^\\])]*[\\])]"],
+        genericPrefixes: [],
+        botAuthors: [],
+        groups: [],
+      },
+    },
   },
   bots,
   contentRules,

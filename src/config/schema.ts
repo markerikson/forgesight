@@ -7,6 +7,22 @@ const repoEntry = type({
   "mode?": "'full' | 'normal' | 'simple'",
   "batchSize?": "number.integer >= 1",
   "branchRules?": type({ "+": "reject", pattern: "string", link: "'issue'" }).array(),
+  "view?": "'overview' | 'triage'",
+  "trunks?": "string[]",
+  "workstreams?": {
+    "+": "reject",
+    "forkMinSize?": "number.integer >= 2",
+    "cutBelow?": "string[]",
+    "genericPrefixes?": "string[]",
+    "botAuthors?": "string[]",
+    "groups?": type({
+      "+": "reject",
+      name: "string > 0",
+      "titles?": "string[]",
+      "branches?": "string[]",
+      "authors?": "string[]",
+    }).array(),
+  },
 });
 
 const rule = type({
