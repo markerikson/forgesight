@@ -13,6 +13,7 @@ import { useAppDispatch } from "../store/hooks.ts";
 import { selectSubject } from "../store/view.ts";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { StateIcon } from "./Badges.tsx";
+import { UNLISTED_LABELS } from "./GroupRow.tsx";
 import previewStyles from "./Preview.module.css";
 import styles from "./WorkstreamPreview.module.css";
 
@@ -96,10 +97,20 @@ export function StackBox({ workstream }: { workstream: SubjectWorkstream }) {
   );
 }
 
-/** Preview of a selected workstream row: summary, state controls and the listed members. */
+/** Every member the inbox knows about, listed or not, in stack order. */
+function stackOrder(group: InboxGroup) {
+  const listed = new Map(group.members.map((m) => [m.key, m]));
+  const unlisted = new Map(group.unlisted.map((m) => [m.key, m]));
+  return group.memberKeys
+    .map((key) => ({ key, member: listed.get(key), unlisted: unlisted.get(key) }))
+    .filter((entry) => entry.member !== undefined || entry.unlisted !== undefined);
+}
+
+/** Preview of a selected workstream row: summary, state controls and the whole stack. */
 export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const dispatch = useAppDispatch();
   const now = useNow();
+  const stack = stackOrder(group);
   const rename = () => {
     const name = window.prompt("Workstream name (empty resets to the generated name)", group.name);
     if (name !== null && name.trim() !== group.name) dispatch(renameWorkstream(group, name));
@@ -163,21 +174,43 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
       </div>
       <div className={styles.body}>
         <SummaryBlock summary={group.summary} />
-        {group.members.length > 0 && (
+        {stack.length > 0 && (
           <ol className={styles.members}>
-            {group.members.map((member) => (
-              <li key={member.key}>
-                <button type="button" className={styles.member} onClick={() => dispatch(selectSubject(member.key))}>
-                  <StateIcon kind={member.kind} state={member.state} draft={member.draft} merged={member.merged} />
-                  <span className={styles.memberNumber}>
-                    {repoShortName(member.repo)}#{member.number}
-                  </span>
-                  <span className={styles.memberTitle}>{member.title}</span>
-                  {member.newMeaningfulCount > 0 && <span className={styles.memberNew}>{member.newMeaningfulCount} new</span>}
-                  {now !== null && <span className={styles.memberTime}>{relativeTime(member.sortAt, now)}</span>}
-                </button>
-              </li>
-            ))}
+            {stack.map(({ key, member, unlisted }) =>
+              member ? (
+                <li key={key}>
+                  <button type="button" className={styles.member} onClick={() => dispatch(selectSubject(member.key))}>
+                    <StateIcon kind={member.kind} state={member.state} draft={member.draft} merged={member.merged} />
+                    <span className={styles.memberNumber}>
+                      {repoShortName(member.repo)}#{member.number}
+                    </span>
+                    <span className={styles.memberTitle}>{member.title}</span>
+                    {member.newMeaningfulCount > 0 && (
+                      <span className={styles.memberNew}>{member.newMeaningfulCount} new</span>
+                    )}
+                    {now !== null && <span className={styles.memberTime}>{relativeTime(member.sortAt, now)}</span>}
+                  </button>
+                </li>
+              ) : unlisted ? (
+                <li key={key}>
+                  <a
+                    className={`${styles.member} ${styles.unlisted}`}
+                    href={unlisted.url ?? undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    title="Opens on GitHub"
+                  >
+                    <StateIcon kind="pr" state={unlisted.state} draft={unlisted.draft} merged={unlisted.state === "MERGED"} />
+                    <span className={styles.memberNumber}>
+                      {repoShortName(group.repo)}
+                      {unlisted.number === null ? "" : `#${unlisted.number}`}
+                    </span>
+                    <span className={styles.memberTitle}>{unlisted.title}</span>
+                    <span className={styles.memberTime}>{UNLISTED_LABELS[unlisted.why]}</span>
+                  </a>
+                </li>
+              ) : null,
+            )}
           </ol>
         )}
       </div>

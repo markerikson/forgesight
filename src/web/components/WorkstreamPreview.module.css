@@ -137,6 +137,11 @@
   cursor: pointer;
 }
 
+.unlisted {
+  color: var(--fg-fade);
+  text-decoration: none;
+}
+
 .member:hover .memberTitle {
   text-decoration: underline;
 }

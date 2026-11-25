@@ -1,7 +1,7 @@
 // Response shapes for the inbox API and the pure functions that build them. The server
 // handlers and the web client both import these types.
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
-import type { SubjectKey, ThreadRecord } from "./types.ts";
+import type { SubjectKey, SubjectState, ThreadRecord } from "./types.ts";
 import type { WorkstreamState, WsPriority } from "./workstream-state.ts";
 import { type StackContext, stackContext, type Workstream } from "./workstreams.ts";
 
@@ -46,12 +46,31 @@ export interface InboxGroup {
   memberKeys: SubjectKey[];
   /** Members not listed here: done, hidden, snoozed on their own, or with no notification. */
   moreCount: number;
+  /** The members not listed here that the inbox knows about, in stack order. */
+  unlisted: UnlistedMember[];
   /** Members their authors closed unmerged. */
   closedByAuthor: number;
   closed: boolean;
   snoozed: boolean;
   snoozeUntil: string | null;
 }
+
+/** Why a member is not listed in its group: its row is Hidden or Snoozed, or it has no notification. */
+export type UnlistedReason = "hidden" | "snoozed" | "noThread";
+
+/** Enough about an unlisted member to show it in its stack. */
+export interface UnlistedMember {
+  key: SubjectKey;
+  number: number | null;
+  title: string;
+  url: string | null;
+  state: SubjectState | null;
+  draft: boolean;
+  why: UnlistedReason;
+}
+
+/** A member with no inbox row, from the open-pulls listing. */
+export type ListedPull = Omit<UnlistedMember, "key" | "why">;
 
 export type InboxEntry = InboxRow | InboxGroup;
 
@@ -78,6 +97,8 @@ export interface WorkstreamInput {
    * members' events. Without it, any snooze in `state` counts.
    */
   snoozed?: boolean;
+  /** Members with no inbox row, so the group can still show them. */
+  pulls?: Record<SubjectKey, ListedPull>;
 }
 
 /** Where a subject sits in its workstream, for the preview's stack box. */
@@ -213,6 +234,7 @@ export function reflowEntries(entries: readonly InboxEntry[]): InboxEntry[] {
     const order = new Map(group.memberKeys.map((key, i) => [key, i]));
     group.members.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
     group.moreCount = group.memberKeys.length - group.members.length;
+    group.unlisted = unlistedMembers(group, loose);
     if (group.members.length > 0) {
       group.sortAt = group.members.reduce((max, m) => (m.sortAt > max ? m.sortAt : max), "");
     }
@@ -220,6 +242,29 @@ export function reflowEntries(entries: readonly InboxEntry[]): InboxEntry[] {
     out.push(group);
   }
   return out.sort(compareRows);
+}
+
+/**
+ * The group's members that are neither listed in it nor listed as their own row, from their
+ * Hidden or Snoozed rows when present, else from what the group already knew about them.
+ */
+function unlistedMembers(group: InboxGroup, rows: ReadonlyMap<SubjectKey, InboxRow>): UnlistedMember[] {
+  const listed = new Set(group.members.map((m) => m.key));
+  const known = new Map(group.unlisted.map((u) => [u.key, u]));
+  const out: UnlistedMember[] = [];
+  for (const key of group.memberKeys) {
+    if (listed.has(key)) continue;
+    const row = rows.get(key);
+    if (row) {
+      if (row.section !== "hidden" && row.section !== "snoozed") continue;
+      const { number, title, url, state, draft } = row;
+      out.push({ key, number, title, url, state, draft, why: row.section });
+      continue;
+    }
+    const prior = known.get(key);
+    if (prior) out.push(prior);
+  }
+  return out;
 }
 
 /**
@@ -282,6 +327,10 @@ export function buildGroup(input: WorkstreamInput, allRows: readonly InboxRow[])
     members: [],
     memberKeys: [...ws.members],
     moreCount: ws.members.length,
+    unlisted: ws.members.flatMap((key) => {
+      const pull = input.pulls?.[key];
+      return pull ? [{ key, ...pull, why: "noThread" as const }] : [];
+    }),
     closedByAuthor: allRows.filter(
       (r) => memberSet.has(r.key) && r.section === "hidden" && r.reasons.includes("closedByAuthor"),
     ).length,

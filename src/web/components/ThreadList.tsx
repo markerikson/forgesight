@@ -122,7 +122,14 @@ export function ThreadList() {
                     now={now}
                     onSelect={onSelect}
                   />
-                  {expanded && row.members.length === 0 && <GroupFooter group={row} capped={0} onShowAll={onShowAll} />}
+                  {expanded && row.members.length === 0 && (
+                    <GroupFooter
+                      group={row}
+                      capped={0}
+                      full={view.fullWorkstreams.includes(row.id)}
+                      onShowAll={onShowAll}
+                    />
+                  )}
                 </Fragment>
               );
             }
@@ -148,6 +155,7 @@ export function ThreadList() {
                   <GroupFooter
                     group={group}
                     capped={view.fullWorkstreams.includes(group.id) ? 0 : Math.max(0, group.members.length - MEMBER_CAP)}
+                    full={view.fullWorkstreams.includes(group.id)}
                     onShowAll={onShowAll}
                   />
                 )}

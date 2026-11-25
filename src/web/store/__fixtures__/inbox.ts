@@ -46,6 +46,7 @@ export function group(id: string, members: InboxRow[], extra: Partial<InboxGroup
     members,
     memberKeys: members.map((m) => m.key),
     moreCount: 0,
+    unlisted: [],
     closedByAuthor: 0,
     closed: false,
     snoozed: false,

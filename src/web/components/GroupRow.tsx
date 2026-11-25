@@ -1,5 +1,5 @@
 import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { groupKey, type InboxGroup } from "../../core/inbox.ts";
+import { groupKey, type InboxGroup, type UnlistedMember, type UnlistedReason } from "../../core/inbox.ts";
 import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
 import { firstLine } from "../../core/pipeline/text.ts";
 import {
@@ -9,8 +9,9 @@ import {
   setWorkstreamPriority,
 } from "../store/actions.ts";
 import { useAppDispatch } from "../store/hooks.ts";
-import { toggleWorkstream } from "../store/view.ts";
+import { MEMBER_CAP, toggleWorkstream } from "../store/view.ts";
 import { relativeTime, repoShortName } from "../format.ts";
+import { StateIcon } from "./Badges.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { rowDomId } from "./ThreadRow.tsx";
 import rowStyles from "./ThreadRow.module.css";
@@ -162,25 +163,68 @@ interface FooterProps {
   group: InboxGroup;
   /** Listed members not shown because the expanded list is capped. */
   capped: number;
+  /** The user asked to see every member. */
+  full: boolean;
   onShowAll: (id: string) => void;
 }
 
-/** Closes an expanded workstream: the cap expander and a count of members the inbox does not list. */
-export function GroupFooter({ group, capped, onShowAll }: FooterProps) {
-  if (capped === 0 && group.moreCount === 0) return null;
+export const UNLISTED_LABELS: Record<UnlistedReason, string> = {
+  hidden: "read",
+  snoozed: "snoozed",
+  noThread: "not subscribed",
+};
+
+/**
+ * Closes an expanded workstream: the rest of the stack that has no row here (read, snoozed, or
+ * never notified), the cap expander, and a count of members the inbox knows nothing about.
+ */
+export function GroupFooter({ group, capped, full, onShowAll }: FooterProps) {
+  const room = capped > 0 ? 0 : full ? Infinity : Math.max(3, MEMBER_CAP - group.members.length);
+  const shown = group.unlisted.slice(0, room);
+  const more = capped + group.unlisted.length - shown.length;
+  const unknown = Math.max(0, group.moreCount - group.unlisted.length);
+  if (shown.length === 0 && more === 0 && unknown === 0) return null;
   return (
-    <li role="none" className={styles.footer}>
-      {capped > 0 && (
-        <button type="button" className={styles.more} onClick={() => onShowAll(group.id)}>
-          and {capped} more
-        </button>
+    <>
+      {shown.map((m) => (
+        <UnlistedRow key={m.key} member={m} />
+      ))}
+      <li role="none" className={styles.footer}>
+        {more > 0 && (
+          <button type="button" className={styles.more} onClick={() => onShowAll(group.id)}>
+            and {more} more
+          </button>
+        )}
+        {unknown > 0 && (
+          <span title="Members the inbox has no details for yet">
+            {more > 0 ? " · " : ""}
+            {unknown} more not listed
+          </span>
+        )}
+      </li>
+    </>
+  );
+}
+
+function UnlistedRow({ member }: { member: UnlistedMember }) {
+  const label = member.number === null ? member.title : `#${member.number} ${member.title}`;
+  return (
+    <li role="none" className={styles.unlisted}>
+      <StateIcon kind="pr" state={member.state} draft={member.draft} merged={member.state === "MERGED"} />
+      {member.url ? (
+        <a
+          className={styles.unlistedTitle}
+          href={member.url}
+          target="_blank"
+          rel="noreferrer"
+          title={`${label} (opens on GitHub)`}
+        >
+          {label}
+        </a>
+      ) : (
+        <span className={styles.unlistedTitle}>{label}</span>
       )}
-      {group.moreCount > 0 && (
-        <span title="Members in Hidden, or ones you are not involved in">
-          {capped > 0 ? " · " : ""}
-          {group.moreCount} more not listed
-        </span>
-      )}
+      <span className={styles.why}>{UNLISTED_LABELS[member.why]}</span>
     </li>
   );
 }

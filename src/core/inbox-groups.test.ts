@@ -102,6 +102,31 @@ function groupOf(payload: InboxPayload): InboxGroup {
   return group;
 }
 
+describe("unlisted members", () => {
+  const K5 = "replayio/backend#5";
+  const pull = { number: 5, title: "Listing only", url: "https://github.com/replayio/backend/pull/5", state: "OPEN" as const, draft: true };
+
+  test("hidden rows and members without a thread are unlisted, in stack order", () => {
+    const ws = { ...input({ members: [K1, K5, K2, K3, K4] }), pulls: { [K5]: pull } };
+    const group = groupOf(build([ws]));
+    expect(group.members.map((m) => m.key)).toEqual([K1, K2, K3]);
+    expect(group.unlisted).toEqual([
+      { key: K5, ...pull, why: "noThread" },
+      { key: K4, number: 4, title: `Title ${K4}`, url: null, state: "CLOSED", draft: false, why: "hidden" },
+    ]);
+    expect(group.moreCount).toBe(2);
+  });
+
+  test("a snoozed member is unlisted as snoozed", () => {
+    const rows = ROWS.map((r) => (r.key === K2 ? { ...r, section: "snoozed" as const } : r));
+    const group = groupOf(build([input()], false, rows));
+    expect(group.unlisted.map((m) => [m.key, m.why])).toEqual([
+      [K2, "snoozed"],
+      [K4, "hidden"],
+    ]);
+  });
+});
+
 describe("buildInboxPayload with workstreams", () => {
   test("folds shown members into one row in stack order", () => {
     const payload = build([input()]);
@@ -229,6 +254,11 @@ describe("patchInbox on group members", () => {
     const next = patchInbox(payload, [K1, K3], { kind: "done" }, NOW_ISO, { includeHidden: false });
     expect(groupOf(next).members.map((m) => m.key)).toEqual([K2]);
     expect(groupOf(next).moreCount).toBe(3);
+    expect(groupOf(next).unlisted.map((m) => [m.key, m.why])).toEqual([
+      [K1, "hidden"],
+      [K3, "hidden"],
+      [K4, "hidden"],
+    ]);
   });
 
   test("done on every shown member drops the group row", () => {
