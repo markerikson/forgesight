@@ -1,0 +1,905 @@
+[
+  {
+    "id": "acme/widgets:ws:5",
+    "name": "Area01",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": false,
+    "members": [
+      5,
+      22
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:94",
+    "name": "change 94",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      94,
+      95,
+      96
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:103",
+    "name": "Case work",
+    "nameSource": "config",
+    "signals": [
+      "stack",
+      "config"
+    ],
+    "closed": false,
+    "members": [
+      103,
+      109,
+      112,
+      115,
+      116,
+      125,
+      124,
+      127,
+      129,
+      132,
+      143,
+      235,
+      244,
+      236,
+      323,
+      265,
+      268,
+      280,
+      285,
+      289,
+      324,
+      325,
+      326,
+      331,
+      337,
+      338,
+      156,
+      264,
+      272,
+      278,
+      290,
+      327,
+      328,
+      333,
+      330,
+      334,
+      335,
+      336,
+      339,
+      344,
+      345,
+      346,
+      347,
+      348,
+      349,
+      352,
+      353,
+      354,
+      356,
+      358,
+      360,
+      372,
+      383,
+      386,
+      404,
+      412,
+      419,
+      430,
+      437,
+      441,
+      446,
+      449,
+      484,
+      485,
+      486,
+      489,
+      491,
+      492,
+      494,
+      498,
+      500,
+      508,
+      555,
+      556,
+      558,
+      566
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:137",
+    "name": "change 137",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      137,
+      142,
+      286
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:138",
+    "name": "Area14",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      138,
+      139,
+      140
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:141",
+    "name": "Area42",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": false,
+    "members": [
+      141,
+      190,
+      379,
+      310,
+      311,
+      313,
+      312,
+      259,
+      261,
+      249,
+      247,
+      388,
+      252,
+      256,
+      257,
+      269,
+      282,
+      288,
+      317,
+      318,
+      277,
+      316,
+      298,
+      365,
+      405,
+      402,
+      292,
+      293,
+      295,
+      296,
+      291,
+      294,
+      302,
+      303,
+      304,
+      315,
+      321,
+      322,
+      342,
+      340,
+      366,
+      375,
+      387,
+      407,
+      398,
+      400,
+      406,
+      416,
+      250
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:144",
+    "name": "Area74",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": false,
+    "members": [
+      305,
+      332,
+      144,
+      154
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:145",
+    "name": "Area15: change 145",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      145,
+      146,
+      159
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:147",
+    "name": "Area19",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      147,
+      151,
+      279
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:148",
+    "name": "Area16: change 148",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      148,
+      149,
+      150
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:160",
+    "name": "Area25",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": false,
+    "members": [
+      160,
+      216,
+      219,
+      221,
+      215
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:164",
+    "name": "Area06",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      164,
+      350
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:166",
+    "name": "Area30: change 166",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:178",
+    "name": "Area41",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      178,
+      307,
+      308
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:179",
+    "name": "Area44",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      179,
+      180,
+      181,
+      182
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:185",
+    "name": "Area46",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": false,
+    "members": [
+      185,
+      395
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:191",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      192,
+      193,
+      191
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:195",
+    "name": "Area49",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      195,
+      197
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:204",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      204,
+      205
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:207",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      207,
+      208
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:217",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      217,
+      218
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:220",
+    "name": "Area50: change 220",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      220,
+      223,
+      225,
+      227
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:222",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      222,
+      224
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:226",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      226,
+      228
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:231",
+    "name": "Area43",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      231,
+      232
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:243",
+    "name": "Area51: change 243",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      243,
+      275,
+      276,
+      283,
+      299
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:251",
+    "name": "Area57",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      385,
+      251,
+      253,
+      263,
+      254,
+      355,
+      359,
+      370,
+      381,
+      403
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:255",
+    "name": "Area43: change 255",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      255,
+      258
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:260",
+    "name": "Area59",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      260,
+      281
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:270",
+    "name": "Area61",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      270,
+      320
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:297",
+    "name": "Area42",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": false,
+    "members": [
+      297,
+      341,
+      368,
+      361,
+      364,
+      393,
+      396,
+      397,
+      399,
+      401,
+      410,
+      414,
+      420,
+      426,
+      438,
+      447,
+      434,
+      455
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:314",
+    "name": "Area78",
+    "nameSource": "prefix",
+    "signals": [
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      314,
+      394
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:362",
+    "name": "Area85",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      362,
+      367,
+      371,
+      374,
+      382,
+      378,
+      408,
+      409,
+      411,
+      417,
+      422,
+      427,
+      428,
+      431,
+      433,
+      435,
+      439
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:376",
+    "name": "Area42",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      376,
+      429,
+      424,
+      421,
+      432,
+      450,
+      451
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:413",
+    "name": "Area103",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      413,
+      415,
+      425,
+      418,
+      445,
+      452,
+      457,
+      454,
+      453,
+      462,
+      464,
+      469,
+      459,
+      440
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:442",
+    "name": "Area116",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      442,
+      443,
+      514
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:458",
+    "name": "Area124",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      458,
+      460,
+      463,
+      467,
+      470,
+      481,
+      490
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:465",
+    "name": "Area130: change 477",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      477,
+      482,
+      465,
+      466,
+      475,
+      476,
+      499,
+      493,
+      497
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:471",
+    "name": "Area85",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "sharedBase"
+    ],
+    "closed": true,
+    "members": [
+      471,
+      474,
+      473,
+      472,
+      478,
+      480,
+      483,
+      488,
+      495,
+      496,
+      510
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:479",
+    "name": "Area146",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      479,
+      487,
+      516,
+      517,
+      521,
+      525,
+      526,
+      540
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:501",
+    "name": "Area124",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      501,
+      502,
+      503,
+      504,
+      505,
+      506
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:513",
+    "name": "Area144: change 513",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      513,
+      518
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:515",
+    "name": "Area115",
+    "nameSource": "prefix",
+    "signals": [
+      "stack",
+      "titlePrefix"
+    ],
+    "closed": true,
+    "members": [
+      515,
+      522,
+      545,
+      551,
+      553,
+      560
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:519",
+    "name": "Area42",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      519,
+      523
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:527",
+    "name": "Area42",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      527,
+      534,
+      538,
+      542,
+      546,
+      535,
+      536,
+      543,
+      544,
+      547,
+      549,
+      557,
+      569
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:528",
+    "name": "Area131: change 528",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      528,
+      529,
+      530,
+      531,
+      532,
+      533
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:537",
+    "name": "Area85",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": true,
+    "members": [
+      537,
+      539
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:563",
+    "name": "Area155",
+    "nameSource": "prefix",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      563,
+      564,
+      565
+    ]
+  },
+  {
+    "id": "acme/widgets:ws:567",
+    "name": "Area156: change 567",
+    "nameSource": "title",
+    "signals": [
+      "stack"
+    ],
+    "closed": false,
+    "members": [
+      567,
+      568
+    ]
+  }
+]

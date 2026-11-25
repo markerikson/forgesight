@@ -1,5 +1,6 @@
 import { type } from "arktype";
 import type { BranchRule, Config, ContentRule, RepoConfig } from "../core/config.ts";
+import type { WorkstreamConfig } from "../core/workstreams.ts";
 import { defaultConfig } from "./defaults.ts";
 import { type UserConfig, type UserRepoConfig, type UserRule, userConfigSchema } from "./schema.ts";
 
@@ -18,12 +19,39 @@ function required<T>(value: T | undefined, field: string): T {
   return value;
 }
 
-function compile(source: string, where: string): RegExp {
+function compile(source: string, where: string, flags?: string): RegExp {
   try {
-    return new RegExp(source);
+    return new RegExp(source, flags);
   } catch (err) {
     throw new ConfigError(`Invalid regex in ${where}: ${(err as Error).message}`);
   }
+}
+
+/** Workstream patterns are case-insensitive. Each field replaces the inherited one. */
+function resolveWorkstreams(
+  entry: UserRepoConfig["workstreams"],
+  base: WorkstreamConfig | undefined,
+  key: string,
+): WorkstreamConfig {
+  const at = `repos["${key}"].workstreams`;
+  const patterns = (sources: string[], where: string) =>
+    sources.map((s, i) => compile(s, `${where}[${i}]`, "i"));
+  return {
+    forkMinSize: required(entry?.forkMinSize ?? base?.forkMinSize, `${at}.forkMinSize`),
+    cutBelow: entry?.cutBelow
+      ? patterns(entry.cutBelow, `${at}.cutBelow`)
+      : required(base?.cutBelow, `${at}.cutBelow`),
+    genericPrefixes: (entry?.genericPrefixes ?? base?.genericPrefixes ?? []).map((p) => p.toLowerCase()),
+    botAuthors: entry?.botAuthors ?? base?.botAuthors ?? [],
+    groups: entry?.groups
+      ? entry.groups.map((g, i) => ({
+          name: g.name,
+          titles: patterns(g.titles ?? [], `${at}.groups[${i}].titles`),
+          branches: patterns(g.branches ?? [], `${at}.groups[${i}].branches`),
+          authors: g.authors ?? [],
+        }))
+      : (base?.groups ?? []),
+  };
 }
 
 function resolveRepo(entry: UserRepoConfig, base: Partial<RepoConfig>, key: string): RepoConfig {
@@ -35,6 +63,9 @@ function resolveRepo(entry: UserRepoConfig, base: Partial<RepoConfig>, key: stri
     mode: required(entry.mode ?? base.mode, `repos["${key}"].mode`),
     batchSize: required(entry.batchSize ?? base.batchSize, `repos["${key}"].batchSize`),
     branchRules: branchRules ?? base.branchRules ?? [],
+    view: required(entry.view ?? base.view, `repos["${key}"].view`),
+    trunks: required(entry.trunks ?? base.trunks, `repos["${key}"].trunks`),
+    workstreams: resolveWorkstreams(entry.workstreams, base.workstreams, key),
   };
 }
 

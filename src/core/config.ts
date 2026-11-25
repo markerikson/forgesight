@@ -1,4 +1,8 @@
+import type { WorkstreamConfig } from "./workstreams.ts";
+
 export type RepoMode = "full" | "normal" | "simple";
+/** `overview` groups the repo's PRs into workstreams; `triage` lists items one by one. */
+export type RepoView = "overview" | "triage";
 export type ContentLevel = "hidden" | "collapsed" | "show";
 export type RebaseMethod = "api" | "range_diff";
 
@@ -12,6 +16,10 @@ export interface RepoConfig {
   /** Upper bound for the adaptive batch size. */
   batchSize: number;
   branchRules: BranchRule[];
+  view: RepoView;
+  /** Base branches that are not part of a stack. */
+  trunks: string[];
+  workstreams: WorkstreamConfig;
 }
 
 export interface RuleMatch {

@@ -36,7 +36,21 @@ describe("resolveConfig", () => {
   test("empty user config gives the defaults", () => {
     const config = resolveConfig({});
     expect(config.me).toBeNull();
-    expect(config.repos).toEqual({ "*": { mode: "normal", batchSize: 10, branchRules: [] } });
+    expect(Object.keys(config.repos)).toEqual(["*"]);
+    expect(config.repos["*"]).toMatchObject({
+      mode: "normal",
+      batchSize: 10,
+      branchRules: [],
+      view: "triage",
+      trunks: ["master", "main"],
+    });
+    expect(config.repos["*"]?.workstreams).toMatchObject({
+      forkMinSize: 5,
+      genericPrefixes: [],
+      botAuthors: [],
+      groups: [],
+    });
+    expect(config.repos["*"]?.workstreams.cutBelow[0]?.test("[DRAFT, Never Merge] x")).toBe(true);
     expect(config.server.port).toBe(4630);
     expect(config.polling.enrichIssues).toBe(true);
     expect(config.bots.map((b) => b.id)).toEqual((defaultConfig.bots ?? []).map((b) => b.id));
@@ -70,16 +84,51 @@ describe("resolveConfig", () => {
         "chromium/chromium-v8": { mode: "simple", batchSize: 1 },
       },
     });
-    expect(config.repos["*"]).toEqual({ mode: "normal", batchSize: 5, branchRules: [] });
+    expect(config.repos["*"]).toMatchObject({ mode: "normal", batchSize: 5, branchRules: [] });
     const backend = repoConfig(config, "replayio/backend");
     expect(backend.mode).toBe("full");
     expect(backend.batchSize).toBe(5);
     expect(backend.branchRules[0]?.pattern.test("fix/qa-issue-42")).toBe(true);
-    expect(repoConfig(config, "chromium/chromium-v8")).toEqual({
+    expect(repoConfig(config, "chromium/chromium-v8")).toMatchObject({
       mode: "simple",
       batchSize: 1,
       branchRules: [],
+      view: "triage",
     });
+  });
+
+  test("workstream settings resolve field by field per repo", () => {
+    const config = resolveConfig({
+      repos: {
+        "*": { trunks: ["develop"], workstreams: { forkMinSize: 3 } },
+        "a/b": {
+          view: "overview",
+          workstreams: {
+            genericPrefixes: ["Hotfix"],
+            groups: [{ name: "Recording", titles: ["^node-recording\\b"], authors: ["alice"] }],
+          },
+        },
+      },
+    });
+    const ab = repoConfig(config, "a/b");
+    expect(ab.view).toBe("overview");
+    expect(ab.trunks).toEqual(["develop"]);
+    expect(ab.workstreams.forkMinSize).toBe(3);
+    expect(ab.workstreams.genericPrefixes).toEqual(["hotfix"]);
+    expect(ab.workstreams.cutBelow).toHaveLength(1);
+    const group = ab.workstreams.groups[0];
+    expect(group?.name).toBe("Recording");
+    expect(group?.titles[0]?.test("Node-Recording: case")).toBe(true);
+    expect(group?.branches).toEqual([]);
+    expect(group?.authors).toEqual(["alice"]);
+    expect(repoConfig(config, "a/c").view).toBe("triage");
+    expect(repoConfig(config, "a/c").workstreams.groups).toEqual([]);
+  });
+
+  test("an invalid workstream regex names the field", () => {
+    expect(() =>
+      resolveConfig({ repos: { "a/b": { workstreams: { groups: [{ name: "x", titles: ["("] }] } } } }),
+    ).toThrow(/repos\["a\/b"\]\.workstreams\.groups\[0\]\.titles\[0\]/);
   });
 
   test("repoConfig uses the exact entry, then '*'", () => {
@@ -149,6 +198,9 @@ describe("parseConfigText", () => {
   test("rejects unknown keys so typos are reported", () => {
     expect(() => parseConfigText(`{ "pollng": {} }`)).toThrow(/pollng/);
     expect(() => parseConfigText(`{ "polling": { "backfilDays": 3 } }`)).toThrow(/backfilDays/);
+    expect(() =>
+      parseConfigText(`{ "repos": { "*": { "workstreams": { "forkMinSise": 3 } } } }`),
+    ).toThrow(/forkMinSise/);
   });
 
   test("rejects wrong types and out-of-range values", () => {
