@@ -209,6 +209,18 @@
   color: var(--info);
 }
 
+.plainBody {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.descriptionNote {
+  margin: 4px 0 0;
+  color: var(--fg-mute);
+  font-size: 12px;
+}
+
 .lastVisit {
   display: flex;
   align-items: center;

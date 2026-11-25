@@ -9,6 +9,7 @@ import { upsertThreads } from "./threads.ts";
 import { changesAfter } from "./views.ts";
 import { applyWorkstreamOps } from "./workstream-ops.ts";
 import {
+  firstWorkstreamBuild,
   getWorkstream,
   getWorkstreamState,
   listOverrides,
@@ -121,6 +122,25 @@ describe("writeWorkstreams", () => {
     writeWorkstreams(db, REPO, [ws([30, 31], "Root PR", ID, T2)], new Set(), T2);
     writeWorkstreams(db, REPO, [], new Set(), "2026-12-09T12:00:00.000Z");
     expect(previousWorkstreams(db, REPO)).toEqual([]);
+  });
+
+  test("the first build time stays put when the oldest workstreams are deleted", () => {
+    const db = memoryDb();
+    expect(firstWorkstreamBuild(db, REPO)).toBeUndefined();
+    writeWorkstreams(db, REPO, [ws([10, 11])], new Set(), T0);
+    writeWorkstreams(db, REPO, [ws([20, 21], "Other", `${REPO}:ws:20`)], new Set(), T1);
+    expect(getWorkstream(db, ID)).toBeUndefined();
+    expect(firstWorkstreamBuild(db, REPO)).toBe(T0);
+  });
+
+  test("a repo built before the first build time was stored keeps its earliest workstream", () => {
+    const db = memoryDb();
+    writeWorkstreams(db, REPO, [ws([10, 11])], new Set(), T0);
+    db.query("DELETE FROM meta").run();
+    expect(firstWorkstreamBuild(db, REPO)).toBe(T0);
+    writeWorkstreams(db, REPO, [ws([10, 11]), ws([20, 21], "Other", `${REPO}:ws:20`)], new Set(), T1);
+    writeWorkstreams(db, REPO, [ws([20, 21], "Other", `${REPO}:ws:20`)], new Set(), T2);
+    expect(firstWorkstreamBuild(db, REPO)).toBe(T0);
   });
 });
 

@@ -340,6 +340,15 @@ describe("workstream groups", () => {
     expect(store.getState().view.section).toBe("waiting");
   });
 
+  test("openSubject goes to the group's section, not the member's own", () => {
+    const waiting = group("s3", [row("acme/app#40", "waiting"), row("acme/app#41", "updates")]);
+    const store = storeWith([waiting]);
+    store.dispatch(sectionSelected("updates"));
+    expect(store.dispatch(openSubject("acme/app#41"))).toBe(true);
+    expect(store.getState().view.section).toBe("waiting");
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#41");
+  });
+
   test("openSubject waits for a hidden member's section to load", () => {
     const hidden = {
       key: "acme/app#30",

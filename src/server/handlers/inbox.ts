@@ -2,17 +2,19 @@ import {
   type InboxPayload,
   type InboxRow,
   type ListedPull,
+  type RootBody,
   type WorkstreamInput,
   buildInboxPayload,
 } from "../../core/index.ts";
 import type { SubjectKey } from "../../core/types.ts";
 import { isListedWorkstream, type MemberFacts, workstreamSnoozeActive } from "../../core/workstream-state.ts";
 import { latestWorkstreamSummaries } from "../../store/llm.ts";
+import { PR_BODY_LIMIT } from "../../github/queries/pr-texts.ts";
 import { getPrTexts } from "../../store/pr-texts.ts";
 import { readListing } from "../../worker/workstreams.ts";
 import { listViews } from "../../store/views.ts";
 import {
-  firstWorkstreamBuilds,
+  firstWorkstreamBuild,
   getWorkstreamStates,
   listWorkstreams,
   memberFacts,
@@ -38,7 +40,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
     stored.map((w) => w.id),
   );
   const summaries = latestWorkstreamSummaries(ctx.db);
-  const firstBuilds = firstWorkstreamBuilds(ctx.db);
+  const firstBuilds = new Map<string, string | undefined>();
   const inputs: WorkstreamInput[] = [];
   for (const s of stored) {
     for (const m of s.members) {
@@ -56,6 +58,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
       s.repo,
       workstream.members.filter((key) => !rowKeys.has(key)),
     );
+    if (!firstBuilds.has(s.repo)) firstBuilds.set(s.repo, firstWorkstreamBuild(ctx.db, s.repo));
     const repoFirstSeenAt = firstBuilds.get(s.repo);
     inputs.push({
       workstream,
@@ -118,12 +121,14 @@ export function listedPulls(ctx: ServerCtx, repo: string, keys: SubjectKey[]): R
 }
 
 /** The stored description of a workstream's first member, when it has no inbox row to load it from. */
-function rootBody(ctx: ServerCtx, repo: string, root: SubjectKey | undefined, rowKeys: ReadonlySet<SubjectKey>): string | null {
+function rootBody(ctx: ServerCtx, repo: string, root: SubjectKey | undefined, rowKeys: ReadonlySet<SubjectKey>): RootBody | null {
   if (root === undefined || rowKeys.has(root)) return null;
   const match = PULL_NUMBER.exec(root);
   if (!match) return null;
-  const body = getPrTexts(ctx.db, repo, [Number(match[1])]).get(Number(match[1]))?.body.trim();
-  return body ? body : null;
+  const body = getPrTexts(ctx.db, repo, [Number(match[1])]).get(Number(match[1]))?.body;
+  const text = body?.trim();
+  if (body === undefined || !text) return null;
+  return { text, clipped: body.length >= PR_BODY_LIMIT };
 }
 
 export function readInbox(ctx: ServerCtx, includeHidden: boolean): InboxPayload {

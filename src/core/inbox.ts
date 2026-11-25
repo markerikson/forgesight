@@ -59,7 +59,14 @@ export interface InboxGroup {
   snoozed: boolean;
   snoozeUntil: string | null;
   /** The first member's description when it has no inbox row; otherwise the preview loads it. */
-  rootBody: string | null;
+  rootBody: RootBody | null;
+}
+
+/** A stored PR description: GitHub's plain-text rendering, cut to a fixed length. */
+export interface RootBody {
+  text: string;
+  /** The stored text was cut short; the full description is on GitHub. */
+  clipped: boolean;
 }
 
 /** Why a member is not listed in its group: its row is Hidden or Snoozed, or it has no notification. */
@@ -110,7 +117,7 @@ export interface WorkstreamInput {
   /** Members with no inbox row, so the group can still show them. */
   pulls?: Record<SubjectKey, ListedPull>;
   /** The first member's stored description, when that member has no inbox row. */
-  rootBody?: string | null;
+  rootBody?: RootBody | null;
   /** When this workstream was first stored. */
   firstSeenAt?: string;
   /** When the repo's first workstream was stored: its first workstream build. */

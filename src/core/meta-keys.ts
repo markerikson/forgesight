@@ -36,6 +36,11 @@ export function openPullsMetaKey(repo: string): string {
   return `openPulls.${repo}`;
 }
 
+/** Time of the first workstream build for one repo, written once. */
+export function firstWorkstreamBuildMetaKey(repo: string): string {
+  return `workstreams.${repo}.firstBuildAt`;
+}
+
 /** PRs that left the open listing in the last 7 days, stored as JSON `ClosedPull[]`. */
 export function recentlyClosedMetaKey(repo: string): string {
   return `openPulls.${repo}.recentlyClosed`;

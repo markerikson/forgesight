@@ -468,8 +468,7 @@ export function subjectSection(state: ViewRootState, key: string): Section | nul
         if (entry.key === key) return entry.section;
         continue;
       }
-      const member = entry.members.find((m) => m.key === key);
-      if (member) return member.section;
+      if (entry.members.some((m) => m.key === key)) return entry.section;
       const unlisted = entry.unlisted.find((m) => m.key === key);
       if (unlisted?.why === "hidden" || unlisted?.why === "snoozed") return unlisted.why;
     }

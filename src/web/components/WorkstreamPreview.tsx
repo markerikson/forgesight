@@ -78,9 +78,15 @@ function totalsText(group: InboxGroup, now: number | null): string {
 function RootDescription({ group }: { group: InboxGroup }) {
   const rootKey = group.memberKeys[0];
   const { data } = useGetSubjectQuery(rootKey ?? "", { skip: rootKey === undefined || group.rootBody !== null });
-  const body = group.rootBody ?? (data && data.key === rootKey ? data.body : null);
-  if (!body || rootKey === undefined) return null;
-  return <Description key={rootKey} body={body} label={`Description of ${keyLabel(rootKey)}`} />;
+  if (rootKey === undefined) return null;
+  const label = `Description of ${keyLabel(rootKey)}`;
+  if (group.rootBody !== null) {
+    const note = group.rootBody.clipped ? "Cut short; the full description is on GitHub." : undefined;
+    return <Description key={rootKey} body={group.rootBody.text} label={label} plain note={note} />;
+  }
+  const body = data && data.key === rootKey ? data.body : null;
+  if (!body) return null;
+  return <Description key={rootKey} body={body} label={label} />;
 }
 
 /** Where the open subject sits in its stack, and what the workstream is about. */
@@ -91,7 +97,8 @@ export function StackBox({ workstream }: { workstream: SubjectWorkstream }) {
       <div className={styles.stackHead}>
         <span className={styles.stackName}>{workstream.name}</span>
         <span className={styles.position}>
-          {stack.position} of {stack.size} in {workstream.stacked ? "stack" : workstream.name}
+          {stack.position} of {stack.size}
+          {workstream.stacked && " in stack"}
         </span>
       </div>
       {workstream.stacked && (
