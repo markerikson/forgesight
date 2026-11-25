@@ -11,8 +11,7 @@ const RECONNECT_MS = 5_000;
 interface ChangedEvent {
   seq: number;
   keys: string[];
-  /** Workstreams whose membership, state or summary changed. */
-  // PLACEHOLDER: replaced by m4-store branch at merge (field name assumed).
+  /** Workstreams whose membership, name or state changed. */
   workstreams?: string[];
 }
 

@@ -1,5 +1,5 @@
 import type { StateOp } from "../core/state.ts";
-import type { WorkstreamOp } from "../core/workstream-placeholders.ts";
+import type { WorkstreamOp } from "../core/workstream-state.ts";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -60,10 +60,10 @@ export function workstreamOpLabel(op: WorkstreamOp, name: string): string {
       return op.name ? `Renamed to ${op.name}` : `Reset name of ${name}`;
     case "seen":
       return `Seen: ${name}`;
-    case "removeMember":
+    case "remove":
       return `Removed from ${name}`;
     case "merge":
-      return `Merged ${name}`;
+      return `Merged into ${name}`;
   }
 }
 

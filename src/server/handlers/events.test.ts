@@ -107,6 +107,27 @@ describe("EventHub", () => {
     expect(b.take().map((e) => e.event)).toEqual(["changed"]);
   });
 
+  test("sends changed workstream ids alongside view keys", () => {
+    const { db, hub } = setup();
+    const c = collector();
+    hub.subscribe(c.client, null);
+    c.take();
+
+    appendChange(db, "workstream", "ws1", T);
+    let last = appendChange(db, "workstream", "ws1", T);
+    hub.tick();
+    expect(c.take()).toEqual([
+      { event: "changed", id: String(last), data: { seq: last, keys: [], workstreams: ["ws1"] } },
+    ]);
+
+    appendChange(db, "view", "o/r#1", T);
+    last = appendChange(db, "workstream", "ws2", T);
+    hub.tick();
+    expect(c.take()).toEqual([
+      { event: "changed", id: String(last), data: { seq: last, keys: ["o/r#1"], workstreams: ["ws2"] } },
+    ]);
+  });
+
   test("replays view changes after Last-Event-ID", () => {
     const { db, ctx } = setup();
     const seen = appendChange(db, "view", "o/r#1", T);

@@ -1,6 +1,6 @@
 import type { InboxRow, SubjectKey } from "../../core/index.ts";
 import { type InboxEntry, type InboxGroup, isGroup } from "../../core/inbox.ts";
-import type { WorkstreamPriority } from "../../core/workstream-placeholders.ts";
+import type { WsPriority } from "../../core/workstream-state.ts";
 import { snoozeChoices } from "../ops.ts";
 import { applyState, applyWorkstream } from "./state-api.ts";
 import {
@@ -93,7 +93,7 @@ export function doneAllWorkstream(group: InboxGroup): ViewThunk {
   };
 }
 
-export function setWorkstreamPriority(group: InboxGroup, priority: WorkstreamPriority): ViewThunk {
+export function setWorkstreamPriority(group: InboxGroup, priority: WsPriority): ViewThunk {
   return applyWorkstream(group.id, { kind: "setPriority", priority });
 }
 

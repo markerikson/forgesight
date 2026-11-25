@@ -2,12 +2,9 @@ import { current, type Draft, type ThunkDispatch, type UnknownAction } from "@re
 import type { InboxPayload, InboxRow, SubjectKey } from "../../core/index.ts";
 import { entryKey, type InboxEntry, type InboxGroup, isGroup } from "../../core/inbox.ts";
 import { MAX_STATE_KEYS, patchInbox, patchWorkstream, type StateOp } from "../../core/state.ts";
-import type {
-  WorkstreamOp,
-  WorkstreamStateRequest,
-  WorkstreamStateResponse,
-} from "../../core/workstream-placeholders.ts";
+import type { WorkstreamOp } from "../../core/workstream-state.ts";
 import type { StateRequest, StateResponse, UndoResponse } from "../../server/handlers/state.ts";
+import type { WorkstreamStateRequest, WorkstreamStateResponse } from "../../server/handlers/workstreams.ts";
 import { opLabel, workstreamOpLabel } from "../ops.ts";
 import { api, type InboxArg } from "./api.ts";
 import { replaceRows } from "./inbox-cache.ts";
@@ -25,11 +22,7 @@ import {
   type ViewThunk,
 } from "./view.ts";
 
-// PLACEHOLDER: replaced by m4-store branch at merge. Undoing a workstream change also returns
-// the groups it touched.
-type UndoStateResponse = Extract<UndoResponse, { result: "undone" }> & {
-  groups?: Record<string, InboxGroup | null>;
-};
+type UndoStateResponse = Extract<UndoResponse, { result: "undone" }>;
 type UndoRefusal = Exclude<UndoResponse["result"], "undone">;
 
 function refusalOf(error: unknown): UndoRefusal | null {
@@ -61,6 +54,11 @@ function rowsFor(entries: readonly InboxEntry[], keys: ReadonlySet<string>): Rec
     }
   }
   return rows;
+}
+
+function workstreamTags(ids: readonly string[], withInbox: boolean) {
+  const tags = ids.map((id) => ({ type: "Workstream" as const, id }));
+  return withInbox ? [...tags, { type: "Inbox" as const, id: "LIST" }] : tags;
 }
 
 type Dispatch = ThunkDispatch<unknown, unknown, UnknownAction>;
@@ -139,13 +137,13 @@ export const stateApi = api.injectEndpoints({
       },
     }),
     applyWorkstream: build.mutation<WorkstreamStateResponse, WorkstreamStateRequest>({
-      query: (body) => ({ url: "state", method: "POST", body }),
-      async onQueryStarted({ target, op }, { dispatch, getState, queryFulfilled }) {
+      query: (body) => ({ url: "workstreams/state", method: "POST", body }),
+      async onQueryStarted({ id: targetId, op }, { dispatch, getState, queryFulfilled }) {
         const before = getState() as ViewRootState;
         const { selected, index: selectedIndex } = selectionBefore(before);
         const now = new Date().toISOString();
-        const ids = op.kind === "merge" ? [target.id, op.into] : [target.id];
-        let name = target.id;
+        const ids = op.kind === "merge" ? [targetId, op.from] : [targetId];
+        let name = targetId;
 
         // Rollback puts back only the touched groups and their member rows.
         const originals = cachedInboxArgs(before).map((arg) => {
@@ -154,7 +152,7 @@ export const stateApi = api.injectEndpoints({
           for (const entry of cachedRows(before, arg)) {
             if (!isGroup(entry) || !ids.includes(entry.id)) continue;
             groups[entry.id] = entry;
-            if (entry.id === target.id) name = entry.name;
+            if (entry.id === targetId) name = entry.name;
             for (const member of entry.members) rows[member.key] = member;
           }
           return { arg, groups, rows };
@@ -162,7 +160,7 @@ export const stateApi = api.injectEndpoints({
         for (const { arg } of originals) {
           dispatch(
             api.util.updateQueryData("getInbox", arg, (draft) =>
-              patchWorkstream(asPayload(draft), target.id, op, now, { includeHidden: arg.includeHidden }),
+              patchWorkstream(asPayload(draft), targetId, op, now, { includeHidden: arg.includeHidden }),
             ),
           );
         }
@@ -174,14 +172,15 @@ export const stateApi = api.injectEndpoints({
           for (const arg of cachedInboxArgs(getState() as ViewRootState)) {
             dispatch(
               api.util.updateQueryData("getInbox", arg, (draft) =>
-                replaceRows(asPayload(draft), data.rows, arg.includeHidden, data.groups),
+                replaceRows(asPayload(draft), data.rows, arg.includeHidden),
               ),
             );
           }
-          // Subject previews show the workstream name and summary.
-          dispatch(api.util.invalidateTags(ids.map((id) => ({ type: "Workstream" as const, id }))));
+          // The response carries stored workstreams, not inbox groups, so refetch the groups.
+          // Subject previews show the workstream name and summary too.
+          dispatch(api.util.invalidateTags(workstreamTags(ids, op.kind !== "seen")));
           if (op.kind === "seen") return;
-          dispatch(undoPushed({ opId: data.opId, label, keys: [], workstream: target.id, at: now }));
+          dispatch(undoPushed({ opId: data.opId, label, keys: [], workstream: targetId, at: now }));
           dispatch(toastShown(label, { opId: data.opId }));
         } catch {
           for (const { arg, groups, rows } of originals) {
@@ -203,12 +202,12 @@ export const stateApi = api.injectEndpoints({
           for (const arg of cachedInboxArgs(getState() as ViewRootState)) {
             dispatch(
               api.util.updateQueryData("getInbox", arg, (draft) =>
-                replaceRows(asPayload(draft), data.rows, arg.includeHidden, data.groups ?? {}),
+                replaceRows(asPayload(draft), data.rows, arg.includeHidden),
               ),
             );
           }
           const entry = (getState() as ViewRootState).view.undo.find((e) => e.opId === opId);
-          if (entry?.workstream) dispatch(api.util.invalidateTags([{ type: "Workstream", id: entry.workstream }]));
+          if (data.workstreams) dispatch(api.util.invalidateTags(workstreamTags(Object.keys(data.workstreams), true)));
           dispatch(undoRemoved(opId));
           for (const row of entry?.lingering ?? []) dispatch(rowRead(row));
           const label = entry?.label ?? "last change";
@@ -258,7 +257,7 @@ export function applyState(keys: SubjectKey[], op: StateOp): ViewThunk {
 /** Applies `op` to workstream `id`, optimistically. */
 export function applyWorkstream(id: string, op: WorkstreamOp): ViewThunk {
   return (dispatch) => {
-    const request = dispatch(stateApi.endpoints.applyWorkstream.initiate({ target: { kind: "workstream", id }, op }));
+    const request = dispatch(stateApi.endpoints.applyWorkstream.initiate({ id, op }));
     void request.then(() => request.reset());
   };
 }

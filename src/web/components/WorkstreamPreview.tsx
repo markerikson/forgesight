@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { GroupSummary, InboxGroup, SubjectWorkstream } from "../../core/inbox.ts";
 import type { SubjectKey } from "../../core/types.ts";
-import type { WorkstreamPriority } from "../../core/workstream-placeholders.ts";
+import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
 import { relativeTime, repoShortName } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
 import {

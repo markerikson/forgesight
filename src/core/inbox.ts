@@ -2,14 +2,9 @@
 // handlers and the web client both import these types.
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
 import type { SubjectKey, ThreadRecord } from "./types.ts";
-import {
-  stackContext,
-  type StackContext,
-  type Workstream,
-  type WorkstreamPriority,
-  type WorkstreamStateView,
-  type WorkstreamSummaryRecord,
-} from "./workstream-placeholders.ts";
+import type { WorkstreamSummaryRecord } from "./workstream-placeholders.ts";
+import type { WorkstreamState, WsPriority } from "./workstream-state.ts";
+import { type StackContext, stackContext, type Workstream } from "./workstreams.ts";
 
 export interface GroupSummary {
   text: string;
@@ -29,7 +24,7 @@ export interface InboxGroup {
   /** Manual rename, else the generated name, else the title prefix. */
   name: string;
   summary: GroupSummary | null;
-  priority: WorkstreamPriority;
+  priority: WsPriority;
   /** Not opened yet and no priority set. */
   isNew: boolean;
   /** Best member section; Updates at most for low priority; Hidden when muted; Snoozed while snoozed. */
@@ -67,8 +62,13 @@ export function groupKey(id: string): string {
 /** What the inbox builder needs about one workstream. */
 export interface WorkstreamInput {
   workstream: Workstream;
-  state: WorkstreamStateView | null;
+  state: WorkstreamState | null;
   summary: WorkstreamSummaryRecord | null;
+  /**
+   * Whether the group's snooze still holds, once its wake conditions were checked against the
+   * members' events. Without it, any snooze in `state` counts.
+   */
+  snoozed?: boolean;
 }
 
 /** Where a subject sits in its workstream, for the preview's stack box. */
@@ -245,8 +245,11 @@ function groupSummary(input: WorkstreamInput): GroupSummary | null {
   };
 }
 
+/** A manual rename wins over the summary's suggested name, which wins over the detected name. */
 function groupName(input: WorkstreamInput): string {
-  return input.state?.name || input.summary?.name || input.workstream.name;
+  const { workstream: ws, summary } = input;
+  if (ws.nameSource === "manual") return ws.name;
+  return summary?.name || ws.name;
 }
 
 /** An empty group for a workstream; `reflowEntries` fills in its members. */
@@ -255,7 +258,8 @@ export function buildGroup(input: WorkstreamInput, allRows: readonly InboxRow[])
   const priority = state?.priority ?? "normal";
   const memberSet = new Set(ws.members);
   const snoozed =
-    state !== null && (state.snoozeUntil !== null || state.snoozeUntilHumanEvent || state.snoozeUntilReady);
+    input.snoozed ??
+    (state !== null && (state.snoozeUntil !== null || state.snoozeUntilHumanEvent || state.snoozeUntilReady));
   return {
     kind: "workstream",
     id: ws.id,
@@ -263,7 +267,7 @@ export function buildGroup(input: WorkstreamInput, allRows: readonly InboxRow[])
     name: groupName(input),
     summary: groupSummary(input),
     priority,
-    isNew: !ws.closed && (state === null || (state.seenAt === null && priority === "normal")),
+    isNew: !ws.closed && (state?.seenAt ?? null) === null,
     section: "updates",
     sortAt: "",
     members: [],

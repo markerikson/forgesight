@@ -11,7 +11,7 @@ import {
 } from "./inbox.ts";
 import type { InboxRow } from "./pipeline/types.ts";
 import type { ItemState, SubjectKey } from "./types.ts";
-import type { WorkstreamOp } from "./workstream-placeholders.ts";
+import type { WorkstreamOp } from "./workstream-state.ts";
 
 export type StateOp =
   | { kind: "done" }
@@ -203,30 +203,33 @@ export function patchWorkstream(
   const includeHidden = opts.includeHidden ?? listsHidden(payload);
   const target = payload.rows.find((e) => isGroup(e) && e.id === id) as InboxGroup | undefined;
   if (!target) return payload;
-  const changed = patchGroup(target, op, now);
+  const from =
+    op.kind === "merge"
+      ? (payload.rows.find((e) => isGroup(e) && e.id === op.from) as InboxGroup | undefined)
+      : undefined;
+  let changed = patchGroup(target, op, now);
+  if (from) changed = { ...changed, memberKeys: [...changed.memberKeys, ...from.memberKeys] };
   const entries: InboxEntry[] = [];
   for (const entry of payload.rows) {
-    if (entry !== target) {
-      if (op.kind === "merge" && isGroup(entry) && entry.id === op.into) {
-        entries.push({ ...entry, memberKeys: [...entry.memberKeys, ...target.memberKeys] });
-      } else {
-        entries.push(entry);
+    if (entry === from) {
+      // The merged-away group's members become loose rows that reflow into the target.
+      entries.push(...from.members);
+    } else if (entry !== target) {
+      entries.push(entry);
+    } else {
+      entries.push(changed);
+      if (op.kind === "remove") {
+        const removed = target.members.find((m) => m.key === op.key);
+        if (removed) entries.push(removed);
       }
-      continue;
-    }
-    if (changed) entries.push(changed);
-    else entries.push(...target.members);
-    if (changed && op.kind === "removeMember") {
-      const removed = target.members.find((m) => m.key === op.key);
-      if (removed) entries.push(removed);
     }
   }
-  const returned = target.section === "hidden" && changed !== null && groupSection(changed) !== "hidden" ? 1 : 0;
+  const returned = target.section === "hidden" && groupSection(changed) !== "hidden" ? 1 : 0;
   return settleInbox(payload, entries, includeHidden, returned);
 }
 
-/** The group after `op`, or null when it stops existing (merged into another group). */
-export function patchGroup(group: InboxGroup, op: WorkstreamOp, _now: string): InboxGroup | null {
+/** The group after `op`. Merging other groups' members in is left to `patchWorkstream`. */
+export function patchGroup(group: InboxGroup, op: WorkstreamOp, _now: string): InboxGroup {
   switch (op.kind) {
     case "setPriority":
       return { ...group, priority: op.priority, isNew: false };
@@ -238,14 +241,14 @@ export function patchGroup(group: InboxGroup, op: WorkstreamOp, _now: string): I
       return op.name ? { ...group, name: op.name } : group;
     case "seen":
       return { ...group, isNew: false, summary: group.summary && { ...group.summary, changed: false } };
-    case "removeMember":
+    case "remove":
       return {
         ...group,
         memberKeys: group.memberKeys.filter((k) => k !== op.key),
         members: group.members.filter((m) => m.key !== op.key),
       };
     case "merge":
-      return null;
+      return group;
   }
 }
 

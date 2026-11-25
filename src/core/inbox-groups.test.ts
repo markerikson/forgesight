@@ -10,7 +10,8 @@ import {
 } from "./inbox.ts";
 import type { InboxRow, Section } from "./pipeline/types.ts";
 import { patchInbox, patchWorkstream } from "./state.ts";
-import type { WorkstreamStateView } from "./workstream-placeholders.ts";
+import type { WorkstreamState } from "./workstream-state.ts";
+import type { Workstream } from "./workstreams.ts";
 
 const NOW = new Date("2026-11-24T12:00:00.000Z");
 const NOW_ISO = NOW.toISOString();
@@ -44,9 +45,8 @@ function row(key: string, section: Section, overrides: Partial<InboxRow> = {}): 
   };
 }
 
-const SEEN: WorkstreamStateView = {
+const SEEN: WorkstreamState = {
   priority: "normal",
-  name: null,
   seenAt: "2026-11-01T00:00:00Z",
   seenSummaryHash: "h1",
   snoozeUntil: null,
@@ -60,17 +60,24 @@ const K2 = "replayio/backend#2";
 const K3 = "replayio/backend#3";
 const K4 = "replayio/backend#4";
 
-function input(overrides: { state?: Partial<WorkstreamStateView> | null; members?: string[] } = {}): WorkstreamInput {
+function input(
+  overrides: { state?: Partial<WorkstreamState> | null; members?: string[]; workstream?: Partial<Workstream> } = {},
+): WorkstreamInput {
   const members = overrides.members ?? [K1, K2, K3, K4];
   return {
     workstream: {
       id: "ws1",
       repo: "replayio/backend",
       name: "Stack: recording uploads",
+      nameSource: "title",
       members,
       edges: members.slice(1).map((child, i) => ({ child, parent: members[i]! })),
       signals: ["stack"],
+      author: "stacker",
+      prefix: null,
       closed: false,
+      closedAt: null,
+      ...overrides.workstream,
     },
     state: overrides.state === null ? null : { ...SEEN, ...overrides.state },
     summary: { name: "Upload pipeline", text: "Reworks uploads.\nSecond line.", status: null, generatedAt: NOW_ISO, hash: "h1" },
@@ -109,7 +116,7 @@ describe("buildInboxPayload with workstreams", () => {
   });
 
   test("a manual rename wins over the generated name", () => {
-    expect(groupOf(build([input({ state: { name: "Mine" } })])).name).toBe("Mine");
+    expect(groupOf(build([input({ workstream: { name: "Mine", nameSource: "manual" } })])).name).toBe("Mine");
   });
 
   test("closed-by-author counts move into the group", () => {

@@ -1,6 +1,6 @@
 import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { groupKey, type InboxGroup } from "../../core/inbox.ts";
-import type { WorkstreamPriority } from "../../core/workstream-placeholders.ts";
+import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
 import { firstLine } from "../../core/pipeline/text.ts";
 import {
   doneAllWorkstream,
