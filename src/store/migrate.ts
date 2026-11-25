@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import initialSql from "./migrations/001-initial.sql" with { type: "text" };
 import outboxSql from "./migrations/002-outbox.sql" with { type: "text" };
 import workstreamsSql from "./migrations/003-workstreams.sql" with { type: "text" };
+import llmSql from "./migrations/004-llm.sql" with { type: "text" };
 import { userVersion } from "./schema-version.ts";
 
 export type Migration = { version: number; name: string; sql: string };
@@ -10,6 +11,7 @@ export const migrations: Migration[] = [
   { version: 1, name: "initial", sql: initialSql },
   { version: 2, name: "outbox", sql: outboxSql },
   { version: 3, name: "workstreams", sql: workstreamsSql },
+  { version: 4, name: "llm", sql: llmSql },
 ];
 
 export function latest(list: Migration[]): number {

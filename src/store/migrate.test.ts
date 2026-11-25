@@ -21,11 +21,13 @@ function tableNames(db: ReturnType<typeof openDb>): string[] {
 describe("migrations", () => {
   test("apply from version 0", () => {
     const db = openDb(":memory:");
-    expect(runMigrations(db)).toEqual({ from: 0, to: 3 });
+    expect(runMigrations(db)).toEqual({ from: 0, to: SCHEMA_VERSION });
     expect(tableNames(db)).toEqual([
       "api_calls",
       "changes",
       "item_state",
+      "llm_calls",
+      "llm_jobs",
       "meta",
       "outbox",
       "pr_texts",
@@ -34,6 +36,7 @@ describe("migrations", () => {
       "sticky_versions",
       "subject_views",
       "subjects",
+      "summaries",
       "threads",
       "timeline_items",
       "workstream_members",
@@ -48,7 +51,7 @@ describe("migrations", () => {
     const db = openDb(":memory:");
     runMigrations(db);
     setMeta(db, "k", "v", "2026-01-01T00:00:00Z");
-    expect(runMigrations(db)).toEqual({ from: 3, to: 3 });
+    expect(runMigrations(db)).toEqual({ from: SCHEMA_VERSION, to: SCHEMA_VERSION });
     expect(getMeta(db, "k")).toBe("v");
   });
 
@@ -63,7 +66,7 @@ describe("migrations", () => {
     );
     setMeta(db, "openPulls.acme/app", '{"pulls":[]}', "2026-01-01T00:00:00Z");
 
-    expect(runMigrations(db)).toEqual({ from: 2, to: 3 });
+    expect(runMigrations(db)).toEqual({ from: 2, to: SCHEMA_VERSION });
     assertCurrent(db);
     expect(getSubject(db, "acme/app#1")?.origin).toBe("thread");
     expect(db.query<{ n: number }, []>("SELECT COUNT(*) AS n FROM state_ops").get()?.n).toBe(1);
@@ -113,7 +116,7 @@ describe("migrations", () => {
 
   test("refuses to run against a newer database", () => {
     const db = openDb(":memory:");
-    db.run("PRAGMA user_version = 5");
+    db.run(`PRAGMA user_version = ${SCHEMA_VERSION + 1}`);
     expect(() => runMigrations(db)).toThrow(/newer/);
     expect(() => assertCurrent(db)).toThrow(/newer/);
   });

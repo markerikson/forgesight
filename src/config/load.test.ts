@@ -188,6 +188,34 @@ describe("resolveConfig", () => {
       resolveConfig({ repos: { "a/b": { branchRules: [{ pattern: "[", link: "issue" }] } } }),
     ).toThrow(/repos\["a\/b"\]\.branchRules\[0\]\.pattern/);
   });
+
+  test("llm settings default to Haiku with a $2 daily cap", () => {
+    const { llm } = resolveConfig({});
+    expect(llm.dailyCapUsd).toBe(2);
+    expect(llm.tasks.workstreamSummary).toEqual({ provider: "anthropic", model: "claude-haiku-4-5" });
+    expect(llm.prices["claude-haiku-4-5"]).toEqual({ input: 1, output: 5, cacheRead: 0.1, cacheWrite: 1.25 });
+  });
+
+  test("llm prices merge with the defaults, and a model without a price is rejected", () => {
+    const price = { input: 2, output: 8, cacheRead: 0.2, cacheWrite: 2.5 };
+    const { llm } = resolveConfig({
+      llm: {
+        dailyCapUsd: 0.5,
+        tasks: { workstreamSummary: { model: "my-model", baseUrl: "http://localhost:9000" } },
+        prices: { "my-model": price },
+      },
+    });
+    expect(llm.dailyCapUsd).toBe(0.5);
+    expect(llm.tasks.workstreamSummary).toEqual({
+      provider: "anthropic",
+      model: "my-model",
+      baseUrl: "http://localhost:9000",
+    });
+    expect(llm.prices["my-model"]).toEqual(price);
+    expect(llm.prices["claude-haiku-4-5"]).toBeDefined();
+    expect(() => resolveConfig({ llm: { tasks: { workstreamSummary: { model: "unpriced" } } } }))
+      .toThrow(ConfigError);
+  });
 });
 
 describe("parseConfigText", () => {
@@ -213,6 +241,9 @@ describe("parseConfigText", () => {
     expect(() => parseConfigText(`{ "server": { "port": 0 } }`)).toThrow(ConfigError);
     expect(() => parseConfigText(`{ "repos": { "*": { "mode": "fast" } } }`)).toThrow(ConfigError);
     expect(() => parseConfigText(`{ "polling": { "enrichIssues": "yes" } }`)).toThrow(ConfigError);
+    expect(() => parseConfigText(`{ "llm": { "dailyCapUsd": -1 } }`)).toThrow(ConfigError);
+    expect(() => parseConfigText(`{ "llm": { "tasks": { "workstreamSummary": { "provider": "openai" } } } }`))
+      .toThrow(ConfigError);
   });
 
   test("rejects malformed JSONC", () => {

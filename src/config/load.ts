@@ -1,5 +1,12 @@
 import { type } from "arktype";
-import type { BranchRule, Config, ContentRule, RepoConfig } from "../core/config.ts";
+import type {
+  BranchRule,
+  Config,
+  ContentRule,
+  LlmTaskConfig,
+  ModelPrice,
+  RepoConfig,
+} from "../core/config.ts";
 import type { WorkstreamConfig } from "../core/workstreams.ts";
 import { defaultConfig } from "./defaults.ts";
 import { type UserConfig, type UserRepoConfig, type UserRule, userConfigSchema } from "./schema.ts";
@@ -195,6 +202,44 @@ export function resolveConfig(user: UserConfig, defaults: UserConfig = defaultCo
         "server.allowedHosts",
       ),
     },
+    llm: resolveLlm(user.llm, required(defaults.llm, "llm")),
+  };
+}
+
+type UserLlm = NonNullable<UserConfig["llm"]>;
+type UserLlmTask = NonNullable<NonNullable<UserLlm["tasks"]>["workstreamSummary"]>;
+
+function resolveLlmTask(
+  user: UserLlmTask | undefined,
+  defaults: UserLlmTask | undefined,
+  prices: Record<string, ModelPrice>,
+  where: string,
+): LlmTaskConfig {
+  const task: LlmTaskConfig = {
+    provider: required(user?.provider ?? defaults?.provider, `${where}.provider`),
+    model: required(user?.model ?? defaults?.model, `${where}.model`),
+  };
+  const baseUrl = user?.baseUrl ?? defaults?.baseUrl;
+  if (baseUrl !== undefined) task.baseUrl = baseUrl;
+  if (!prices[task.model]) {
+    throw new ConfigError(`${where}.model "${task.model}" has no entry in llm.prices`);
+  }
+  return task;
+}
+
+function resolveLlm(user: UserLlm | undefined, defaults: UserLlm): Config["llm"] {
+  const prices = { ...defaults.prices, ...user?.prices };
+  return {
+    dailyCapUsd: required(user?.dailyCapUsd ?? defaults.dailyCapUsd, "llm.dailyCapUsd"),
+    tasks: {
+      workstreamSummary: resolveLlmTask(
+        user?.tasks?.workstreamSummary,
+        defaults.tasks?.workstreamSummary,
+        prices,
+        "llm.tasks.workstreamSummary",
+      ),
+    },
+    prices,
   };
 }
 

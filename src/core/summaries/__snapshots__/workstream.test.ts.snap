@@ -1,0 +1,28 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`buildWorkstreamSummaryRequest lists members base first with state flags 1`] = `
+"Repository: acme/app
+Workstream state: open
+Pull requests, base of the stack first:
+
+## #101 Extract session store [merged]
+Moves sessions out of the request handler.
+
+## #102 Add token refresh
+Refreshes access tokens before they expire.
+
+## #103 Remove legacy cookies [draft]
+(no description)"
+`;
+
+exports[`buildWorkstreamSummaryRequest lists members base first with state flags 2`] = `
+"You summarize a workstream: a set of related GitHub pull requests, usually a stack where each PR builds on the one before it.
+
+Write for a maintainer scanning an inbox who wants to know what this work is before opening it.
+
+- name: 2 to 6 words naming the work, not the mechanics ("Fix race in cache invalidation", not "PR stack for cache").
+- summary: 2 or 3 plain sentences. Say what the work changes, why, and how far it reaches (which areas, how many steps). Do not list PRs one by one. Do not invent motivation the descriptions do not give.
+- status: only when the workstream is closed, or every open PR is a draft and it looks tabled. One short line such as "Merged" or "Closed without merging; superseded by a later approach". Omit it otherwise.
+
+Use plain technical English. No marketing words, no emoji."
+`;
