@@ -234,14 +234,35 @@ export interface WriteWorkstreamsResult {
   changedIds: string[];
 }
 
-const memberSig = (m: { workstreamId: string; position: number; parent: string | null; listingOnly: boolean }) =>
-  `${m.workstreamId}|${m.position}|${m.parent ?? ""}|${m.listingOnly ? 1 : 0}`;
+type MemberShape = Pick<StoredMember, "key" | "position" | "parent" | "listingOnly">;
+
+/** Per-member signature covering everything `stackContext` reports (parent, children, position, size). */
+function memberSigs(workstreamId: string, members: readonly MemberShape[]): Map<SubjectKey, string> {
+  const children = new Map<SubjectKey, SubjectKey[]>();
+  for (const m of members) {
+    if (m.parent !== null) children.set(m.parent, [...(children.get(m.parent) ?? []), m.key]);
+  }
+  return new Map(
+    members.map((m) => [
+      m.key,
+      [
+        workstreamId,
+        m.position,
+        members.length,
+        m.parent ?? "",
+        (children.get(m.key) ?? []).toSorted().join(","),
+        m.listingOnly ? 1 : 0,
+      ].join("|"),
+    ]),
+  );
+}
 
 /**
  * Replaces the stored workstreams of `repo` with `workstreams`. Existing ids keep
- * `first_seen_at` and `manual_name`; ids no longer present are deleted. Their
- * `workstream_state` is kept, so a group that comes back under the same id keeps its
- * priority and snooze. Appends a `stack` change for each subject whose membership changed and a
+ * `first_seen_at` and `manual_name`. Ids no longer present are archived for 14 days when
+ * they closed recently (for reopened-stack matching) or carry a manual name (so undoing a
+ * merge brings the name back); others are deleted. `workstream_state` is always kept, so a
+ * group that comes back under the same id keeps its priority and snooze. Appends a `stack` change for each subject whose membership changed and a
  * `workstream` change for each workstream that changed.
  */
 export function writeWorkstreams(
@@ -264,7 +285,7 @@ export function writeWorkstreams(
     const beforeById = new Map(before.map((w) => [w.id, w]));
     const oldSig = new Map<SubjectKey, string>();
     for (const w of before) {
-      for (const m of w.members) oldSig.set(m.key, memberSig({ workstreamId: w.id, ...m }));
+      for (const [key, sig] of memberSigs(w.id, w.members)) oldSig.set(key, sig);
     }
 
     const newSig = new Map<SubjectKey, string>();
@@ -292,11 +313,10 @@ export function writeWorkstreams(
         parent: ws.edges.find((e) => e.child === key)?.parent ?? null,
         listingOnly: listingOnly.has(key),
       }));
-      for (const m of members) newSig.set(m.key, memberSig({ workstreamId: ws.id, ...m }));
+      for (const [key, sig] of memberSigs(ws.id, members)) newSig.set(key, sig);
 
       const prev = beforeById.get(ws.id);
-      const membersOf = (list: StoredMember[]) =>
-        toJson(list.map((m) => [m.key, memberSig({ workstreamId: ws.id, ...m })]));
+      const membersOf = (list: readonly MemberShape[]) => toJson([...memberSigs(ws.id, list)]);
       const same =
         prev !== undefined &&
         prev.detectedName === ws.name &&
@@ -333,7 +353,8 @@ export function writeWorkstreams(
       if (keep.has(w.id)) continue;
       changedIds.add(w.id);
       deleteMembers.run(w.id);
-      if (w.closed && w.closedAt !== null && nowMs - Date.parse(w.closedAt) <= ARCHIVE_MS) {
+      const recentlyClosed = w.closed && w.closedAt !== null && nowMs - Date.parse(w.closedAt) <= ARCHIVE_MS;
+      if (recentlyClosed || w.manualName !== null) {
         db.query("UPDATE workstreams SET archived = 1, updated_at = ? WHERE id = ?").run(now, w.id);
       } else {
         db.query("DELETE FROM workstreams WHERE id = ?").run(w.id);
@@ -342,9 +363,11 @@ export function writeWorkstreams(
     for (const [id] of archivedFirstSeen) {
       if (keep.has(id)) continue;
       const row = db
-        .query<{ closed_at: string | null }, [string]>("SELECT closed_at FROM workstreams WHERE id = ?")
+        .query<{ closed_at: string | null; updated_at: string }, [string]>(
+          "SELECT closed_at, updated_at FROM workstreams WHERE id = ?",
+        )
         .get(id);
-      if (!row?.closed_at || nowMs - Date.parse(row.closed_at) > ARCHIVE_MS) {
+      if (!row || nowMs - Date.parse(row.closed_at ?? row.updated_at) > ARCHIVE_MS) {
         db.query("DELETE FROM workstreams WHERE id = ?").run(id);
       }
     }
@@ -390,6 +413,10 @@ export function addOverride(db: Database, repo: string, override: WsOverride, no
     .get(repo, override.kind, toJson(override), now);
   if (!row) throw new Error("insert into workstream_overrides returned no row");
   return row.id;
+}
+
+export function updateOverride(db: Database, id: number, override: WsOverride): void {
+  db.query("UPDATE workstream_overrides SET payload_json = ? WHERE id = ?").run(toJson(override), id);
 }
 
 export function deleteOverride(db: Database, id: number): void {

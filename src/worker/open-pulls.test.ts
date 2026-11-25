@@ -7,10 +7,12 @@ import type { GqlResult } from "../github/types.ts";
 import { getMeta } from "../store/meta.ts";
 import { getSubject } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
-import { changesAfter } from "../store/views.ts";
+import { changesAfter, latestChangeSeq } from "../store/views.ts";
 import { DEFAULT_WORKSTREAM_STATE } from "../core/workstream-state.ts";
-import { getWorkstream, listWorkstreams, putWorkstreamState } from "../store/workstreams.ts";
+import { applyWorkstreamOps } from "../store/workstream-ops.ts";
+import { getWorkstream, listOverrides, listWorkstreams, putWorkstreamState } from "../store/workstreams.ts";
 import { openPullsJob } from "./open-pulls.ts";
+import { rebuildWorkstreams } from "./workstreams.ts";
 import type { JobContext, Logger } from "./scheduler.ts";
 
 const REPO = "octo/stack";
@@ -129,5 +131,49 @@ describe("openPullsJob with view: overview", () => {
     await openPullsJob.run(t.ctx);
     expect(JSON.parse(getMeta(t.db, recentlyClosedMetaKey(REPO)) ?? "[]")).toEqual([]);
     expect(getWorkstream(t.db, `${REPO}:ws:10`)).toBeUndefined();
+  });
+
+  test("a stack growing appends stack changes for members whose children or size changed", async () => {
+    const t = setup(STACK);
+    await openPullsJob.run(t.ctx);
+    const seq = latestChangeSeq(t.db);
+    t.setPulls([...STACK, { number: 13, author: "mark", head: "d", base: "b" }]);
+    t.advance(60 * 60_000);
+    await openPullsJob.run(t.ctx);
+
+    const keys = changesAfter(t.db, seq)
+      .filter((c) => c.kind === "stack")
+      .map((c) => c.subjectKey)
+      .sort();
+    expect(keys).toEqual([`${REPO}#10`, `${REPO}#11`, `${REPO}#13`]);
+  });
+
+  test("a manual merge survives its anchor PR leaving the recently-closed list", async () => {
+    const t = setup([
+      ...STACK,
+      { number: 13, author: "mark", head: "d", base: "b" },
+      { number: 20, author: "mark", head: "x", base: "main" },
+      { number: 21, author: "mark", head: "y", base: "x" },
+    ]);
+    await openPullsJob.run(t.ctx);
+    applyWorkstreamOps(t.db, `${REPO}:ws:10`, { kind: "merge", from: `${REPO}:ws:20` }, START.toISOString());
+    rebuildWorkstreams(t.db, t.ctx.config, REPO, START);
+    expect(listOverrides(t.db, REPO).map((o) => o.override)).toEqual([
+      { kind: "merge", keys: [`${REPO}#13`, `${REPO}#21`] },
+    ]);
+
+    t.setPulls([...STACK, { number: 20, author: "mark", head: "x", base: "main" }, { number: 21, author: "mark", head: "y", base: "x" }]);
+    t.advance(60 * 60_000);
+    await openPullsJob.run(t.ctx);
+    t.advance(8 * 24 * 60 * 60_000);
+    await openPullsJob.run(t.ctx);
+
+    const merged = listWorkstreams(t.db, REPO).filter((w) => w.members.length > 1);
+    expect(merged.map((w) => w.members.map((m) => m.key))).toEqual([
+      [`${REPO}#10`, `${REPO}#11`, `${REPO}#20`, `${REPO}#21`],
+    ]);
+    expect(listOverrides(t.db, REPO).map((o) => o.override)).toEqual([
+      { kind: "merge", keys: [`${REPO}#11`, `${REPO}#21`] },
+    ]);
   });
 });

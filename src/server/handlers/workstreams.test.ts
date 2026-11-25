@@ -111,6 +111,19 @@ describe("workstreamStateHandler", () => {
     expect(getWorkstream(ctx.db, A)?.members.map((m) => m.key)).toEqual([k(10), k(11)]);
   });
 
+  test("undoing a merge brings back the absorbed workstream's manual name", async () => {
+    const ctx = setup();
+    await call(ctx, { id: B, op: { kind: "rename", name: "Billing" } });
+    const res = await call(ctx, { id: A, op: { kind: "merge", from: B } });
+    const body = (await res.json()) as WorkstreamStateResponse;
+    expect(body.workstreams[B]).toBeNull();
+
+    const undo = await undoHandler(post("/api/state/undo", { opId: body.opId }), ctx);
+    const undone = (await undo.json()) as UndoResponse;
+    if (undone.result !== "undone") throw new Error(undone.result);
+    expect(undone.workstreams?.[B]?.name).toBe("Billing");
+  });
+
   test("rename sets the displayed name", async () => {
     const ctx = setup();
     const res = await call(ctx, { id: A, op: { kind: "rename", name: "Auth rework" } });

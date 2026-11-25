@@ -5,7 +5,7 @@ import { META, openPullsMetaKey, recentlyClosedMetaKey } from "../core/meta-keys
 import type { ClosedPull } from "../core/recently-closed.ts";
 import type { SubjectKey } from "../core/types.ts";
 import { isShownWorkstream, type MemberFacts } from "../core/workstream-state.ts";
-import { buildWorkstreams, type Workstream, type WsPull } from "../core/workstreams.ts";
+import { buildWorkstreams, type Workstream, type WsOverride, type WsPull } from "../core/workstreams.ts";
 import type { OpenPull, OpenPullsListing } from "../github/queries/open-pulls.ts";
 import { getMeta } from "../store/meta.ts";
 import { ensureSubjects, markDirty } from "../store/subjects.ts";
@@ -14,6 +14,7 @@ import {
   listOverrides,
   memberFacts,
   previousWorkstreams,
+  updateOverride,
   writeWorkstreams,
 } from "../store/workstreams.ts";
 
@@ -49,6 +50,51 @@ export function readRecentlyClosed(db: Database, repo: string): ClosedPull[] {
   return Array.isArray(parsed) ? parsed : [];
 }
 
+/**
+ * The core skips a merge override when one of its keys is not in the pull set, which happens
+ * once that PR drops off the recently-closed list. Move the anchor to another PR of the stack
+ * the key was in (open PRs first, then the highest number), and
+ * store the new anchor so later rebuilds keep it.
+ */
+function reanchorMergeOverrides(
+  db: Database,
+  repo: string,
+  pulls: readonly WsPull[],
+  previous: readonly Workstream[],
+): WsOverride[] {
+  const inPulls = new Map(pulls.map((p) => [`${repo}#${p.number}`, p]));
+  const anchorFor = (key: SubjectKey): SubjectKey => {
+    if (inPulls.has(key)) return key;
+    // Only the key's own stack: the merged workstream also holds the other side's members.
+    const ws = previous.find((w) => w.members.includes(key));
+    const stack = new Set([key]);
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const e of ws?.edges ?? []) {
+        if (stack.has(e.child) !== stack.has(e.parent)) {
+          stack.add(e.child).add(e.parent);
+          grew = true;
+        }
+      }
+    }
+    const candidates = [...stack].filter((k) => inPulls.has(k));
+    const rank = (k: SubjectKey) => (inPulls.get(k)?.closed ? 0 : 1);
+    const best = candidates.toSorted(
+      (a, b) => rank(b) - rank(a) || (inPulls.get(b)?.number ?? 0) - (inPulls.get(a)?.number ?? 0),
+    )[0];
+    return best ?? key;
+  };
+
+  return listOverrides(db, repo).map(({ id, override }) => {
+    if (override.kind !== "merge") return override;
+    const keys: [SubjectKey, SubjectKey] = [anchorFor(override.keys[0]), anchorFor(override.keys[1])];
+    if (keys[0] === override.keys[0] && keys[1] === override.keys[1]) return override;
+    const moved: WsOverride = { kind: "merge", keys };
+    updateOverride(db, id, moved);
+    return moved;
+  });
+}
+
 export interface RebuildResult {
   workstreams: Workstream[];
   shownIds: string[];
@@ -78,10 +124,11 @@ export function rebuildWorkstreams(
   const closed = readRecentlyClosed(db, repo).map((c): WsPull => Object.assign({}, c.pull, { closedAt: c.closedAt }));
   const pulls = [...open, ...closed.filter((c) => !open.some((p) => p.number === c.number))];
 
+  const previous = previousWorkstreams(db, repo);
   const workstreams = buildWorkstreams(pulls, {
     trunks: rc.trunks,
-    overrides: listOverrides(db, repo).map((o) => o.override),
-    previous: previousWorkstreams(db, repo),
+    overrides: reanchorMergeOverrides(db, repo, pulls, previous),
+    previous,
     config: rc.workstreams,
     now,
   });

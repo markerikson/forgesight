@@ -82,7 +82,8 @@ describe("writeWorkstreams", () => {
     expect(changesAfter(db, 0)).toHaveLength(seq);
 
     const res = writeWorkstreams(db, REPO, [ws([10, 11, 12], "Renamed root")], new Set(), T2);
-    expect(res).toEqual({ changedKeys: [k(12)], changedIds: [ID] });
+    expect(res.changedIds).toEqual([ID]);
+    expect(res.changedKeys.toSorted()).toEqual([k(10), k(11), k(12)]);
     const stored = getWorkstream(db, ID);
     expect(stored).toMatchObject({
       name: "My stack",
@@ -217,7 +218,7 @@ describe("workstream ops", () => {
     const merge = applyWorkstreamOps(db, ID, { kind: "merge", from: `${REPO}:ws:20` }, T1);
     const remove = applyWorkstreamOps(db, ID, { kind: "remove", key: k(11) }, T1);
     expect(listOverrides(db, REPO).map((o) => o.override)).toEqual([
-      { kind: "merge", keys: [k(10), k(20)] },
+      { kind: "merge", keys: [k(11), k(21)] },
       { kind: "remove", key: k(11) },
     ]);
     expect(undoStateOp(db, merge.opId, T2)).toEqual({ kind: "superseded" });

@@ -39,8 +39,12 @@ export function parseWorkstreamOpRecord(opJson: string): WorkstreamOpRecord | nu
   return parsed.target?.kind === "workstream" && parsed.op ? (parsed as WorkstreamOpRecord) : null;
 }
 
-function firstMember(db: Database, id: string): string {
-  const key = getWorkstream(db, id)?.members[0]?.key;
+/**
+ * The member a merge override points at: the stack top, which usually merges last. The
+ * rebuild moves the anchor to another member once this one leaves the pull set.
+ */
+function anchorMember(db: Database, id: string): string {
+  const key = getWorkstream(db, id)?.members.at(-1)?.key;
   if (!key) throw new Error(`workstream ${id} has no members`);
   return key;
 }
@@ -48,7 +52,7 @@ function firstMember(db: Database, id: string): string {
 function overrideFor(db: Database, id: string, op: WorkstreamOp): WsOverride | null {
   switch (op.kind) {
     case "merge":
-      return { kind: "merge", keys: [firstMember(db, id), firstMember(db, op.from)] };
+      return { kind: "merge", keys: [anchorMember(db, id), anchorMember(db, op.from)] };
     case "remove":
       return { kind: "remove", key: op.key };
     default:
@@ -103,4 +107,10 @@ export function restoreWorkstreamOp(db: Database, record: WorkstreamOpRecord, pr
   if (isWorkstreamStateOp(record.op)) putWorkstreamState(db, record.target.id, own.state, now);
   else if (record.op.kind === "rename" && getWorkstream(db, record.target.id))
     setManualName(db, record.target.id, own.manualName, now);
+  else if (record.op.kind === "merge") {
+    // The absorbed row may be archived; the rebuild after undo un-archives it with this name.
+    for (const [key, entry] of Object.entries(prev)) {
+      if (key.startsWith("ws:")) setManualName(db, key.slice(3), entry.manualName, now);
+    }
+  }
 }
