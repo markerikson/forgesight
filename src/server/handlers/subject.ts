@@ -70,11 +70,13 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
 /**
  * Queues another fetch for a PR or issue enriched before the query asked for `body`. The
  * worker's next derive adds the description to the view, and the client refetches the open
- * subject on that view change.
+ * subject on that view change. Skips subjects whose last fetch failed, so a deleted or
+ * failing subject is not refetched on every open.
  */
 function queueMissingBody(ctx: ServerCtx, key: string): void {
   const subject = getSubject(ctx.db, key);
   if (!subject || subject.kind === "other" || subject.raw == null || subject.dirtyAt !== null) return;
+  if (subject.enrichError !== null) return;
   if (subjectBody(subject.raw) === undefined) markDirty(ctx.writeDb(), [key], ctx.now().toISOString());
 }
 

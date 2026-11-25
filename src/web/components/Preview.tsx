@@ -187,8 +187,8 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
 }
 
 /**
- * The PR or issue description. It starts open until the subject is first marked done, and
- * collapsed after that, since a returning reader came for the new activity. Long bodies are
+ * The PR or issue description. It starts open on the first visit and collapsed once the
+ * subject has been read or marked done, since a returning reader came for the new activity. Long bodies are
  * cut to a fixed height until "Show more" is clicked.
  */
 function Description({ body, firstVisit }: { body: string; firstVisit: boolean }) {

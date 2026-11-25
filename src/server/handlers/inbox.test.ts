@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { entryKey, type InboxPayload, type Section, type SubjectView } from "../../core/index.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
 import { DEFAULT_ITEM_STATE, putItemState } from "../../store/item-state.ts";
-import { ensureSubjects, getSubject } from "../../store/subjects.ts";
+import { ensureSubjects, getSubject, recordNotFound } from "../../store/subjects.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
@@ -184,6 +184,13 @@ describe("subjectHandler", () => {
     const c = withRaw({ number: 1 });
     await get(subjectHandler, "/api/subjects/acme/app/1", c);
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBe(NOW.toISOString());
+  });
+
+  test("does not queue a subject whose last fetch failed", async () => {
+    const c = withRaw({ number: 1 });
+    recordNotFound(c.db, "acme/app#1");
+    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 
   test("does not queue a subject that has never been enriched", async () => {
