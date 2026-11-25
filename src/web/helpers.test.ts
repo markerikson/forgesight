@@ -38,6 +38,13 @@ describe("describeEvent", () => {
     expect(describeEvent(event("milestoned", { milestone: "6.0", added: true }))).toBe("added this to milestone 6.0");
     expect(describeEvent(event("milestoned", { added: false }))).toBe("removed the milestone");
   });
+
+  test("sub-issue changes without a loaded ref stay readable", () => {
+    expect(describeEvent(event("subIssue", { typename: "SubIssueRemovedEvent", added: false }))).toBe("removed a sub-issue");
+    expect(describeEvent(event("subIssue", { typename: "ParentIssueRemovedEvent", added: false }))).toBe(
+      "removed a parent issue",
+    );
+  });
 });
 
 describe("rowByline", () => {

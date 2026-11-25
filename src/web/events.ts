@@ -80,7 +80,8 @@ export function describeEvent(event: Event): string {
       return d.from ? `transferred from ${d.from}` : "transferred";
     case "subIssue": {
       const what = d.typename.startsWith("ParentIssue") ? "parent issue" : "sub-issue";
-      return `${d.added === false ? "removed" : "added"} ${what} ${refText(d.ref)}`;
+      const verb = d.added === false ? "removed" : "added";
+      return d.ref ? `${verb} ${what} ${refText(d.ref)}` : `${verb} a ${what}`;
     }
     case "milestoned":
       if (d.added === false) return d.milestone ? `removed this from milestone ${d.milestone}` : "removed the milestone";
