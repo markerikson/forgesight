@@ -1,11 +1,14 @@
+import { ENRICH_PRIORITY, isEnrichable, needsFetchOnOpen } from "../../core/enrich-plan.ts";
 import {
   type SubjectDetail,
+  type SubjectFetchState,
   type SubjectView,
   type SubjectWorkstream,
   buildSubjectDetail,
   subjectBody,
   subjectWorkstream,
 } from "../../core/index.ts";
+import type { SubjectRecord } from "../../core/types.ts";
 import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { getSubject, markDirty } from "../../store/subjects.ts";
 import { threadsForSubject } from "../../store/threads.ts";
@@ -59,21 +62,79 @@ export function readSubject(ctx: ServerCtx, key: string): SubjectDetail | null {
     workstream = subjectWorkstream(input, key, titleOf);
   }
   const detail = view.detail as unknown as SubjectView;
-  queueMissingBody(ctx, key);
-  return buildSubjectDetail(detail, threadsForSubject(ctx.db, key), workstream);
+  const threads = threadsForSubject(ctx.db, key);
+  const subject = getSubject(ctx.db, key);
+  const { refreshable, fetching } = subject
+    ? fetchState(ctx, subject, threads[0]?.updatedAt ?? null)
+    : { refreshable: false, fetching: false };
+  return buildSubjectDetail(detail, threads, workstream, { refreshable, fetching });
+}
+
+interface FetchState extends SubjectFetchState {
+  /** Opening the subject should queue it as urgent. */
+  fetchOnOpen: boolean;
 }
 
 /**
- * Queues another fetch for a PR or issue enriched before the query asked for `body`. The
- * worker's next derive adds the description to the view, and the client refetches the open
- * subject on that view change. Skips subjects whose last fetch failed, so a deleted or
- * failing subject is not refetched on every open.
+ * Reading a subject never queues it, because the list prefetches its neighbors through the same
+ * request. `fetching` says whether opening it fetches (or already queued) it; the preview then
+ * posts `refresh?ifNeeded=1`, which queues it as urgent.
  */
-function queueMissingBody(ctx: ServerCtx, key: string): void {
+function fetchState(
+  ctx: ServerCtx,
+  subject: SubjectRecord,
+  threadUpdatedAt = threadsForSubject(ctx.db, subject.subjectKey)[0]?.updatedAt ?? null,
+): FetchState {
+  const refreshable = isEnrichable(subject.kind, ctx.config);
+  const opened = {
+    kind: subject.kind,
+    timelineSyncedUntil: subject.timelineSyncedUntil,
+    enrichError: subject.enrichError,
+    missingBody: subject.raw != null && subjectBody(subject.raw) === undefined,
+    threadUpdatedAt,
+  };
+  const queued = subject.dirtyAt !== null;
+  const fetchOnOpen = (queued && refreshable && subject.enrichError === null) || needsFetchOnOpen(opened, ctx.config);
+  // A failed fetch waiting to retry below the urgent tier is not shown as loading, so Refresh stays enabled.
+  const urgentQueued = queued && refreshable && subject.priority >= ENRICH_PRIORITY.urgent;
+  return { refreshable, fetching: fetchOnOpen || urgentQueued, fetchOnOpen };
+}
+
+function markUrgent(ctx: ServerCtx, key: string): void {
+  markDirty(ctx.writeDb(), [key], ctx.now().toISOString(), ENRICH_PRIORITY.urgent);
+}
+
+/** Readable `fetching` state for one subject, after a forced refresh. */
+export interface RefreshResponse {
+  key: string;
+  fetching: boolean;
+}
+
+/**
+ * `POST /api/subjects/<owner>/<repo>/<number>/refresh`: queues an urgent fetch even when the
+ * subject looks current or its last fetch failed. With `?ifNeeded=1` (the preview opening a
+ * subject), queues it only when it was never fetched, lacks its description, has a notification
+ * newer than its last fetch, or is already queued. The urgent enrich job picks it up on the
+ * worker's next tick.
+ */
+export async function refreshSubjectHandler(req: Request, ctx: ServerCtx): Promise<Response> {
+  const url = new URL(req.url);
+  const key = subjectKeyFromPath(url.pathname.replace(/\/refresh\/?$/, ""));
+  if (!key) return Response.json({ error: "bad_request", message: "Unrecognized subject path" }, { status: 400 });
   const subject = getSubject(ctx.db, key);
-  if (!subject || subject.kind === "other" || subject.raw == null || subject.dirtyAt !== null) return;
-  if (subject.enrichError !== null) return;
-  if (subjectBody(subject.raw) === undefined) markDirty(ctx.writeDb(), [key], ctx.now().toISOString());
+  if (!subject) return Response.json({ error: "not_found", message: `No subject ${key}` }, { status: 404 });
+  if (!isEnrichable(subject.kind, ctx.config)) {
+    return Response.json({ error: "bad_request", message: `${key} cannot be fetched` }, { status: 400 });
+  }
+  if (url.searchParams.get("ifNeeded") === "1") {
+    const state = fetchState(ctx, subject);
+    if (state.fetchOnOpen && subject.priority < ENRICH_PRIORITY.urgent) markUrgent(ctx, key);
+    const body: RefreshResponse = { key, fetching: state.fetching };
+    return Response.json(body, { status: state.fetchOnOpen ? 202 : 200 });
+  }
+  markUrgent(ctx, key);
+  const body: RefreshResponse = { key, fetching: true };
+  return Response.json(body, { status: 202 });
 }
 
 export async function subjectHandler(req: Request, ctx: ServerCtx): Promise<Response> {

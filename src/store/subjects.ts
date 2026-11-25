@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
+import { ENRICH_PRIORITY, type QueuedSubject } from "../core/enrich-plan.ts";
 import type { StoredPull } from "../core/recently-closed.ts";
-import type { EnrichmentResult, SubjectKind, SubjectRecord, SubjectState } from "../core/types.ts";
+import type { EnrichmentResult, SubjectKind, SubjectOrigin, SubjectRecord, SubjectState } from "../core/types.ts";
 import { bool, jsonList, subjectFromRow, type SubjectRow, toJson } from "./rows.ts";
 import { appendChange } from "./views.ts";
 
@@ -40,48 +41,44 @@ export function markDirty(db: Database, keys: string[], now: string, priority = 
   ).run(priority, now, jsonList(keys));
 }
 
-/**
- * Repos with dirty subjects, ordered by each repo's first subject in `nextDirtyBatch` order
- * (highest priority, then oldest `dirty_at`).
- */
-export function dirtyRepos(db: Database): string[] {
-  return db
-    .query<{ repo: string }, []>(
-      `SELECT repo FROM (
-         SELECT repo, priority, dirty_at, subject_key,
-                ROW_NUMBER() OVER (PARTITION BY repo ORDER BY priority DESC, dirty_at, subject_key) AS rn
-         FROM subjects WHERE dirty_at IS NOT NULL
-       ) WHERE rn = 1
-       ORDER BY priority DESC, dirty_at, subject_key`,
-    )
-    .all()
-    .map((r) => r.repo);
+interface QueueRow {
+  subject_key: string;
+  repo: string;
+  origin: SubjectOrigin;
+  priority: number;
+  dirty_at: string;
+  thread_updated_at: string | null;
 }
 
 /**
- * Dirty subjects by highest priority, then oldest `dirty_at`, all from one repo:
- * `opts.repo` when given, otherwise the repo of the first subject in that order.
+ * Every dirty subject with its newest notification update, without the stored payload.
+ * `minPriority` limits the queue to subjects at or above that priority.
  */
-export function nextDirtyBatch(
-  db: Database,
-  opts: { limit: number; repo?: string },
-): SubjectRecord[] {
-  const repo =
-    opts.repo ??
-    db
-      .query<{ repo: string }, []>(
-        `SELECT repo FROM subjects WHERE dirty_at IS NOT NULL
-         ORDER BY priority DESC, dirty_at, subject_key LIMIT 1`,
-      )
-      .get()?.repo;
-  if (repo === undefined) return [];
+export function dirtyQueue(db: Database, minPriority = 0): QueuedSubject[] {
   return db
-    .query<SubjectRow, [string, number]>(
-      `SELECT * FROM subjects WHERE dirty_at IS NOT NULL AND repo = ?
-       ORDER BY priority DESC, dirty_at, subject_key LIMIT ?`,
+    .query<QueueRow, [number]>(
+      `SELECT s.subject_key, s.repo, s.origin, s.priority, s.dirty_at,
+              (SELECT MAX(t.updated_at) FROM threads t WHERE t.subject_key = s.subject_key) AS thread_updated_at
+       FROM subjects s WHERE s.dirty_at IS NOT NULL AND s.priority >= ?`,
     )
-    .all(repo, opts.limit)
-    .map(subjectFromRow);
+    .all(minPriority)
+    .map((r) => ({
+      subjectKey: r.subject_key,
+      repo: r.repo,
+      origin: r.origin,
+      priority: r.priority,
+      dirtyAt: r.dirty_at,
+      threadUpdatedAt: r.thread_updated_at,
+    }));
+}
+
+/** Stored subjects for `keys`, in the order of `keys`. Unknown keys are skipped. */
+export function subjectsByKeys(db: Database, keys: string[]): SubjectRecord[] {
+  const rows = db
+    .query<SubjectRow, [string]>("SELECT * FROM subjects WHERE subject_key IN (SELECT value FROM json_each(?))")
+    .all(jsonList(keys));
+  const byKey = new Map(rows.map((r) => [r.subject_key, subjectFromRow(r)]));
+  return keys.flatMap((key) => byKey.get(key) ?? []);
 }
 
 function bodyHash(body: string): string {
@@ -169,16 +166,18 @@ export function saveEnrichment(db: Database, result: EnrichmentResult, now: stri
 /**
  * Records a failed enrichment. Below the attempt limit the subject stays dirty with
  * `dirty_at = now`, moving it behind older work of the same priority; at the limit it
- * leaves the queue until the next `markDirty`.
+ * leaves the queue until the next `markDirty`. An urgent subject drops out of the urgent
+ * tier, so its retries wait their turn instead of running back to back.
  */
 export function recordEnrichError(db: Database, key: string, error: string, now: string): void {
   db.query(
     `UPDATE subjects SET
        enrich_error = ?1,
        enrich_attempts = enrich_attempts + 1,
+       priority = MIN(priority, ?5),
        dirty_at = CASE WHEN enrich_attempts + 1 >= ?2 THEN NULL ELSE ?3 END
      WHERE subject_key = ?4`,
-  ).run(error, MAX_ENRICH_ATTEMPTS, now, key);
+  ).run(error, MAX_ENRICH_ATTEMPTS, now, key, ENRICH_PRIORITY.direct);
 }
 
 /** Records that GitHub no longer has the subject (deleted or no access) and takes it off the queue. */

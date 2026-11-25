@@ -1,13 +1,20 @@
 import type { Database } from "bun:sqlite";
 import type { WorkClass } from "../core/budget.ts";
 import { type RepoConfig, repoConfig } from "../core/config.ts";
-import { type BatchState, enrichWorkClass, initialBatchState, stickyMarkers } from "../core/enrich-plan.ts";
+import {
+  type BatchState,
+  ENRICH_PRIORITY,
+  ENRICH_TIERS,
+  type EnrichTier,
+  initialBatchState,
+  pickEnrichBatch,
+  stickyMarkers,
+} from "../core/enrich-plan.ts";
 import { batchMetaKey } from "../core/meta-keys.ts";
 import type { SubjectKind, SubjectRecord } from "../core/types.ts";
 import { getItemStates } from "../store/item-state.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
-import { clearDirty, dirtyKeysOfKind, dirtyRepos, nextDirtyBatch } from "../store/subjects.ts";
-import { latestThreadUpdates } from "../store/threads.ts";
+import { clearDirty, dirtyKeysOfKind, dirtyQueue, subjectsByKeys } from "../store/subjects.ts";
 import { stickyNodeIds } from "../store/timeline.ts";
 import {
   applyEnrichOutcomes,
@@ -17,7 +24,8 @@ import {
   enrichRepoBatch,
   enrichSubjectFor,
 } from "./enrich-batch.ts";
-import type { Job, JobContext } from "./scheduler.ts";
+import type { Job, JobContext, JobResult } from "./scheduler.ts";
+import { rebuildAndLog } from "./workstreams.ts";
 
 /** Stored batch state for a repo, clamped to the configured maximum. */
 export function loadBatchState(db: Database, repo: string, max: number): BatchState {
@@ -50,109 +58,134 @@ interface BatchPlan {
   repo: string;
   rc: RepoConfig;
   state: BatchState;
+  tier: EnrichTier;
   workClass: WorkClass;
   picked: SubjectRecord[];
 }
 
 /**
- * Picks the first dirty repo, in priority order, whose next batch has a budget class the
- * governor allows, and the subjects of that class. Null when nothing can run.
+ * Picks the next batch across all repos with `pickEnrichBatch`: urgent subjects first, then
+ * subjects with recent activity, then the backlog, skipping tiers the governor does not allow.
+ * Null when nothing can run.
  */
-function planBatch(ctx: JobContext, now: Date): BatchPlan | null {
+function planBatch(ctx: JobContext, now: Date, tiers: readonly EnrichTier[]): BatchPlan | null {
   const { db, config } = ctx;
-  for (const repo of dirtyRepos(db)) {
-    const rc = repoConfig(config, repo);
-    const state = loadBatchState(db, repo, rc.batchSize);
-    const candidates = nextDirtyBatch(db, { limit: state.size, repo });
-    const updates = latestThreadUpdates(
-      db,
-      candidates.map((s) => s.subjectKey),
-    );
-    const classed = candidates.map((s) => ({
-      subject: s,
-      workClass: enrichWorkClass({ origin: s.origin, threadUpdatedAt: updates.get(s.subjectKey) ?? null, now }),
-    }));
-    const first = classed.find((c) => ctx.governor.canSpend("graphql", c.workClass));
-    if (!first) continue;
-    const picked = classed.filter((c) => c.workClass === first.workClass).map((c) => c.subject);
-    return { repo, rc, state, workClass: first.workClass, picked };
-  }
-  return null;
+  const minPriority = tiers.includes("active") || tiers.includes("backlog") ? 0 : ENRICH_PRIORITY.urgent;
+  const states = new Map<string, BatchState>();
+  const stateFor = (repo: string) => {
+    let state = states.get(repo);
+    if (!state) {
+      state = loadBatchState(db, repo, repoConfig(config, repo).batchSize);
+      states.set(repo, state);
+    }
+    return state;
+  };
+  const pick = pickEnrichBatch(dirtyQueue(db, minPriority), now, {
+    canSpend: (workClass) => ctx.governor.canSpend("graphql", workClass),
+    batchSize: (repo) => stateFor(repo).size,
+    tiers,
+  });
+  if (!pick) return null;
+  return {
+    repo: pick.repo,
+    rc: repoConfig(config, pick.repo),
+    state: stateFor(pick.repo),
+    tier: pick.tier,
+    workClass: pick.workClass,
+    picked: subjectsByKeys(db, pick.keys),
+  };
 }
 
 /**
- * Enriches one batch from the dirty queue per run: the highest-priority repo with work the
- * governor allows, up to that repo's current batch size, all of one budget class. Kind `other`
- * subjects (and issues when `enrichIssues` is off) are cleared without a fetch. Returns idle
- * when the queue is empty or the governor blocks every queued subject.
+ * Enriches one batch from the dirty queue per run, in `pickEnrichBatch` order across repos, up
+ * to the repo's current batch size, all of one tier. `tiers` limits the queue the job looks at.
+ * The full job also clears kind `other` subjects (and issues when `enrichIssues` is off)
+ * without a fetch. After a batch with fetched subjects in an overview repo, the repo's
+ * workstreams are rebuilt from the stored data, since enrichment can change the grouping.
+ * Returns idle when the queue is empty or the governor blocks every queued subject.
  */
-export const enrichJob: Job = {
-  name: "enrich",
-  async run(ctx) {
-    const { db, config, clock, log } = ctx;
-    const cleared = clearUnenrichable(ctx);
-    const now = clock();
-    const plan = planBatch(ctx, now);
-    if (!plan) return cleared > 0 ? "worked" : "idle";
-    const { repo, rc, state, workClass, picked } = plan;
+function createEnrichJob(name: string, tiers: readonly EnrichTier[]): Job {
+  const full = tiers.length === ENRICH_TIERS.length;
+  return {
+    name,
+    run: (ctx) => runEnrich(ctx, tiers, full),
+  };
+}
 
-    const states = getItemStates(
-      db,
-      picked.map((s) => s.subjectKey),
+/**
+ * Enriches subjects opened or refreshed in the UI. It runs first in every tick, so an opened
+ * subject is fetched within about a second, ahead of polling and the backlog.
+ */
+export const urgentEnrichJob: Job = createEnrichJob("enrichUrgent", ["urgent"]);
+
+/** Enriches the whole queue: urgent subjects, then recent activity, then the backlog. */
+export const enrichJob: Job = createEnrichJob("enrich", ENRICH_TIERS);
+
+async function runEnrich(ctx: JobContext, tiers: readonly EnrichTier[], full: boolean): Promise<JobResult> {
+  const { db, config, clock, log } = ctx;
+  const cleared = full ? clearUnenrichable(ctx) : 0;
+  const now = clock();
+  const plan = planBatch(ctx, now, tiers);
+  if (!plan) return cleared > 0 ? "worked" : "idle";
+  const { repo, rc, state, tier, workClass, picked } = plan;
+
+  const states = getItemStates(
+    db,
+    picked.map((s) => s.subjectKey),
+  );
+  const subjects: EnrichSubject[] = [];
+  const skipped: string[] = [];
+  for (const s of picked) {
+    const es = enrichSubjectFor(s, states.get(s.subjectKey)?.dismissedAt ?? null, now);
+    if (es) subjects.push(es);
+    else skipped.push(s.subjectKey);
+  }
+  if (skipped.length > 0) clearDirty(db, skipped);
+  if (subjects.length === 0) return "worked";
+
+  const save = (result: EnrichBatchResult) => {
+    const doneAt = clock().toISOString();
+    applyEnrichOutcomes(db, result.outcomes, doneAt);
+    setMeta(db, batchMetaKey(repo), JSON.stringify(result.state), doneAt);
+  };
+  let result: EnrichBatchResult;
+  try {
+    result = await enrichRepoBatch(
+      { graphql: ctx.gh.graphql.bind(ctx.gh), clock },
+      {
+        repo,
+        mode: rc.mode,
+        subjects,
+        stickyIds: stickyNodeIds(
+          db,
+          subjects.map((s) => s.subjectKey),
+        ),
+        state,
+        maxSize: rc.batchSize,
+        markers: stickyMarkers(config),
+        workClass,
+      },
     );
-    const subjects: EnrichSubject[] = [];
-    const skipped: string[] = [];
-    for (const s of picked) {
-      const es = enrichSubjectFor(s, states.get(s.subjectKey)?.dismissedAt ?? null, now);
-      if (es) subjects.push(es);
-      else skipped.push(s.subjectKey);
-    }
-    if (skipped.length > 0) clearDirty(db, skipped);
-    if (subjects.length === 0) return "worked";
+  } catch (error) {
+    if (!(error instanceof EnrichAbortedError)) throw error;
+    // Keep what finished before the failure; the scheduler handles the cause (backoff, stop on auth).
+    save(error.partial);
+    throw error.cause;
+  }
+  save(result);
 
-    const save = (result: EnrichBatchResult) => {
-      const doneAt = clock().toISOString();
-      applyEnrichOutcomes(db, result.outcomes, doneAt);
-      setMeta(db, batchMetaKey(repo), JSON.stringify(result.state), doneAt);
-    };
-    let result: EnrichBatchResult;
-    try {
-      result = await enrichRepoBatch(
-        { graphql: ctx.gh.graphql.bind(ctx.gh), clock },
-        {
-          repo,
-          mode: rc.mode,
-          subjects,
-          stickyIds: stickyNodeIds(
-            db,
-            subjects.map((s) => s.subjectKey),
-          ),
-          state,
-          maxSize: rc.batchSize,
-          markers: stickyMarkers(config),
-          workClass: workClass,
-        },
-      );
-    } catch (error) {
-      if (!(error instanceof EnrichAbortedError)) throw error;
-      // Keep what finished before the failure; the scheduler handles the cause (backoff, stop on auth).
-      save(error.partial);
-      throw error.cause;
-    }
-    save(result);
-
-    const counts = { ok: 0, notFound: 0, error: 0 };
-    for (const o of result.outcomes) counts[o.kind]++;
-    log.info(
-      `enrich ${repo} (${workClass}): ${counts.ok} ok, ${counts.notFound} not found, ${counts.error} failed; ` +
-        `${result.queries} queries, ${result.cost} pts, batch ${result.state.size}${result.state.reduced ? " reduced" : ""}`,
-    );
-    if (result.state.size < state.size || (result.state.reduced && !state.reduced)) {
-      log.warn(`enrich ${repo}: batch shrank from ${state.size} to ${result.state.size}`);
-    }
-    for (const o of result.outcomes) {
-      if (o.kind === "error") log.warn(`enrich ${o.subjectKey}: ${o.error}`);
-    }
-    return "worked";
-  },
-};
+  const counts = { ok: 0, notFound: 0, error: 0 };
+  for (const o of result.outcomes) counts[o.kind]++;
+  log.info(
+    `enrich ${repo} (${tier}): ${counts.ok} ok, ${counts.notFound} not found, ${counts.error} failed; ` +
+      `${result.queries} queries, ${result.cost} pts, batch ${result.state.size}${result.state.reduced ? " reduced" : ""}`,
+  );
+  if (result.state.size < state.size || (result.state.reduced && !state.reduced)) {
+    log.warn(`enrich ${repo}: batch shrank from ${state.size} to ${result.state.size}`);
+  }
+  for (const o of result.outcomes) {
+    if (o.kind === "error") log.warn(`enrich ${o.subjectKey}: ${o.error}`);
+  }
+  if (counts.ok > 0 && rc.view === "overview") rebuildAndLog(ctx, repo);
+  return "worked";
+}

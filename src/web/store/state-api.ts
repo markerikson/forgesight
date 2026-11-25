@@ -4,9 +4,10 @@ import { entryKey, type InboxEntry, type InboxGroup, isGroup } from "../../core/
 import { MAX_STATE_KEYS, patchInbox, patchWorkstream, type StateOp } from "../../core/state.ts";
 import type { WorkstreamOp } from "../../core/workstream-state.ts";
 import type { StateRequest, StateResponse, UndoResponse } from "../../server/handlers/state.ts";
+import type { RefreshResponse } from "../../server/handlers/subject.ts";
 import type { WorkstreamStateRequest, WorkstreamStateResponse } from "../../server/handlers/workstreams.ts";
 import { opLabel, workstreamOpLabel } from "../ops.ts";
-import { api, type InboxArg } from "./api.ts";
+import { api, type InboxArg, subjectPath } from "./api.ts";
 import { replaceRows } from "./inbox-cache.ts";
 import {
   lingeringDropped,
@@ -264,6 +265,28 @@ export const stateApi = api.injectEndpoints({
     refresh: build.mutation<void, void>({
       query: () => ({ url: "refresh", method: "POST" }),
     }),
+    refreshSubject: build.mutation<RefreshResponse, { key: SubjectKey; ifNeeded?: boolean }>({
+      query: ({ key, ifNeeded }) => ({
+        url: `subjects/${subjectPath(key)}/refresh${ifNeeded ? "?ifNeeded=1" : ""}`,
+        method: "POST",
+      }),
+      // The preview polls the subject while it is fetching, and the worker's change event
+      // refetches it once the fetch lands.
+      async onQueryStarted({ key, ifNeeded }, { dispatch, queryFulfilled }) {
+        if (ifNeeded) return;
+        const patch = dispatch(
+          api.util.updateQueryData("getSubject", key, (draft) => {
+            draft.fetching = true;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+          dispatch(toastShown("Could not refresh this thread", { kind: "error" }));
+        }
+      },
+    }),
   }),
 });
 
@@ -302,6 +325,26 @@ export function undoLatest(): ViewThunk {
     const latest = getState().view.undo[0];
     if (latest) dispatch(undoOp(latest.opId));
     else dispatch(toastShown("Nothing to undo"));
+  };
+}
+
+/** Fetches one subject from GitHub ahead of the rest of the queue. */
+export function refreshSubject(key: SubjectKey): ViewThunk {
+  return (dispatch) => {
+    const request = dispatch(stateApi.endpoints.refreshSubject.initiate({ key }));
+    void request.then(() => request.reset());
+  };
+}
+
+/**
+ * Queues an opened subject for an urgent fetch when it was never fetched, lacks its description,
+ * or has newer activity. Reading the subject does not queue it, because the list prefetches
+ * neighbors through the same request.
+ */
+export function openSubject(key: SubjectKey): ViewThunk {
+  return (dispatch) => {
+    const request = dispatch(stateApi.endpoints.refreshSubject.initiate({ key, ifNeeded: true }));
+    void request.then(() => request.reset());
   };
 }
 

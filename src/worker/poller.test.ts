@@ -326,6 +326,41 @@ describe("scheduler errors", () => {
     expect(localRuns).toBe(3);
   });
 
+  test("own-turn jobs run every tick after the GitHub jobs, in list order with local jobs", async () => {
+    const { gh, ctx, poller } = setup();
+    const order: string[] = [];
+    const job = (name: string, flags: Pick<Job, "local" | "ownTurn">, result: "worked" | "idle"): Job => ({
+      name,
+      ...flags,
+      run: async () => {
+        order.push(name);
+        return result;
+      },
+    });
+    const backlog = job("backlog", {}, "worked");
+    const scheduler = new Scheduler(ctx, [
+      job("urgent", {}, "idle"),
+      poller.pollJob,
+      backlog,
+      job("summaries", { ownTurn: true }, "worked"),
+      job("derive", { local: true }, "idle"),
+    ]);
+    gh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR) }));
+    expect(await scheduler.tick()).toBe("worked");
+    expect(order).toEqual(["urgent", "summaries", "derive"]);
+
+    order.length = 0;
+    expect(await scheduler.tick()).toBe("worked");
+    expect(order).toEqual(["urgent", "backlog", "summaries", "derive"]);
+
+    order.length = 0;
+    gh.nextError = new RateLimitedError("slow down", null, true);
+    poller.request();
+    expect(await scheduler.tick()).toBe("paused");
+    expect(await scheduler.tick()).toBe("paused");
+    expect(order).toEqual(["urgent", "summaries", "derive", "summaries", "derive"]);
+  });
+
   test("overlapping ticks share one run", async () => {
     const { gh, scheduler } = setup();
     const [a, b] = await Promise.all([scheduler.tick(), scheduler.tick()]);

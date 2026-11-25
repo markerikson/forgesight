@@ -1,15 +1,17 @@
 import { describe, expect, test } from "bun:test";
+import { ENRICH_PRIORITY } from "../core/enrich-plan.ts";
 import type { EnrichmentResult, SubjectViewRecord, ThreadUpsert } from "../core/types.ts";
 import { hourlySpendSince, pruneApiCalls, recordApiCall, spendSince } from "./api-calls.ts";
 import { getItemState, getItemStates, initDismissedAt, putItemState } from "./item-state.ts";
 import {
+  dirtyQueue,
   ensureSubjects,
   getSubject,
   markDirty,
   MAX_ENRICH_ATTEMPTS,
-  nextDirtyBatch,
   recordEnrichError,
   saveEnrichment,
+  subjectsByKeys,
 } from "./subjects.ts";
 import { memoryDb } from "./test-db.ts";
 import { listThreads, threadsForSubject, upsertThreads } from "./threads.ts";
@@ -112,20 +114,20 @@ describe("threads", () => {
 });
 
 describe("subjects", () => {
-  test("nextDirtyBatch orders by priority then age and stays within one repo", () => {
+  test("dirtyQueue lists dirty subjects with their latest thread update", () => {
     const db = memoryDb();
-    ensureSubjects(db, [pr("a/x#1"), pr("a/x#2"), pr("a/x#3"), pr("b/y#1"), pr("b/y#2")]);
-    markDirty(db, ["a/x#1"], T0);
-    markDirty(db, ["b/y#1"], T1, 5);
-    markDirty(db, ["a/x#2"], T2, 5);
-    markDirty(db, ["b/y#2"], T3);
-    markDirty(db, ["a/x#3"], T3, 5);
+    ensureSubjects(db, [pr("a/x#1"), pr("a/x#2"), pr("b/y#1")]);
+    upsertThreads(db, [thread("1", "a/x#1", T0), thread("2", "a/x#1", T2)], T2);
+    markDirty(db, ["a/x#1"], T1);
+    markDirty(db, ["b/y#1"], T3, 3);
 
-    expect(nextDirtyBatch(db, { limit: 10 }).map((s) => s.subjectKey)).toEqual(["b/y#1", "b/y#2"]);
-    expect(nextDirtyBatch(db, { limit: 2, repo: "a/x" }).map((s) => s.subjectKey)).toEqual([
-      "a/x#2",
-      "a/x#3",
+    const byKey = (q: ReturnType<typeof dirtyQueue>) => q.toSorted((a, b) => a.subjectKey.localeCompare(b.subjectKey));
+    expect(byKey(dirtyQueue(db))).toEqual([
+      { subjectKey: "a/x#1", repo: "a/x", origin: "thread", priority: 0, dirtyAt: T1, threadUpdatedAt: T2 },
+      { subjectKey: "b/y#1", repo: "b/y", origin: "thread", priority: 3, dirtyAt: T3, threadUpdatedAt: null },
     ]);
+    expect(dirtyQueue(db, 3).map((s) => s.subjectKey)).toEqual(["b/y#1"]);
+    expect(subjectsByKeys(db, ["b/y#1", "a/x#1"]).map((s) => s.subjectKey)).toEqual(["b/y#1", "a/x#1"]);
   });
 
   test("markDirty keeps the older dirty_at and the higher priority", () => {
@@ -259,7 +261,19 @@ describe("subjects", () => {
     expect(s?.dirtyAt).toBeNull();
     expect(s?.enrichAttempts).toBe(MAX_ENRICH_ATTEMPTS);
     expect(s?.enrichError).toBe("boom");
-    expect(nextDirtyBatch(db, { limit: 10 })).toEqual([]);
+    expect(dirtyQueue(db)).toEqual([]);
+  });
+
+  test("recordEnrichError moves an urgent subject out of the urgent tier", () => {
+    const db = memoryDb();
+    ensureSubjects(db, [pr("o/r#1"), pr("o/r#2")]);
+    markDirty(db, ["o/r#1"], T0, ENRICH_PRIORITY.urgent);
+    markDirty(db, ["o/r#2"], T0, ENRICH_PRIORITY.backlog);
+    recordEnrichError(db, "o/r#1", "boom", T1);
+    recordEnrichError(db, "o/r#2", "boom", T1);
+    expect(getSubject(db, "o/r#1")?.priority).toBe(ENRICH_PRIORITY.direct);
+    expect(getSubject(db, "o/r#2")?.priority).toBe(ENRICH_PRIORITY.backlog);
+    expect(dirtyQueue(db, ENRICH_PRIORITY.urgent)).toEqual([]);
   });
 
   test("markDirty keeps the attempt count of a dirty subject and resets a clean one", () => {
