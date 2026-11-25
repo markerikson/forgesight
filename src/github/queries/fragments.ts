@@ -70,7 +70,7 @@ export function prCore(shape: QueryShape): string {
     comments(first: 1) { nodes { id author { login } body createdAt } } } }`
       : "";
   return `fragment PrCore on PullRequest {
-  id number title state isDraft author { login __typename }
+  id number title state isDraft author { login __typename } body
   baseRefName headRefName baseRefOid headRefOid mergedAt closedAt updatedAt reviewDecision
   reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } } }
   latestReviews(first: 20) { nodes { id state author { login } submittedAt } }
@@ -81,7 +81,7 @@ export function prCore(shape: QueryShape): string {
 }
 
 export const ISSUE_CORE = `fragment IssueCore on Issue {
-  id number title state stateReason author { login __typename } createdAt updatedAt closedAt
+  id number title state stateReason author { login __typename } body createdAt updatedAt closedAt
   assignees(first: 10) { nodes { login } }
   labels(first: 20) { nodes { name } }
   issueType { name }

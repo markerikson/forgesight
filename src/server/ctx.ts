@@ -10,7 +10,10 @@ export interface ServerCtx {
   config: Config;
   configError: string | null;
   now: () => Date;
-  /** The read-write connection, opened on first use. Only POST handlers call it. */
+  /**
+   * The read-write connection, opened on first use. POST handlers call it, and the subject
+   * handler uses it to queue a refetch for a subject stored without its description.
+   */
   writeDb: () => Database;
 }
 

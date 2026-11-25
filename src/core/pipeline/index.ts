@@ -12,12 +12,12 @@ import { classify, isMe } from "./classify.ts";
 import { normalize } from "./normalize.ts";
 import { applyOverrides, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
-import { buildHeader, buildLinks } from "./row.ts";
+import { buildHeader, buildLinks, subjectBody } from "./row.ts";
 import { isAfter } from "./time.ts";
 import type { RankReason, Round, Section, SubjectView, ViewEvent } from "./types.ts";
 
 export { describe } from "./rank.ts";
-export { toInboxRow, toViewRecord } from "./row.ts";
+export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
 export const PIPELINE_VERSION = 4;
@@ -148,6 +148,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     header: buildHeader(subject, threads, events, me),
     rounds,
     lastVisitAt: state.dismissedAt,
+    body: subjectBody(subject.raw) ?? null,
     links: buildLinks(subject, events),
     section: r.section,
     reasons: r.reasons,

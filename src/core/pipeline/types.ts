@@ -215,6 +215,8 @@ export interface SubjectView {
   /** Newest first. */
   rounds: Round[];
   lastVisitAt: string | null;
+  /** The PR or issue description as Markdown. Null when empty, not a PR or issue, or not fetched yet. */
+  body: string | null;
   links: ViewLink[];
   section: Section;
   reasons: RankReason[];

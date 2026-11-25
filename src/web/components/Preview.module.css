@@ -166,6 +166,49 @@
   font-size: 12px;
 }
 
+.description {
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.descriptionToggle,
+.showMore {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--fg-mute);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.descriptionToggle:hover,
+.showMore:hover {
+  color: var(--fg);
+}
+
+.descriptionToggle {
+  font-weight: 600;
+}
+
+.description .descriptionToggle + div {
+  margin-top: 6px;
+}
+
+.descriptionClamp {
+  max-height: 24em;
+  overflow: hidden;
+}
+
+.descriptionClamp.faded {
+  mask-image: linear-gradient(to bottom, black calc(100% - 3em), transparent);
+}
+
+.showMore {
+  margin-top: 4px;
+  color: var(--info);
+}
+
 .lastVisit {
   display: flex;
   align-items: center;
