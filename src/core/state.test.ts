@@ -180,12 +180,17 @@ describe("patchRow", () => {
 
   test.each(["reviewRequested", "mentioned"] as const)("mute keeps a %s row in its section", (reason) => {
     const direct = row("acme/app#1", "waiting", { reasons: [reason] });
-    expect(patchRow(direct, { kind: "mute" }, NOW)).toEqual(direct);
+    expect(patchRow(direct, { kind: "mute" }, NOW)).toEqual({ ...direct, reasons: [reason, "muted"] });
   });
 
   test("mute keeps a snoozed row in Snoozed", () => {
     const snoozed = row("acme/app#1", "snoozed");
-    expect(patchRow(snoozed, { kind: "mute" }, NOW)).toEqual(snoozed);
+    expect(patchRow(snoozed, { kind: "mute" }, NOW)).toEqual({ ...snoozed, reasons: ["muted"] });
+  });
+
+  test("unmute drops the muted reason and leaves the section for the server", () => {
+    const muted = row("acme/app#1", "waiting", { reasons: ["reviewRequested", "muted"] });
+    expect(patchRow(muted, { kind: "unmute" }, NOW)).toEqual({ ...muted, reasons: ["reviewRequested"] });
   });
 
   test("snooze moves the row to snoozed", () => {

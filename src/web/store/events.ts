@@ -26,6 +26,7 @@ export function startEvents(store: AppStore): () => void {
   if (typeof EventSource === "undefined") return () => {};
   let source: EventSource | null = null;
   let stopped = false;
+  let opened = false;
   let pending = new Set<string>();
   let flushTimer: ReturnType<typeof setTimeout> | null = null;
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -46,7 +47,13 @@ export function startEvents(store: AppStore): () => void {
     store.dispatch(connectionChanged("connecting"));
     const es = new EventSource("/api/events");
     source = es;
-    es.onopen = () => store.dispatch(connectionChanged("open"));
+    es.onopen = () => {
+      store.dispatch(connectionChanged("open"));
+      // A new stream starts without the last event id, so changes made while it was down are
+      // never replayed. Refetch instead.
+      if (opened) store.dispatch(api.util.invalidateTags([{ type: "Inbox", id: "LIST" }, "Status"]));
+      opened = true;
+    };
     es.onerror = () => {
       if (es.readyState !== EventSource.CLOSED) {
         store.dispatch(connectionChanged("connecting"));

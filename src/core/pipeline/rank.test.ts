@@ -294,6 +294,7 @@ describe("rank", () => {
     expect(quiet.reasons).toContain("muted");
     const ping = derive({ items: [comment("alice", "2026-11-21T00:00:00Z", "@markerikson")], itemState: { muted: true } });
     expect(ping.section).toBe("waiting");
+    expect(ping.reasons).toContain("muted");
   });
 
   test("a new issue with no comments is an update", () => {

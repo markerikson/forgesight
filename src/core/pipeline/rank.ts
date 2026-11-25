@@ -315,8 +315,8 @@ export function applyOverrides(
     section = "updates";
     reasons = [...reasons, "keptUnread"];
   }
-  if (state.muted && !reasons.includes("reviewRequested") && !reasons.includes("mentioned")) {
-    section = "hidden";
+  if (state.muted) {
+    if (!reasons.includes("reviewRequested") && !reasons.includes("mentioned")) section = "hidden";
     if (!reasons.includes("muted")) reasons = [...reasons, "muted"];
   }
   if (snoozeActive(state, events, me, now)) {

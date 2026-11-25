@@ -73,6 +73,11 @@ function activatesOnEnter(target: EventTarget | null): boolean {
   return tag === "BUTTON" || tag === "A" || tag === "SUMMARY";
 }
 
+/** Enter or Space on a focused button or link: the browser clicks it, so the key is not ours. */
+function activatesNatively(e: KeyInput): boolean {
+  return (e.key === "Enter" || e.key === " ") && activatesOnEnter(e.target);
+}
+
 const SECTION_KEYS: Record<string, Section> = { w: "waiting", u: "updates", s: "snoozed", h: "hidden" };
 
 function menuKeyAction(key: string): KeyAction | null {
@@ -100,8 +105,8 @@ function menuKeyAction(key: string): KeyAction | null {
 export function keyAction(e: KeyInput, afterG: boolean, menuOpen = false): KeyAction | null {
   if (e.ctrlKey || e.metaKey || e.altKey) return null;
   if (isEditable(e.target)) return null;
+  if (activatesNatively(e)) return null;
   if (menuOpen) return menuKeyAction(e.key);
-  if ((e.key === "Enter" || e.key === " ") && activatesOnEnter(e.target)) return null;
   if (afterG) {
     const section = SECTION_KEYS[e.key];
     return section ? { type: "section", section } : null;
@@ -174,7 +179,7 @@ export function useKeyboardNav(): void {
       afterG = action?.type === "prefix";
       if (menu) {
         // Swallow every key while the menu is open so nothing else reacts behind it.
-        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key !== "Tab") e.preventDefault();
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key !== "Tab" && !activatesNatively(e)) e.preventDefault();
         if (!action) return;
         switch (action.type) {
           case "menuMove":

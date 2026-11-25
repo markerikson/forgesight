@@ -4,7 +4,7 @@ import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { keepNewFlags } from "../new-flags.ts";
 import { isMuted, markDone, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
-import { useGetSubjectQuery } from "../store/api.ts";
+import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState } from "../store/state-api.ts";
 import { rowRead, selectSelectedRow } from "../store/view.ts";
@@ -23,6 +23,7 @@ export function Preview() {
   const row = useAppSelector(selectSelectedRow);
   const { data, isError, isFetching } = useGetSubjectQuery(row?.key ?? "", { skip: !row });
   const loaded = data !== undefined && data.key === row?.key ? data : undefined;
+  const me = useGetStatusQuery().data?.viewer.login ?? null;
 
   // The detail as it was when the user started reading this subject, so its "new" markers survive
   // the read and later refreshes. Selecting another subject replaces it.
@@ -56,7 +57,7 @@ export function Preview() {
       </section>
     );
   }
-  const subject = readingBase?.key === loaded.key ? keepNewFlags(readingBase, loaded) : loaded;
+  const subject = readingBase?.key === loaded.key ? keepNewFlags(readingBase, loaded, me) : loaded;
   return <SubjectPane subject={subject} row={row} />;
 }
 

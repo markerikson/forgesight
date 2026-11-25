@@ -91,6 +91,7 @@ export const stateApi = api.injectEndpoints({
           dispatch(toastShown(label, { opId: data.opId }));
         } catch {
           for (const patch of patches) patch.undo();
+          if (op.kind !== "read" && op.kind !== "unread") for (const row of lingering) dispatch(rowRead(row));
           if (op.kind !== "read") dispatch(toastShown(`Could not save: ${label}`, { kind: "error" }));
         }
       },
@@ -110,13 +111,14 @@ export const stateApi = api.injectEndpoints({
           const entry = (getState() as ViewRootState).view.undo.find((e) => e.opId === opId);
           dispatch(undoRemoved(opId));
           for (const row of entry?.lingering ?? []) dispatch(rowRead(row));
-          dispatch(
-            toastShown(
-              data.githubApplied > 0
+          const label = entry?.label ?? "last change";
+          const message =
+            data.githubApplied === 0
+              ? `Undone: ${label}`
+              : label.startsWith("Done")
                 ? "Undone here. GitHub already marked it done."
-                : `Undone: ${entry?.label ?? "last change"}`,
-            ),
-          );
+                : `Undone here. GitHub already applied: ${label}`;
+          dispatch(toastShown(message));
         } catch (error) {
           const refusal = refusalOf(error);
           if (refusal) dispatch(undoRemoved(opId));

@@ -73,6 +73,13 @@ describe("keyAction", () => {
     expect(keyAction(key("e"), false, true)).toBeNull();
     expect(keyAction(key("0"), false, true)).toBeNull();
   });
+
+  test("Enter on a focused menu item clicks that item instead of the highlighted one", () => {
+    const button = fakeTarget({ tagName: "BUTTON" });
+    expect(keyAction(key("Enter", { target: button }), false, true)).toBeNull();
+    expect(keyAction(key(" ", { target: button }), false, true)).toBeNull();
+    expect(keyAction(key("Escape", { target: button }), false, true)).toEqual({ type: "menuClose" });
+  });
 });
 
 test("isEditable treats null as not editable", () => {

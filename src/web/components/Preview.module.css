@@ -13,7 +13,8 @@
 .top {
   position: sticky;
   top: 0;
-  z-index: 1;
+  /* Above the list's sticky header, so the mute menu's backdrop covers it. */
+  z-index: 3;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
 }

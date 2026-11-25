@@ -77,6 +77,19 @@ describe("applyState", () => {
     expect(store.getState().view.toast).toMatchObject({ kind: "error", message: "Could not save: Muted" });
   });
 
+  test("a refused Done brings back the read row it took out of the list", async () => {
+    const store = storeWith(rows);
+    const readRow: InboxRow = { ...rows[0]!, unread: false };
+    store.dispatch(rowRead(readRow));
+    replies.push({ status: 500, body: { error: "boom" } });
+
+    store.dispatch(applyState(["acme/app#1"], { kind: "done" }));
+    expect(store.getState().view.lingering).toEqual([]);
+
+    await settle();
+    expect(store.getState().view.lingering).toEqual([readRow]);
+  });
+
   test("marking read records no undo and shows no toast", async () => {
     const store = storeWith([row("acme/app#1", "updates", "acme/app", { unread: true, newMeaningfulCount: 2 })]);
     replies.push({ status: 200, body: { opId: 2, outboxIds: [], rows: {} } });
@@ -107,6 +120,20 @@ describe("undoLatest", () => {
     expect(cached(store).sidebar.sections).toMatchObject({ waiting: 3, hidden: 0 });
     expect(store.getState().view.undo).toEqual([]);
     expect(store.getState().view.toast?.message).toBe("Undone: Done");
+  });
+
+  test("names the change GitHub already applied", async () => {
+    const store = storeWith(rows);
+    replies.push(
+      { status: 200, body: { opId: 1, outboxIds: [1], rows: {} } },
+      { status: 200, body: { result: "undone", githubApplied: 1, rows: {} } },
+    );
+    store.dispatch(applyState(["acme/app#1"], { kind: "unsubscribe" }));
+    await settle();
+
+    store.dispatch(undoLatest());
+    await settle();
+    expect(store.getState().view.toast?.message).toBe("Undone here. GitHub already applied: Muted and unsubscribed");
   });
 
   test("brings back a read row that Done took out of the list", async () => {
