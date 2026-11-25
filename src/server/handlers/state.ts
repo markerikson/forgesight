@@ -5,7 +5,7 @@ import { isValidStateOp, MAX_STATE_KEYS, type StateOp } from "../../core/state.t
 import { setMeta } from "../../store/meta.ts";
 import { applyStateOps, undoStateOp } from "../../store/state-ops.ts";
 import { getSubject } from "../../store/subjects.ts";
-import { parseWorkstreamOpRecord } from "../../store/workstream-ops.ts";
+import { mergeUndoHints, parseWorkstreamOpRecord } from "../../store/workstream-ops.ts";
 import { getWorkstream, type StoredWorkstream } from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
 import {
@@ -91,10 +91,10 @@ export async function undoHandler(req: Request, ctx: ServerCtx): Promise<Respons
     return badRequest("opId must be a positive integer");
   }
   const db = ctx.writeDb();
-  const opJson = db
-    .query<{ op_json: string }, [number]>("SELECT op_json FROM state_ops WHERE id = ?")
-    .get(opId)?.op_json;
-  const wsRecord = opJson ? parseWorkstreamOpRecord(opJson) : null;
+  const opRow = db
+    .query<{ op_json: string; prev_json: string }, [number]>("SELECT op_json, prev_json FROM state_ops WHERE id = ?")
+    .get(opId);
+  const wsRecord = opRow ? parseWorkstreamOpRecord(opRow.op_json) : null;
   const before = wsRecord
     ? workstreamIdsOf(wsRecord)
         .map((id) => getWorkstream(db, id))
@@ -106,7 +106,8 @@ export async function undoHandler(req: Request, ctx: ServerCtx): Promise<Respons
   switch (result.kind) {
     case "undone": {
       if (wsRecord) {
-        const effects = afterWorkstreamOp(ctx, db, wsRecord, before);
+        const hints = opRow && wsRecord.op.kind === "merge" ? mergeUndoHints(opRow.prev_json) : [];
+        const effects = afterWorkstreamOp(ctx, db, wsRecord, before, hints);
         res = { result: "undone", githubApplied: result.githubApplied, ...effects };
       } else {
         res = {

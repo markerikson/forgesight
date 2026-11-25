@@ -111,6 +111,23 @@ describe("workstreamStateHandler", () => {
     expect(getWorkstream(ctx.db, A)?.members.map((m) => m.key)).toEqual([k(10), k(11)]);
   });
 
+  test("merging into the higher-numbered workstream keeps the target's ID and state", async () => {
+    const ctx = setup();
+    await call(ctx, { id: B, op: { kind: "setPriority", priority: "low" } });
+    const res = await call(ctx, { id: B, op: { kind: "merge", from: A } });
+    const body = (await res.json()) as WorkstreamStateResponse;
+    expect(body.workstreams[B]?.members.map((m) => m.key)).toEqual([k(10), k(11), k(20), k(21)]);
+    expect(body.workstreams[B]?.state.priority).toBe("low");
+    expect(body.workstreams[A]).toBeNull();
+
+    const undo = await undoHandler(post("/api/state/undo", { opId: body.opId }), ctx);
+    const undone = (await undo.json()) as UndoResponse;
+    if (undone.result !== "undone") throw new Error(undone.result);
+    expect(undone.workstreams?.[A]?.members.map((m) => m.key)).toEqual([k(10), k(11)]);
+    expect(undone.workstreams?.[B]?.members.map((m) => m.key)).toEqual([k(20), k(21)]);
+    expect(undone.workstreams?.[B]?.state.priority).toBe("low");
+  });
+
   test("undoing a merge brings back the absorbed workstream's manual name", async () => {
     const ctx = setup();
     await call(ctx, { id: B, op: { kind: "rename", name: "Billing" } });

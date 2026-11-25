@@ -7,7 +7,7 @@ import { getView } from "../../store/views.ts";
 import type { WorkstreamOpRecord } from "../../store/workstream-ops.ts";
 import { getWorkstream, getWorkstreamState, type StoredWorkstream } from "../../store/workstreams.ts";
 import { deriveKeys } from "../../worker/derive.ts";
-import { rebuildWorkstreams } from "../../worker/workstreams.ts";
+import { rebuildWorkstreams, type WorkstreamIdHint } from "../../worker/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
 
 /** The config with the worker's `me` fallback, so stored config hashes match the worker's. */
@@ -60,6 +60,7 @@ export function afterWorkstreamOp(
   db: Database,
   record: WorkstreamOpRecord,
   before: readonly StoredWorkstream[],
+  idHints: readonly WorkstreamIdHint[] = [],
 ): WorkstreamOpEffects {
   const ids = workstreamIdsOf(record);
   const keys = new Set<SubjectKey>();
@@ -67,7 +68,7 @@ export function afterWorkstreamOp(
     for (const ws of before) for (const m of ws.members) keys.add(m.key);
     const repo = before[0]?.repo;
     if (repo) {
-      const rebuilt = rebuildWorkstreams(db, workerConfig(ctx, db), repo, ctx.now());
+      const rebuilt = rebuildWorkstreams(db, workerConfig(ctx, db), repo, ctx.now(), idHints);
       for (const key of rebuilt?.changedKeys ?? []) keys.add(key);
     }
     for (const id of ids) for (const m of getWorkstream(db, id)?.members ?? []) keys.add(m.key);

@@ -25,6 +25,8 @@ export interface WorkstreamPrev {
   manualName: string | null;
   /** Override row the op added, deleted on undo. */
   overrideId: number | null;
+  /** Merge only: the members before the merge, so undo gives each half its old ID back. */
+  members?: string[];
 }
 
 export interface WorkstreamOpRecord {
@@ -73,15 +75,16 @@ export function applyWorkstreamOps(db: Database, id: string, op: WorkstreamOp, n
     const state = getWorkstreamState(db, id);
     const override = overrideFor(db, id, op);
     const overrideId = override ? addOverride(db, ws.repo, override, now) : null;
-    const prev: Record<string, WorkstreamPrev> = {
-      [wsPrevKey(id)]: { state, manualName: ws.manualName, overrideId },
-    };
+    const own: WorkstreamPrev = { state, manualName: ws.manualName, overrideId };
+    const prev: Record<string, WorkstreamPrev> = { [wsPrevKey(id)]: own };
     if (op.kind === "merge") {
       const from = getWorkstream(db, op.from);
+      own.members = ws.members.map((m) => m.key);
       prev[wsPrevKey(op.from)] = {
         state: getWorkstreamState(db, op.from),
         manualName: from?.manualName ?? null,
         overrideId: null,
+        members: from?.members.map((m) => m.key) ?? [],
       };
     }
 
@@ -96,6 +99,14 @@ export function applyWorkstreamOps(db: Database, id: string, op: WorkstreamOp, n
     );
     return { opId };
   })();
+}
+
+/** For undoing a merge: each workstream's members before the merge, with its ID. */
+export function mergeUndoHints(prevJson: string): { keys: string[]; id: string }[] {
+  const prev = JSON.parse(prevJson) as Record<string, WorkstreamPrev>;
+  return Object.entries(prev).flatMap(([key, entry]) =>
+    key.startsWith("ws:") && entry.members ? [{ keys: entry.members, id: key.slice(3) }] : [],
+  );
 }
 
 /** Restores what a workstream op replaced. Runs inside `undoStateOp`'s transaction. */

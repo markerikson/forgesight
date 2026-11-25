@@ -95,6 +95,43 @@ function reanchorMergeOverrides(
   });
 }
 
+/** Asks the rebuild to give `id` to the workstream holding any of `keys`. */
+export interface WorkstreamIdHint {
+  keys: readonly SubjectKey[];
+  id: string;
+}
+
+/**
+ * The core pairs IDs by member overlap and cannot tell which side of a manual merge should
+ * keep its ID. Each merge keeps the ID of its target (the workstream that held `keys[0]`),
+ * newest merge first. Hints that would take an ID from a group an earlier hint already
+ * placed are skipped; otherwise the two groups swap IDs.
+ */
+function claimIds(workstreams: Workstream[], hints: readonly WorkstreamIdHint[]): void {
+  const claimed = new Set<Workstream>();
+  for (const hint of hints) {
+    const group = workstreams.find((w) => hint.keys.some((k) => w.members.includes(k)));
+    if (!group || claimed.has(group)) continue;
+    const holder = workstreams.find((w) => w.id === hint.id);
+    if (holder && holder !== group) {
+      if (claimed.has(holder)) continue;
+      holder.id = group.id;
+    }
+    group.id = hint.id;
+    claimed.add(group);
+  }
+}
+
+function mergeHints(overrides: readonly WsOverride[], previous: readonly Workstream[]): WorkstreamIdHint[] {
+  return overrides
+    .flatMap((o) => {
+      if (o.kind !== "merge") return [];
+      const target = previous.find((w) => w.members.includes(o.keys[0]));
+      return target ? [{ keys: [o.keys[0]], id: target.id }] : [];
+    })
+    .reverse();
+}
+
 export interface RebuildResult {
   workstreams: Workstream[];
   shownIds: string[];
@@ -108,13 +145,14 @@ export interface RebuildResult {
  * Rebuilds the workstreams of `repo` from the stored open-PR listing, the recently-closed list
  * and the manual overrides. Members of shown workstreams become subjects (origin `stack`,
  * dirty at priority 0); other members stay listing-only. No API calls. Returns null when there
- * is no listing yet.
+ * is no listing yet. `idHints` (from undoing a merge) win over the merge overrides' own IDs.
  */
 export function rebuildWorkstreams(
   db: Database,
   config: Config,
   repo: string,
   now: Date,
+  idHints: readonly WorkstreamIdHint[] = [],
 ): RebuildResult | null {
   const listing = readListing(db, repo);
   if (!listing) return null;
@@ -125,13 +163,15 @@ export function rebuildWorkstreams(
   const pulls = [...open, ...closed.filter((c) => !open.some((p) => p.number === c.number))];
 
   const previous = previousWorkstreams(db, repo);
+  const overrides = reanchorMergeOverrides(db, repo, pulls, previous);
   const workstreams = buildWorkstreams(pulls, {
     trunks: rc.trunks,
-    overrides: reanchorMergeOverrides(db, repo, pulls, previous),
+    overrides,
     previous,
     config: rc.workstreams,
     now,
   });
+  claimIds(workstreams, [...idHints, ...mergeHints(overrides, previous)]);
 
   const allMembers = workstreams.flatMap((w) => w.members);
   const stored = memberFacts(db, allMembers);
