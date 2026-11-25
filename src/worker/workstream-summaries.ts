@@ -107,17 +107,27 @@ function memberState(
   return { state: "merged", isDraft: false };
 }
 
+export interface WorkstreamSummaryJobs {
+  /** GitHub job: keeps the stored PR texts current. */
+  texts: Job;
+  /** LLM job, null without an API key. It calls Anthropic, not GitHub, so it gets its own turn. */
+  summaries: Job | null;
+}
+
 /**
- * Keeps workstream summaries current. Each run:
- * 1. fetches titles and descriptions for members whose stored copy is missing or older than the
- *    open PR listing says, plus members stored as open that a newer listing no longer has
- *    (GraphQL, `openPulls` budget class, up to 50 PRs per repo);
- * 2. queues a summary when a workstream has none yet, or its input hash changed and the last
- *    summary is at least 6 hours old. Head SHAs are not part of the input, so pushes never queue;
- * 3. runs up to two queued calls at once while today's spend is under `llm.dailyCapUsd`. Over the
- *    cap, jobs stay queued for the next UTC day and the last summary stays shown.
+ * Keeps workstream summaries current with two jobs that share state.
+ *
+ * The texts job fetches titles and descriptions for members whose stored copy is missing or older
+ * than the open PR listing says, plus members stored as open that a newer listing no longer has
+ * (GraphQL, `openPulls` budget class, up to 50 PRs per repo).
+ *
+ * The summaries job queues a summary when a workstream has none yet, or its input hash changed and
+ * the last summary is at least 6 hours old (head SHAs are not part of the input, so pushes never
+ * queue), then runs up to two queued calls at once while today's spend is under
+ * `llm.dailyCapUsd`. Over the cap, jobs stay queued for the next UTC day and the last summary
+ * stays shown.
  */
-export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job {
+export function createWorkstreamSummaryJobs(deps: WorkstreamSummariesDeps): WorkstreamSummaryJobs {
   const loadShown = deps.workstreams ?? storedWorkstreams;
   /** PRs GitHub reports as not found; not asked for again until the worker restarts. */
   const unavailable = new Set<string>();
@@ -303,16 +313,25 @@ export function createWorkstreamSummariesJob(deps: WorkstreamSummariesDeps): Job
     return true;
   }
 
+  const llm = deps.llm;
   return {
-    name: "workstreamSummaries",
-    async run(ctx) {
-      const workstreams = loadShown(ctx.db);
-      if (workstreams.length === 0) return "idle";
-      const fetched = await syncTexts(ctx, workstreams);
-      if (!deps.llm) return fetched ? "worked" : "idle";
-      queueSummaries(ctx, workstreams);
-      const ran = await runQueued(ctx, deps.llm);
-      return fetched || ran ? "worked" : "idle";
+    texts: {
+      name: "workstreamTexts",
+      async run(ctx) {
+        const workstreams = loadShown(ctx.db);
+        if (workstreams.length === 0) return "idle";
+        return (await syncTexts(ctx, workstreams)) ? "worked" : "idle";
+      },
+    },
+    summaries: llm && {
+      name: "workstreamSummaries",
+      ownTurn: true,
+      async run(ctx) {
+        const workstreams = loadShown(ctx.db);
+        if (workstreams.length === 0) return "idle";
+        queueSummaries(ctx, workstreams);
+        return (await runQueued(ctx, llm)) ? "worked" : "idle";
+      },
     },
   };
 }

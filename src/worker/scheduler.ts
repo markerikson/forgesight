@@ -41,8 +41,15 @@ export interface Job {
    * GitHub jobs, even when one of them worked or GitHub calls are paused for a rate limit.
    */
   local?: boolean;
+  /**
+   * The job makes no GitHub calls, so it does not wait for GitHub work or the GitHub budget. It
+   * runs every tick after the GitHub jobs, in list order with the local jobs.
+   */
+  ownTurn?: boolean;
   run(ctx: JobContext): Promise<JobResult>;
 }
+
+const everyTick = (job: Job) => job.local === true || job.ownTurn === true;
 
 /** `meta` key the web reads for worker health. */
 export const WORKER_STATUS_KEY = META.workerStatus;
@@ -62,7 +69,8 @@ export interface SchedulerOptions {
 
 /**
  * Runs jobs in priority order, one at a time. Each tick runs GitHub jobs until one reports
- * "worked", so higher-priority work goes first on the next tick, then runs every local job.
+ * "worked", so higher-priority work goes first on the next tick, then runs every local and
+ * own-turn job.
  * A job that throws is retried with backoff; a 401 stops the scheduler; a rate limit pauses
  * the GitHub jobs.
  */
@@ -101,10 +109,10 @@ export class Scheduler {
 
   private async runTick(): Promise<TickResult> {
     if (this.stopped) return "stopped";
-    const remote = await this.runFirstWorking(this.jobs.filter((j) => !j.local));
+    const remote = await this.runFirstWorking(this.jobs.filter((j) => !everyTick(j)));
     if (remote === "stopped") return "stopped";
     let localWorked = false;
-    for (const job of this.jobs.filter((j) => j.local)) {
+    for (const job of this.jobs.filter(everyTick)) {
       if (this.retryPending(job)) continue;
       // oxlint-disable-next-line no-await-in-loop
       const result = await this.runJob(job);

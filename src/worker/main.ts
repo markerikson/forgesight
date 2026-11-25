@@ -16,14 +16,14 @@ import { getMeta, setMeta } from "../store/meta.ts";
 import { runMigrations } from "../store/migrate.ts";
 import { SqliteApiCallLog } from "./api-call-log.ts";
 import { deriveJob, deriveViews } from "./derive.ts";
-import { enrichJob } from "./enrich.ts";
+import { enrichJob, urgentEnrichJob } from "./enrich.ts";
 import { startHeartbeat } from "./heartbeat.ts";
 import { maintenanceJob } from "./maintenance.ts";
 import { openPullsJob } from "./open-pulls.ts";
 import { outboxJob } from "./outbox.ts";
 import { createPoller } from "./poller.ts";
 import { consoleLogger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
-import { createWorkstreamSummariesJob } from "./workstream-summaries.ts";
+import { createWorkstreamSummaryJobs } from "./workstream-summaries.ts";
 
 const { values: args } = parseArgs({
   options: {
@@ -87,16 +87,22 @@ try {
 } catch (err) {
   log.error(`${err instanceof Error ? err.message : String(err)}; workstream summaries are off`);
 }
-// A tick runs the GitHub jobs in this order until one does work, so enrichment waits for
-// poll and backfill, and summaries wait for enrichment. The outbox sends queued user writes
-// right after the poll. Derive and maintenance are local and run at the end of every tick.
+const summaryJobs = createWorkstreamSummaryJobs({ llm });
+// A tick runs the GitHub jobs in this order until one does work. Subjects opened in the web
+// app go first, then the poll; the outbox sends queued user writes right after it. PR texts
+// for summaries come before the enrich queue so a long backlog does not hold them back.
+// Summaries call Anthropic, not GitHub, so they get their own turn every tick, followed by
+// the local derive and maintenance jobs. The API key is read once at startup, so setting it
+// needs a worker restart.
 const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clock, log }, [
+  urgentEnrichJob,
   poller.pollJob,
   ...(error ? [] : [outboxJob]),
   poller.backfillJob,
   openPullsJob,
+  summaryJobs.texts,
   enrichJob,
-  createWorkstreamSummariesJob({ llm }),
+  ...(summaryJobs.summaries ? [summaryJobs.summaries] : []),
   deriveJob,
   maintenanceJob,
 ]);

@@ -1,3 +1,4 @@
+import { ENRICH_PRIORITY } from "./enrich-plan.ts";
 import { subjectKeyFor } from "./keys.ts";
 import type { SubjectKey, SubjectKind, ThreadRecord, ThreadUpsert } from "./types.ts";
 
@@ -75,10 +76,10 @@ export function threadChanged(
   );
 }
 
-/** Enrichment queue priority: 2 for direct involvement, 1 for priority repos, else 0. */
+/** Enrichment queue priority for a moved thread: direct involvement, then priority repos. */
 export function dirtyPriority(reason: string, priorityRepo: boolean): number {
-  if (DIRECT_REASONS.has(reason)) return 2;
-  return priorityRepo ? 1 : 0;
+  if (DIRECT_REASONS.has(reason)) return ENRICH_PRIORITY.direct;
+  return priorityRepo ? ENRICH_PRIORITY.priorityRepo : ENRICH_PRIORITY.backlog;
 }
 
 function iso(ms: number): string {

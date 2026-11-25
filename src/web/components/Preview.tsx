@@ -6,7 +6,7 @@ import { keepNewFlags } from "../new-flags.ts";
 import { isMuted, markDone, markWorkstreamSeen, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
 import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
-import { applyState } from "../store/state-api.ts";
+import { applyState, refreshSubject } from "../store/state-api.ts";
 import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
@@ -80,7 +80,7 @@ export function Preview() {
   return <SubjectPane subject={subject} row={row} />;
 }
 
-function ActionBar({ row, url }: { row: InboxRow; url: string | null }) {
+function ActionBar({ row, url, subject }: { row: InboxRow; url: string | null; subject?: SubjectDetail }) {
   const dispatch = useAppDispatch();
   const [muteMenu, setMuteMenu] = useState(false);
   const muted = isMuted(row);
@@ -137,6 +137,16 @@ function ActionBar({ row, url }: { row: InboxRow; url: string | null }) {
       <button type="button" title={row.unread ? "Mark read (u)" : "Keep unread (u)"} onClick={() => dispatch(toggleUnread(row))}>
         {row.unread ? "Mark read" : "Keep unread"}
       </button>
+      {subject?.refreshable && (
+        <button
+          type="button"
+          title="Fetch this thread from GitHub now"
+          disabled={subject.fetching}
+          onClick={() => dispatch(refreshSubject(row.key))}
+        >
+          {subject.fetching ? "Refreshing…" : "Refresh"}
+        </button>
+      )}
       {url && (
         <a className={styles.button} href={url} target="_blank" rel="noopener noreferrer" title="Open on GitHub (o)">
           Open on GitHub
@@ -161,12 +171,14 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
   return (
     <section className={styles.preview} aria-label="Preview">
       <div className={styles.top}>
-        <ActionBar row={row} url={subject.githubUrl ?? subject.header.url} />
+        <ActionBar row={row} url={subject.githubUrl ?? subject.header.url} subject={subject} />
         <Header header={subject.header} subject={subject} />
       </div>
       {subject.workstream && <StackBox workstream={subject.workstream} />}
       {subject.body && <Description key={subject.key} body={subject.body} />}
-      {subject.rounds.length === 0 && <p className={styles.message}>No activity stored yet.</p>}
+      {subject.rounds.length === 0 && (
+        <p className={styles.message}>{subject.fetching ? "Loading from GitHub…" : "No activity stored yet."}</p>
+      )}
       {subject.rounds.map((round, index) => {
         const prev = subject.rounds[index - 1];
         const marker = prev !== undefined && prev.isNew && !round.isNew;
@@ -191,6 +203,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
 function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDetail }) {
   const url = subject.githubUrl ?? header.url;
   const notifiedFor = subject.reason !== "subscribed" ? subject.reason : null;
+  const reasons = subject.fetching ? subject.reasons.filter((reason) => reason !== "notEnriched") : subject.reasons;
   return (
     <header className={styles.header}>
       <h2 className={styles.title}>
@@ -219,10 +232,11 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
         <ReviewBadge decision={header.reviewDecision} />
         {subject.snoozeUntil && <span>snoozed until {subject.snoozeUntil.slice(0, 10)}</span>}
       </div>
-      {(subject.reasons.length > 0 || notifiedFor) && (
+      {(reasons.length > 0 || notifiedFor || subject.fetching) && (
         <div className={styles.meta}>
+          {subject.fetching && <span className={styles.reason}>loading…</span>}
           {notifiedFor && <span className={styles.reason}>notified: {notifiedFor.replaceAll("_", " ")}</span>}
-          {subject.reasons.map((reason) => (
+          {reasons.map((reason) => (
             <span key={reason} className={styles.reason}>
               {REASON_LABELS[reason]}
             </span>

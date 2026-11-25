@@ -2,12 +2,19 @@ import { describe, expect, test } from "bun:test";
 import type { ContentRule } from "./config.ts";
 import {
   DIFFLOUPE_MARKER,
+  ENRICH_PRIORITY,
+  enrichTier,
   enrichWorkClass,
+  pickEnrichBatch,
+  type PickEnrichOptions,
+  type QueuedSubject,
   GROW_AFTER,
   initialBatchState,
   isExhausted,
   isStickyCandidate,
+  needsFetchOnOpen,
   nextBatchSize,
+  type OpenedSubject,
   queryShape,
   REPLAY_QA_MARKER,
   stickyMarkers,
@@ -152,5 +159,108 @@ describe("enrichWorkClass", () => {
     expect(enrichWorkClass({ origin: "open-list", threadUpdatedAt: null, now })).toBe("backfill");
     expect(enrichWorkClass({ origin: "stack", threadUpdatedAt: null, now })).toBe("enrich");
     expect(enrichWorkClass({ origin: "stack", threadUpdatedAt: daysAgo(60), now })).toBe("enrich");
+  });
+});
+
+describe("pickEnrichBatch", () => {
+  const now = new Date("2026-11-23T12:00:00Z");
+  const daysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
+  const queued = (subjectKey: string, extra: Partial<QueuedSubject> = {}): QueuedSubject => ({
+    subjectKey,
+    repo: subjectKey.split("#")[0] ?? "",
+    origin: "thread",
+    priority: 0,
+    dirtyAt: daysAgo(1),
+    threadUpdatedAt: daysAgo(1),
+    ...extra,
+  });
+  const opts = (extra: Partial<PickEnrichOptions> = {}): PickEnrichOptions => ({
+    canSpend: () => true,
+    batchSize: () => 10,
+    ...extra,
+  });
+
+  test("tiers: urgent, then recent activity, then backlog", () => {
+    expect(enrichTier(queued("a/x#1", { priority: ENRICH_PRIORITY.urgent, threadUpdatedAt: null }), now)).toBe("urgent");
+    expect(enrichTier(queued("a/x#1"), now)).toBe("active");
+    expect(enrichTier(queued("a/x#1", { origin: "stack", threadUpdatedAt: null }), now)).toBe("active");
+    expect(enrichTier(queued("a/x#1", { threadUpdatedAt: daysAgo(30) }), now)).toBe("backlog");
+    expect(enrichTier(queued("a/x#1", { threadUpdatedAt: null }), now)).toBe("backlog");
+  });
+
+  test("orders across repos by tier before repo or age", () => {
+    const queue = [
+      queued("old/repo#1", { dirtyAt: daysAgo(10), threadUpdatedAt: daysAgo(40) }),
+      queued("old/repo#2", { dirtyAt: daysAgo(9), threadUpdatedAt: null }),
+      queued("new/repo#5", { dirtyAt: daysAgo(1) }),
+      queued("other/repo#9", { dirtyAt: daysAgo(0), priority: ENRICH_PRIORITY.urgent, threadUpdatedAt: daysAgo(90) }),
+    ];
+    expect(pickEnrichBatch(queue, now, opts())).toEqual({
+      repo: "other/repo",
+      tier: "urgent",
+      workClass: "enrich",
+      keys: ["other/repo#9"],
+    });
+    expect(pickEnrichBatch(queue.slice(0, 3), now, opts())).toEqual({
+      repo: "new/repo",
+      tier: "active",
+      workClass: "enrich",
+      keys: ["new/repo#5"],
+    });
+    expect(pickEnrichBatch(queue.slice(0, 2), now, opts())).toEqual({
+      repo: "old/repo",
+      tier: "backlog",
+      workClass: "backfill",
+      keys: ["old/repo#1", "old/repo#2"],
+    });
+  });
+
+  test("within a tier, higher priority then older dirty_at go first; batch stays in one repo and tier", () => {
+    const queue = [
+      queued("a/x#1", { dirtyAt: daysAgo(3) }),
+      queued("b/y#1", { dirtyAt: daysAgo(1), priority: ENRICH_PRIORITY.direct }),
+      queued("a/x#2", { dirtyAt: daysAgo(2), priority: ENRICH_PRIORITY.direct }),
+      queued("a/x#3", { dirtyAt: daysAgo(5), threadUpdatedAt: daysAgo(40) }),
+      queued("a/x#4", { dirtyAt: daysAgo(1) }),
+    ];
+    expect(pickEnrichBatch(queue, now, opts({ batchSize: () => 2 }))?.keys).toEqual(["a/x#2", "a/x#1"]);
+    expect(pickEnrichBatch(queue, now, opts())?.keys).toEqual(["a/x#2", "a/x#1", "a/x#4"]);
+  });
+
+  test("skips tiers the budget does not allow, and limits to the requested tiers", () => {
+    const queue = [queued("a/x#1", { threadUpdatedAt: daysAgo(40) }), queued("b/y#1")];
+    const noBackfill = opts({ canSpend: (cls) => cls !== "backfill" });
+    expect(pickEnrichBatch([queue[0] as QueuedSubject], now, noBackfill)).toBeNull();
+    expect(pickEnrichBatch(queue, now, opts({ canSpend: () => false }))).toBeNull();
+    expect(pickEnrichBatch(queue, now, opts({ tiers: ["urgent"] }))).toBeNull();
+    expect(pickEnrichBatch(queue, now, opts({ tiers: ["backlog"] }))?.keys).toEqual(["a/x#1"]);
+  });
+});
+
+describe("needsFetchOnOpen", () => {
+  const polling = (enrichIssues: boolean) => ({ polling: { enrichIssues } }) as Parameters<typeof needsFetchOnOpen>[1];
+  const fetched: OpenedSubject = {
+    kind: "pr",
+    timelineSyncedUntil: "2026-11-20T00:00:00.000Z",
+    enrichError: null,
+    missingBody: false,
+    threadUpdatedAt: "2026-11-19T00:00:00.000Z",
+  };
+  const needs = (over: Partial<OpenedSubject>, enrichIssues = true) =>
+    needsFetchOnOpen({ ...fetched, ...over }, polling(enrichIssues));
+
+  test("fetches subjects never fetched, fetched without a body, or with newer notifications", () => {
+    expect(needs({})).toBe(false);
+    expect(needs({ timelineSyncedUntil: null })).toBe(true);
+    expect(needs({ missingBody: true })).toBe(true);
+    expect(needs({ threadUpdatedAt: "2026-11-21T00:00:00.000Z" })).toBe(true);
+    expect(needs({ threadUpdatedAt: null })).toBe(false);
+  });
+
+  test("skips failed fetches and kinds the worker does not fetch", () => {
+    expect(needs({ timelineSyncedUntil: null, enrichError: "not_found" })).toBe(false);
+    expect(needs({ kind: "other", timelineSyncedUntil: null })).toBe(false);
+    expect(needs({ kind: "issue", timelineSyncedUntil: null })).toBe(true);
+    expect(needs({ kind: "issue", timelineSyncedUntil: null }, false)).toBe(false);
   });
 });

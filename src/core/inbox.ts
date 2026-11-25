@@ -170,7 +170,13 @@ export interface SubjectDetail extends SubjectView {
   /** GitHub page for the subject, or the notification's URL when there is no PR or issue. */
   githubUrl: string | null;
   workstream: SubjectWorkstream | null;
+  /** The worker can fetch this subject from GitHub (a PR, or an issue when issues are enriched). */
+  refreshable: boolean;
+  /** Queued for a fetch; the view updates when the worker finishes it. */
+  fetching: boolean;
 }
+
+export type SubjectFetchState = Pick<SubjectDetail, "refreshable" | "fetching">;
 
 const SECTION_ORDER: Record<Section, number> = { waiting: 0, updates: 1, snoozed: 2, hidden: 3 };
 
@@ -511,6 +517,7 @@ export function buildSubjectDetail(
   view: SubjectView,
   threads: readonly ThreadRecord[],
   workstream: SubjectWorkstream | null = null,
+  fetch: SubjectFetchState = { refreshable: false, fetching: false },
 ): SubjectDetail {
   const newest = threads[0];
   return {
@@ -518,6 +525,7 @@ export function buildSubjectDetail(
     reason: newest?.reason ?? null,
     githubUrl: view.header.url ?? notificationUrl(newest) ?? null,
     workstream,
+    ...fetch,
   };
 }
 

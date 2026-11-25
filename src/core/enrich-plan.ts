@@ -1,6 +1,6 @@
 import type { WorkClass } from "./budget.ts";
 import type { Config, RepoMode } from "./config.ts";
-import type { SubjectOrigin } from "./types.ts";
+import type { SubjectKind, SubjectOrigin } from "./types.ts";
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -99,6 +99,135 @@ export function enrichWorkClass(input: {
   if (!input.threadUpdatedAt) return "backfill";
   const age = input.now.getTime() - Date.parse(input.threadUpdatedAt);
   return age < RECENT_ENRICH_DAYS * DAY_MS ? "enrich" : "backfill";
+}
+
+/** Values of `subjects.priority`, the enrichment queue priority. Higher goes first. */
+export const ENRICH_PRIORITY = {
+  backlog: 0,
+  priorityRepo: 1,
+  direct: 2,
+  /** Opened in the preview or refreshed by hand: fetch right away. */
+  urgent: 3,
+} as const;
+
+export interface OpenedSubject {
+  kind: SubjectKind;
+  /** Start of the last successful fetch, null when never fetched. */
+  timelineSyncedUntil: string | null;
+  enrichError: string | null;
+  /** The stored payload has no `body` (fetched before the query asked for it). */
+  missingBody: boolean;
+  /** Newest notification update for the subject, null when it has no thread. */
+  threadUpdatedAt: string | null;
+}
+
+/** Whether the worker enriches subjects of this kind at all. */
+export function isEnrichable(kind: SubjectKind, config: Pick<Config, "polling">): boolean {
+  return kind === "pr" || (kind === "issue" && config.polling.enrichIssues);
+}
+
+/**
+ * Whether opening a subject in the preview should fetch it now: never fetched, fetched
+ * without a body, or a notification arrived after the last fetch. A subject whose last
+ * fetch failed is not refetched on open, so a deleted or failing subject does not refetch
+ * on every view; the Refresh button still forces one.
+ */
+export function needsFetchOnOpen(subject: OpenedSubject, config: Pick<Config, "polling">): boolean {
+  if (!isEnrichable(subject.kind, config) || subject.enrichError !== null) return false;
+  if (subject.timelineSyncedUntil === null || subject.missingBody) return true;
+  return (
+    subject.threadUpdatedAt !== null && Date.parse(subject.threadUpdatedAt) > Date.parse(subject.timelineSyncedUntil)
+  );
+}
+
+/** Enrichment queue tiers, in the order the worker drains them. */
+export type EnrichTier = "urgent" | "active" | "backlog";
+export const ENRICH_TIERS: readonly EnrichTier[] = ["urgent", "active", "backlog"];
+
+/** One dirty subject in the enrichment queue. */
+export interface QueuedSubject {
+  subjectKey: string;
+  repo: string;
+  origin: SubjectOrigin;
+  priority: number;
+  dirtyAt: string;
+  /** Newest notification update for the subject, null when it has no thread. */
+  threadUpdatedAt: string | null;
+}
+
+/**
+ * `urgent` for subjects opened or refreshed in the UI, `active` for subjects with recent
+ * notification activity or in a stack, `backlog` for the rest.
+ */
+export function enrichTier(subject: QueuedSubject, now: Date): EnrichTier {
+  if (subject.priority >= ENRICH_PRIORITY.urgent) return "urgent";
+  return enrichWorkClass({ origin: subject.origin, threadUpdatedAt: subject.threadUpdatedAt, now }) === "enrich"
+    ? "active"
+    : "backlog";
+}
+
+/** Budget class for a tier. Urgent work uses the `enrich` class, so it still respects the soft cap. */
+export function tierWorkClass(tier: EnrichTier): Extract<WorkClass, "enrich" | "backfill"> {
+  return tier === "backlog" ? "backfill" : "enrich";
+}
+
+export interface EnrichBatchPick {
+  repo: string;
+  tier: EnrichTier;
+  workClass: Extract<WorkClass, "enrich" | "backfill">;
+  keys: string[];
+}
+
+export interface PickEnrichOptions {
+  canSpend: (workClass: WorkClass) => boolean;
+  batchSize: (repo: string) => number;
+  /** Tiers to consider. Defaults to all of them. */
+  tiers?: readonly EnrichTier[];
+}
+
+/**
+ * Picks the next enrichment batch across all repos. The queue is ordered by tier, then
+ * priority (highest first), then the time the subject was queued, then key. The first
+ * subject whose tier the budget allows decides the repo and tier; the batch takes the next
+ * subjects of that repo and tier, up to the repo's batch size.
+ */
+export function pickEnrichBatch(
+  queue: readonly QueuedSubject[],
+  now: Date,
+  opts: PickEnrichOptions,
+): EnrichBatchPick | null {
+  const tiers = opts.tiers ?? ENRICH_TIERS;
+  const ranked = queue
+    .map((subject) => ({ subject, tier: enrichTier(subject, now) }))
+    .filter((entry) => tiers.includes(entry.tier))
+    .sort(
+      (a, b) =>
+        ENRICH_TIERS.indexOf(a.tier) - ENRICH_TIERS.indexOf(b.tier) ||
+        b.subject.priority - a.subject.priority ||
+        compareText(a.subject.dirtyAt, b.subject.dirtyAt) ||
+        compareText(a.subject.subjectKey, b.subject.subjectKey),
+    );
+  const allowed = new Map<EnrichTier, boolean>();
+  const first = ranked.find((entry) => {
+    let ok = allowed.get(entry.tier);
+    if (ok === undefined) {
+      ok = opts.canSpend(tierWorkClass(entry.tier));
+      allowed.set(entry.tier, ok);
+    }
+    return ok;
+  });
+  if (!first) return null;
+  const { repo } = first.subject;
+  const size = Math.max(1, opts.batchSize(repo));
+  const keys = ranked
+    .filter((entry) => entry.tier === first.tier && entry.subject.repo === repo)
+    .slice(0, size)
+    .map((entry) => entry.subject.subjectKey);
+  return { repo, tier: first.tier, workClass: tierWorkClass(first.tier), keys };
+}
+
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 /** A body marker that identifies a sticky bot comment, optionally tied to one author. */

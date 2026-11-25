@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { resolveConfig } from "../../config/load.ts";
+import { parseConfigText, resolveConfig } from "../../config/load.ts";
+import { ENRICH_PRIORITY } from "../../core/enrich-plan.ts";
 import { entryKey, type InboxPayload, type Section, type SubjectDetail, type SubjectView } from "../../core/index.ts";
 import { openPullsMetaKey } from "../../core/meta-keys.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
@@ -7,13 +8,13 @@ import type { OpenPull, OpenPullsListing } from "../../github/queries/open-pulls
 import { setMeta } from "../../store/meta.ts";
 import { rebuildWorkstreams } from "../../worker/workstreams.ts";
 import { DEFAULT_ITEM_STATE, putItemState } from "../../store/item-state.ts";
-import { ensureSubjects, getSubject, recordNotFound } from "../../store/subjects.ts";
+import { ensureSubjects, getSubject, markDirty, recordNotFound } from "../../store/subjects.ts";
 import { upsertThreads } from "../../store/threads.ts";
 import { putViews } from "../../store/views.ts";
 import type { ServerCtx } from "../ctx.ts";
 import { testCtx } from "../test-ctx.ts";
 import { inboxHandler } from "./inbox.ts";
-import { subjectHandler, subjectKeyFromPath } from "./subject.ts";
+import { refreshSubjectHandler, subjectHandler, subjectKeyFromPath } from "./subject.ts";
 
 const NOW = new Date("2026-11-24T12:00:00.000Z");
 
@@ -171,37 +172,102 @@ describe("subjectHandler", () => {
     expect(status).toBe(400);
   });
 
-  function withRaw(raw: unknown): ServerCtx {
-    const c = seeded();
-    ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" }]);
-    c.db.query("UPDATE subjects SET raw_json = ? WHERE subject_key = ?").run(JSON.stringify(raw), "acme/app#1");
+  const FETCHED_AT = "2026-11-20T00:00:00.000Z";
+
+  function subject(c: ServerCtx, kind: "pr" | "issue" = "pr"): ServerCtx {
+    ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind, origin: "thread" }]);
     return c;
   }
 
-  test("returns the PR description from the view", async () => {
+  function withRaw(raw: unknown): ServerCtx {
+    const c = subject(seeded());
+    c.db
+      .query("UPDATE subjects SET raw_json = ?, timeline_synced_until = ? WHERE subject_key = ?")
+      .run(JSON.stringify(raw), FETCHED_AT, "acme/app#1");
+    return c;
+  }
+
+  function notification(c: ServerCtx, updatedAt: string): void {
+    upsertThreads(
+      c.db,
+      [
+        {
+          threadId: "t1",
+          subjectKey: "acme/app#1",
+          repo: "acme/app",
+          subjectType: "PullRequest",
+          reason: "subscribed",
+          unread: true,
+          updatedAt,
+          lastReadAt: null,
+          subjectUrl: "https://api.github.com/repos/acme/app/pulls/1",
+          raw: {},
+        },
+      ],
+      NOW.toISOString(),
+    );
+  }
+
+  const queued = (c: ServerCtx) => {
+    const s = getSubject(c.db, "acme/app#1");
+    return { dirtyAt: s?.dirtyAt, priority: s?.priority };
+  };
+  const URGENT = { dirtyAt: NOW.toISOString(), priority: ENRICH_PRIORITY.urgent };
+
+  test("returns the PR description from the view without queueing a current subject", async () => {
     const c = withRaw({ number: 1, body: "Fixes **the** bug" });
+    notification(c, "2026-11-19T00:00:00.000Z");
     const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
-    expect(body).toMatchObject({ key: "acme/app#1", body: "Fixes **the** bug" });
+    expect(body).toMatchObject({ key: "acme/app#1", body: "Fixes **the** bug", refreshable: true, fetching: false });
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 
-  test("queues a refetch when the stored fields predate the description", async () => {
+  test("queues an urgent fetch when the stored fields predate the description", async () => {
     const c = withRaw({ number: 1 });
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ fetching: true });
+    expect(queued(c)).toEqual(URGENT);
+  });
+
+  test("queues an urgent fetch for a subject that has never been fetched", async () => {
+    const c = subject(seeded());
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ refreshable: true, fetching: true });
+    expect(queued(c)).toEqual(URGENT);
+  });
+
+  test("queues an urgent fetch when a notification is newer than the last fetch", async () => {
+    const c = withRaw({ number: 1, body: "Fixes **the** bug" });
+    notification(c, "2026-11-21T00:00:00.000Z");
     await get(subjectHandler, "/api/subjects/acme/app/1", c);
-    expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBe(NOW.toISOString());
+    expect(queued(c)).toEqual(URGENT);
+  });
+
+  test("moves an already queued subject to the front of the queue", async () => {
+    const c = withRaw({ number: 1, body: "Fixes **the** bug" });
+    markDirty(c.db, ["acme/app#1"], "2026-11-23T00:00:00.000Z");
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ fetching: true });
+    expect(queued(c)).toEqual({ dirtyAt: "2026-11-23T00:00:00.000Z", priority: ENRICH_PRIORITY.urgent });
   });
 
   test("does not queue a subject whose last fetch failed", async () => {
     const c = withRaw({ number: 1 });
     recordNotFound(c.db, "acme/app#1");
-    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ refreshable: true, fetching: false });
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 
-  test("does not queue a subject that has never been enriched", async () => {
-    const c = seeded();
-    ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" }]);
-    await get(subjectHandler, "/api/subjects/acme/app/1", c);
+  test("does not queue an issue when issues are not fetched", async () => {
+    const c = subject(testCtx(NOW, { config: parseConfigText(`{ "polling": { "enrichIssues": false } }`) }), "issue");
+    putViews(
+      c.db,
+      [toViewRecord(view("acme/app#1", "waiting", 1), { pipelineVersion: 1, configHash: "h", computedAt: NOW.toISOString() })],
+      NOW.toISOString(),
+    );
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    expect(body).toMatchObject({ refreshable: false, fetching: false });
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
   });
 
@@ -230,5 +296,31 @@ describe("subjectHandler", () => {
     const workstream = (body as SubjectDetail).workstream;
     expect(workstream?.stack.children).toEqual(["acme/app#3"]);
     expect(workstream?.titles["acme/app#3"]).toBe("Third part");
+  });
+});
+
+describe("refreshSubjectHandler", () => {
+  async function post(path: string, c: ServerCtx) {
+    const res = await refreshSubjectHandler(new Request(`http://127.0.0.1:4630${path}`, { method: "POST" }), c);
+    return { status: res.status, body: (await res.json()) as unknown };
+  }
+
+  test("queues an urgent fetch even after a failed fetch", async () => {
+    const c = seeded();
+    ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" }]);
+    recordNotFound(c.db, "acme/app#1");
+    const { status, body } = await post("/api/subjects/acme/app/1/refresh", c);
+    expect(status).toBe(202);
+    expect(body).toEqual({ key: "acme/app#1", fetching: true });
+    const s = getSubject(c.db, "acme/app#1");
+    expect({ dirtyAt: s?.dirtyAt, priority: s?.priority }).toEqual({
+      dirtyAt: NOW.toISOString(),
+      priority: ENRICH_PRIORITY.urgent,
+    });
+  });
+
+  test("404s for an unknown subject and 400s for a bad path", async () => {
+    expect((await post("/api/subjects/acme/app/99/refresh", seeded())).status).toBe(404);
+    expect((await post("/api/subjects/acme/app/abc/refresh", seeded())).status).toBe(400);
   });
 });

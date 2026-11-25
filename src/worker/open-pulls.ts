@@ -5,7 +5,7 @@ import { fetchOpenPulls, type OpenPullsListing } from "../github/queries/open-pu
 import { getMeta, setMeta } from "../store/meta.ts";
 import { getSubject } from "../store/subjects.ts";
 import type { Job } from "./scheduler.ts";
-import { readListing, readRecentlyClosed, rebuildWorkstreams, toWsPull } from "./workstreams.ts";
+import { readListing, readRecentlyClosed, rebuildAndLog, toWsPull } from "./workstreams.ts";
 
 function fetchedAt(text: string | undefined): number {
   if (!text) return 0;
@@ -56,15 +56,7 @@ export const openPullsJob: Job = {
     })();
     log.info(`openPulls ${repo}: ${listing.pulls.length} open PRs, ${closed.length} recently closed`);
 
-    if (repoConfig(config, repo).view === "overview") {
-      const result = rebuildWorkstreams(db, config, repo, clock());
-      if (result) {
-        log.info(
-          `workstreams ${repo}: ${result.workstreams.length} (${result.shownIds.length} shown), ` +
-            `${result.addedKeys.length} new subjects, ${result.changedKeys.length} membership changes`,
-        );
-      }
-    }
+    if (repoConfig(config, repo).view === "overview") rebuildAndLog(ctx, repo);
     return "worked";
   },
 };

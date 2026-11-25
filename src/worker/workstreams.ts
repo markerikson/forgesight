@@ -17,6 +17,7 @@ import {
   updateOverride,
   writeWorkstreams,
 } from "../store/workstreams.ts";
+import type { JobContext } from "./scheduler.ts";
 
 export function toWsPull(repo: string, p: OpenPull): WsPull {
   return {
@@ -224,4 +225,19 @@ export function rebuildWorkstreams(
   const listingOnly = new Set(allMembers.filter((key) => !withSubject.has(key)));
   const { changedKeys, changedIds } = writeWorkstreams(db, repo, workstreams, listingOnly, nowIso);
   return { workstreams, shownIds: shown.map((w) => w.id), addedKeys, changedKeys, changedIds };
+}
+
+/** Rebuilds the workstreams of `repo` and logs the outcome. */
+export function rebuildAndLog(
+  ctx: Pick<JobContext, "db" | "config" | "clock" | "log">,
+  repo: string,
+): RebuildResult | null {
+  const result = rebuildWorkstreams(ctx.db, ctx.config, repo, ctx.clock());
+  if (result) {
+    ctx.log.info(
+      `workstreams ${repo}: ${result.workstreams.length} (${result.shownIds.length} shown), ` +
+        `${result.addedKeys.length} new subjects, ${result.changedKeys.length} membership changes`,
+    );
+  }
+  return result;
 }

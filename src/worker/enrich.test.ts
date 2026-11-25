@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { UserConfig } from "../config/schema.ts";
 import { resolveConfig } from "../config/load.ts";
+import { ENRICH_PRIORITY } from "../core/enrich-plan.ts";
 import { batchMetaKey, openPullsMetaKey } from "../core/meta-keys.ts";
 import type { SubjectKind, SubjectOrigin } from "../core/types.ts";
 import { Governor, MemoryApiCallLog } from "../github/budget.ts";
@@ -12,7 +13,7 @@ import { ensureSubjects, getSubject, markDirty } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { upsertThreads } from "../store/threads.ts";
 import { timelineFor } from "../store/timeline.ts";
-import { enrichJob, loadBatchState } from "./enrich.ts";
+import { enrichJob, loadBatchState, urgentEnrichJob } from "./enrich.ts";
 import { openPullsJob } from "./open-pulls.ts";
 import type { JobContext, Logger } from "./scheduler.ts";
 
@@ -188,7 +189,7 @@ describe("enrichJob", () => {
     expect(isDirty(t.db, `${REPO}#3`)).toBe(true);
   });
 
-  test("subjects with old or missing threads are backfill; stack subjects are enrich", async () => {
+  test("stack subjects are enrich and go before backlog; old or missing threads are backfill", async () => {
     const t = setup([
       { number: 1, threadAgeDays: 30 },
       { number: 2 },
@@ -198,9 +199,50 @@ describe("enrichJob", () => {
     await enrichJob.run(t.ctx);
     const classes = t.graphqlCalls().map((c) => (c.method === "graphql" ? [c.opts.workClass, requested(c.query).map((r) => r.number)] : null));
     expect(classes).toEqual([
-      ["backfill", [1, 2]],
       ["enrich", [3]],
+      ["backfill", [1, 2]],
     ]);
+  });
+
+  test("recent activity in another repo goes before backlog in the repo with older dirty subjects", async () => {
+    const t = setup([
+      { number: 1, threadAgeDays: 30, repo: "a/old" },
+      { number: 2, threadAgeDays: 1 },
+    ]);
+    await enrichJob.run(t.ctx);
+    const [call] = t.graphqlCalls();
+    expect(call?.method === "graphql" && call.variables).toMatchObject({ owner: "octo", name: "repo" });
+    expect(isDirty(t.db, "a/old#1")).toBe(true);
+  });
+
+  test("urgent subjects go first, and the urgent job ignores everything else", async () => {
+    const t = setup([
+      { number: 1, threadAgeDays: 1 },
+      { number: 2, threadAgeDays: 90, repo: "a/old" },
+    ]);
+    expect(await urgentEnrichJob.run(t.ctx)).toBe("idle");
+    markDirty(t.db, ["a/old#2"], START.toISOString(), ENRICH_PRIORITY.urgent);
+    expect(await urgentEnrichJob.run(t.ctx)).toBe("worked");
+    const [call] = t.graphqlCalls();
+    expect(call?.method === "graphql" && call.opts.workClass).toBe("enrich");
+    expect(call?.method === "graphql" && requested(call.query).map((r) => r.number)).toEqual([2]);
+    expect(isDirty(t.db, "a/old#2")).toBe(false);
+    expect(isDirty(t.db, `${REPO}#1`)).toBe(true);
+    expect(await urgentEnrichJob.run(t.ctx)).toBe("idle");
+  });
+
+  test("rebuilds workstreams for an overview repo right after a batch", async () => {
+    const t = setup([{ number: 1, threadAgeDays: 1 }], { repos: { [REPO]: { view: "overview" } } });
+    const lines: string[] = [];
+    t.ctx.log = { ...quietLog, info: (msg: string) => lines.push(msg) };
+    setMeta(
+      t.db,
+      openPullsMetaKey(REPO),
+      JSON.stringify({ repo: REPO, fetchedAt: START.toISOString(), pulls: [] }),
+      START.toISOString(),
+    );
+    await enrichJob.run(t.ctx);
+    expect(lines.some((l) => l.startsWith(`workstreams ${REPO}:`))).toBe(true);
   });
 
   test("past the soft cap, backfill subjects wait while recent ones go ahead", async () => {

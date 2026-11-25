@@ -15,8 +15,12 @@ import { setMeta } from "../store/meta.ts";
 import { getPrTexts } from "../store/pr-texts.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { writeWorkstreams } from "../store/workstreams.ts";
-import type { JobContext, Logger } from "./scheduler.ts";
-import { createWorkstreamSummariesJob, LLM_MAX_ATTEMPTS } from "./workstream-summaries.ts";
+import type { JobContext, JobResult, Logger } from "./scheduler.ts";
+import {
+  createWorkstreamSummaryJobs,
+  LLM_MAX_ATTEMPTS,
+  type WorkstreamSummariesDeps,
+} from "./workstream-summaries.ts";
 
 const REPO = "acme/app";
 const HOUR = 60 * 60_000;
@@ -111,17 +115,46 @@ function workstream(id: number, members: number[]): Workstream {
   };
 }
 
+/** Runs the texts job then the summaries job, as one scheduler tick does. */
+function bothJobs(deps: WorkstreamSummariesDeps): { run(ctx: JobContext): Promise<JobResult> } {
+  const { texts, summaries } = createWorkstreamSummaryJobs(deps);
+  return {
+    async run(ctx) {
+      const fetched = await texts.run(ctx);
+      const ran = summaries ? await summaries.run(ctx) : "idle";
+      return fetched === "worked" || ran === "worked" ? "worked" : "idle";
+    },
+  };
+}
+
 function pr(number: number, updatedAt = "2026-11-24T10:00:00Z"): Pr {
   return { number, title: `Step ${number}`, body: `Does step ${number}.`, updatedAt };
 }
 
 describe("workstream summaries job", () => {
+  test("texts use GitHub in the GitHub chain; summaries get their own turn and make no GitHub calls", async () => {
+    const { gh, ctx, setPr } = setup();
+    setPr(pr(1));
+    const llm = new FakeLlmClient();
+    const { texts, summaries } = createWorkstreamSummaryJobs({ llm, workstreams: () => [workstream(1, [1])] });
+    expect(texts.ownTurn).toBeUndefined();
+    expect(summaries?.ownTurn).toBe(true);
+
+    expect(await texts.run(ctx)).toBe("worked");
+    expect(gh.calls).toHaveLength(1);
+    expect(await summaries?.run(ctx)).toBe("worked");
+    expect(gh.calls).toHaveLength(1);
+    expect(llm.requests).toHaveLength(1);
+
+    expect(createWorkstreamSummaryJobs({ llm: null }).summaries).toBeNull();
+  });
+
   test("fetches member texts, summarizes once, then stays idle", async () => {
     const { db, gh, ctx, setPr } = setup();
     setPr(pr(1));
     setPr(pr(2));
     const llm = new FakeLlmClient(() => ({ name: "Auth rework", summary: "Moves login to tokens." }));
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1, 2])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1, 2])] });
 
     expect(await job.run(ctx)).toBe("worked");
     expect(gh.calls).toHaveLength(1);
@@ -143,7 +176,7 @@ describe("workstream summaries job", () => {
   test("without an LLM client it only syncs texts", async () => {
     const { db, ctx, setPr } = setup();
     setPr(pr(1));
-    const job = createWorkstreamSummariesJob({ llm: null, workstreams: () => [workstream(1, [1])] });
+    const job = bothJobs({ llm: null, workstreams: () => [workstream(1, [1])] });
     expect(await job.run(ctx)).toBe("worked");
     expect(getPrTexts(db, REPO, [1]).size).toBe(1);
     expect(await job.run(ctx)).toBe("idle");
@@ -154,7 +187,7 @@ describe("workstream summaries job", () => {
     const { db, gh, ctx, setPr, advance } = setup();
     setPr(pr(1));
     const llm = new FakeLlmClient();
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1])] });
     await job.run(ctx);
     expect(llm.requests).toHaveLength(1);
 
@@ -187,7 +220,7 @@ describe("workstream summaries job", () => {
     setPr(pr(1));
     setPr(pr(2));
     const llm = new FakeLlmClient();
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1, 2])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1, 2])] });
     await job.run(ctx);
     expect(getPrTexts(db, REPO, [2]).get(2)).toMatchObject({ state: "OPEN" });
 
@@ -211,7 +244,7 @@ describe("workstream summaries job", () => {
     const { ctx, setPr } = setup();
     for (const n of [1, 2, 3]) setPr(pr(n));
     const llm = new FakeLlmClient();
-    const job = createWorkstreamSummariesJob({
+    const job = bothJobs({
       llm,
       workstreams: () => [workstream(1, [1]), workstream(2, [2]), workstream(3, [3])],
     });
@@ -225,7 +258,7 @@ describe("workstream summaries job", () => {
     const { db, ctx, setPr, advance } = setup({ llm: { dailyCapUsd: 0.001 } });
     setPr(pr(1));
     const llm = new FakeLlmClient(() => ({ name: "First", summary: "First summary." }));
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1])] });
     await job.run(ctx);
     expect(llm.requests).toHaveLength(1);
 
@@ -249,7 +282,7 @@ describe("workstream summaries job", () => {
     const llm = new FakeLlmClient(() => {
       throw new LlmError("overloaded", 529, true);
     });
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1])] });
     await job.run(ctx);
     expect(llm.requests).toHaveLength(1);
     await job.run(ctx);
@@ -269,7 +302,7 @@ describe("workstream summaries job", () => {
     setPr(pr(1));
     let calls = 0;
     const llm = new FakeLlmClient(() => (++calls === 1 ? { summary: "no name" } : { name: "Ok", summary: "Fine." }));
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1])] });
     await job.run(ctx);
     advance(HOUR);
     await job.run(ctx);
@@ -281,7 +314,7 @@ describe("workstream summaries job", () => {
     const { ctx, gh, setPr, prs } = setup();
     setPr(pr(1));
     const llm = new FakeLlmClient();
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1, 9])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1, 9])] });
     expect(prs.has(9)).toBe(false);
     await job.run(ctx);
     expect(llm.requests).toHaveLength(1);
@@ -295,7 +328,7 @@ describe("workstream summaries job", () => {
     setPr(pr(1));
     flaky.add(2);
     const llm = new FakeLlmClient();
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1, 2])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1, 2])] });
     await job.run(ctx);
     expect(llm.requests).toHaveLength(0);
 
@@ -316,7 +349,7 @@ describe("workstream summaries job", () => {
       if (fail) throw new LlmError("bad request", 400, false);
       return { name: "Recovered", summary: "Works again." };
     });
-    const job = createWorkstreamSummariesJob({ llm, workstreams: () => [workstream(1, [1])] });
+    const job = bothJobs({ llm, workstreams: () => [workstream(1, [1])] });
     await job.run(ctx);
     expect(llm.requests).toHaveLength(1);
     for (let i = 0; i < 5; i++) {
@@ -340,7 +373,7 @@ describe("workstream summaries job", () => {
     setPr(pr(2));
     writeWorkstreams(db, REPO, [workstream(1, [1, 2])], new Set(), clock().toISOString());
     const llm = new FakeLlmClient();
-    await createWorkstreamSummariesJob({ llm }).run(ctx);
+    await bothJobs({ llm }).run(ctx);
     expect(llm.requests).toHaveLength(1);
     expect(llm.requests[0]?.user).toContain("## #2 Step 2");
     expect(latestWorkstreamSummaries(db).has(`${REPO}:ws:1`)).toBe(true);
