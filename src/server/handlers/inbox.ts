@@ -11,7 +11,13 @@ import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { getPrTexts } from "../../store/pr-texts.ts";
 import { readListing } from "../../worker/workstreams.ts";
 import { listViews } from "../../store/views.ts";
-import { getWorkstreamStates, listWorkstreams, memberFacts, toWorkstream } from "../../store/workstreams.ts";
+import {
+  firstWorkstreamBuilds,
+  getWorkstreamStates,
+  listWorkstreams,
+  memberFacts,
+  toWorkstream,
+} from "../../store/workstreams.ts";
 import type { ServerCtx } from "../ctx.ts";
 import { withoutQuietDone, workerConfig } from "./derive-now.ts";
 
@@ -32,6 +38,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
     stored.map((w) => w.id),
   );
   const summaries = latestWorkstreamSummaries(ctx.db);
+  const firstBuilds = firstWorkstreamBuilds(ctx.db);
   const inputs: WorkstreamInput[] = [];
   for (const s of stored) {
     for (const m of s.members) {
@@ -49,7 +56,17 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
       s.repo,
       workstream.members.filter((key) => !rowKeys.has(key)),
     );
-    inputs.push({ workstream, state, summary: summaries.get(s.id) ?? null, snoozed, pulls });
+    const repoFirstSeenAt = firstBuilds.get(s.repo);
+    inputs.push({
+      workstream,
+      state,
+      summary: summaries.get(s.id) ?? null,
+      snoozed,
+      pulls,
+      rootBody: rootBody(ctx, s.repo, workstream.members[0], rowKeys),
+      firstSeenAt: s.firstSeenAt,
+      ...(repoFirstSeenAt === undefined ? {} : { repoFirstSeenAt }),
+    });
   }
   return inputs;
 }
@@ -57,7 +74,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
 const PULL_NUMBER = /#(\d+)$/;
 
 /** Title, state and URL of members with no inbox row, from the open-PR listing, else stored PR texts. */
-function listedPulls(ctx: ServerCtx, repo: string, keys: SubjectKey[]): Record<SubjectKey, ListedPull> {
+export function listedPulls(ctx: ServerCtx, repo: string, keys: SubjectKey[]): Record<SubjectKey, ListedPull> {
   const out: Record<SubjectKey, ListedPull> = {};
   if (keys.length === 0) return out;
   const numbers = new Map<number, SubjectKey>();
@@ -75,10 +92,38 @@ function listedPulls(ctx: ServerCtx, repo: string, keys: SubjectKey[]): Record<S
     const url = `https://github.com/${repo}/pull/${number}`;
     const pull = open.get(number);
     const text = texts.get(number);
-    if (pull) out[key] = { number, title: pull.title, url, state: "OPEN", draft: pull.isDraft };
-    else if (text) out[key] = { number, title: text.title, url, state: text.state, draft: text.isDraft };
+    if (pull) {
+      out[key] = {
+        number,
+        title: pull.title,
+        url,
+        state: "OPEN",
+        draft: pull.isDraft,
+        author: pull.author,
+        updatedAt: pull.updatedAt,
+      };
+    } else if (text) {
+      out[key] = {
+        number,
+        title: text.title,
+        url,
+        state: text.state,
+        draft: text.isDraft,
+        author: null,
+        updatedAt: text.updatedAt,
+      };
+    }
   }
   return out;
+}
+
+/** The stored description of a workstream's first member, when it has no inbox row to load it from. */
+function rootBody(ctx: ServerCtx, repo: string, root: SubjectKey | undefined, rowKeys: ReadonlySet<SubjectKey>): string | null {
+  if (root === undefined || rowKeys.has(root)) return null;
+  const match = PULL_NUMBER.exec(root);
+  if (!match) return null;
+  const body = getPrTexts(ctx.db, repo, [Number(match[1])]).get(Number(match[1]))?.body.trim();
+  return body ? body : null;
 }
 
 export function readInbox(ctx: ServerCtx, includeHidden: boolean): InboxPayload {

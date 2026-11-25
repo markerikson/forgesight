@@ -10,11 +10,6 @@
   background: var(--bg-active);
 }
 
-/* The selected group keeps "Done all (N)" visible; leave room for it. */
-.group[aria-selected="true"] > div:nth-of-type(2) {
-  padding-right: 110px;
-}
-
 .group[aria-selected="true"]:not(:hover, :focus-within) .priority {
   display: none;
 }
@@ -130,7 +125,7 @@
   white-space: nowrap;
 }
 
-.unlistedTitle {
+.unlisted .unlistedTitle {
   overflow: hidden;
   min-width: 0;
   color: inherit;
@@ -138,7 +133,7 @@
   text-decoration: none;
 }
 
-a.unlistedTitle:hover {
+.unlisted .unlistedTitle:hover {
   color: var(--accent);
   text-decoration: underline;
 }

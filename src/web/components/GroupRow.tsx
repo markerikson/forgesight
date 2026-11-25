@@ -1,5 +1,11 @@
 import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { groupKey, type InboxGroup, type UnlistedMember, type UnlistedReason } from "../../core/inbox.ts";
+import {
+  groupKey,
+  type InboxGroup,
+  isNewWorkstream,
+  type UnlistedMember,
+  type UnlistedReason,
+} from "../../core/inbox.ts";
 import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
 import { firstLine } from "../../core/pipeline/text.ts";
 import {
@@ -14,6 +20,7 @@ import { MEMBER_CAP, selectGoneKeys, toggleWorkstream } from "../store/view.ts";
 import { relativeTime, repoShortName } from "../format.ts";
 import { StateIcon } from "./Badges.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
+import { SubjectLink } from "./SubjectLink.tsx";
 import { rowDomId } from "./ThreadRow.tsx";
 import rowStyles from "./ThreadRow.module.css";
 import styles from "./GroupRow.module.css";
@@ -63,40 +70,6 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
       className={`${rowStyles.row} ${styles.group} ${selected ? rowStyles.selected : ""} ${group.isNew ? rowStyles.unread : ""}`}
       onClick={() => onSelect(key, index)}
     >
-      {!editing && (
-        <div className={rowStyles.actions}>
-          <select
-            className={styles.priority}
-            title="Workstream priority"
-            value={group.priority}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => dispatch(setWorkstreamPriority(group, e.currentTarget.value as WorkstreamPriority))}
-          >
-            {(Object.keys(PRIORITY_LABELS) as WorkstreamPriority[]).map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABELS[p]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            title="Snooze (s)"
-            onClick={(e) => act(e, () => dispatch(openWorkstreamSnooze(group, anchorBelow(e.currentTarget))))}
-          >
-            Snooze
-          </button>
-          {group.section !== "hidden" && doneCount > 0 && (
-            <button
-              type="button"
-              className={rowStyles.done}
-              title="Mark the listed members done (e)"
-              onClick={(e) => act(e, () => dispatch(doneAllWorkstream(group)))}
-            >
-              Done all ({doneCount})
-            </button>
-          )}
-        </div>
-      )}
       <div className={rowStyles.line}>
         <button
           type="button"
@@ -131,10 +104,44 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
         <span className={styles.count} title={`${count} pull requests and issues`}>
           {count}
         </span>
-        {group.isNew && <span className={styles.newBadge}>new workstream</span>}
+        {isNewWorkstream(group) && <span className={styles.newBadge}>new workstream</span>}
         {group.summary?.changed && <span className={styles.changed}>summary updated</span>}
         {group.priority !== "normal" && <span className={styles.badge}>{PRIORITY_LABELS[group.priority]}</span>}
         {group.closed && <span className={styles.badge}>closed</span>}
+        {!editing && (
+          <div className={rowStyles.actions}>
+            <select
+              className={styles.priority}
+              title="Workstream priority"
+              value={group.priority}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => dispatch(setWorkstreamPriority(group, e.currentTarget.value as WorkstreamPriority))}
+            >
+              {(Object.keys(PRIORITY_LABELS) as WorkstreamPriority[]).map((p) => (
+                <option key={p} value={p}>
+                  {PRIORITY_LABELS[p]}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              title="Snooze (s)"
+              onClick={(e) => act(e, () => dispatch(openWorkstreamSnooze(group, anchorBelow(e.currentTarget))))}
+            >
+              Snooze
+            </button>
+            {group.section !== "hidden" && doneCount > 0 && (
+              <button
+                type="button"
+                className={rowStyles.done}
+                title="Mark the listed members done (e)"
+                onClick={(e) => act(e, () => dispatch(doneAllWorkstream(group)))}
+              >
+                Done all ({doneCount})
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div className={`${rowStyles.line} ${rowStyles.sub}`}>
         <span className={rowStyles.summary}>
@@ -213,19 +220,9 @@ function UnlistedRow({ member }: { member: UnlistedMember }) {
   return (
     <li role="none" className={styles.unlisted}>
       <StateIcon kind="pr" state={member.state} draft={member.draft} merged={member.state === "MERGED"} />
-      {member.url ? (
-        <a
-          className={styles.unlistedTitle}
-          href={member.url}
-          target="_blank"
-          rel="noreferrer"
-          title={`${label} (opens on GitHub)`}
-        >
-          {label}
-        </a>
-      ) : (
-        <span className={styles.unlistedTitle}>{label}</span>
-      )}
+      <SubjectLink subjectKey={member.key} url={member.url} className={styles.unlistedTitle} title={label}>
+        {label}
+      </SubjectLink>
       <span className={styles.why}>{UNLISTED_LABELS[member.why]}</span>
     </li>
   );

@@ -173,6 +173,16 @@ export function listWorkstreams(db: Database, repo?: string): StoredWorkstream[]
   return withMembers(db, rows);
 }
 
+/** Earliest `first_seen_at` per repo, archived workstreams included: when grouping first ran there. */
+export function firstWorkstreamBuilds(db: Database): Map<string, string> {
+  const rows = db
+    .query<{ repo: string; first: string }, []>(
+      "SELECT repo, MIN(first_seen_at) AS first FROM workstreams GROUP BY repo",
+    )
+    .all();
+  return new Map(rows.map((r) => [r.repo, r.first]));
+}
+
 /**
  * The `previous` input for `buildWorkstreams`: current workstreams of `repo` plus closed ones
  * that left the listing in the last 14 days (stored without members).

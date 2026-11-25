@@ -460,6 +460,42 @@ export function selectSubject(key: string): ViewThunk<boolean> {
   };
 }
 
+/** Section that lists subject `key` in either loaded inbox, or null when neither has it. */
+export function subjectSection(state: ViewRootState, key: string): Section | null {
+  for (const payload of [selectWithoutHidden(state).data, selectWithHidden(state).data]) {
+    for (const entry of payload?.rows ?? []) {
+      if (!isGroup(entry)) {
+        if (entry.key === key) return entry.section;
+        continue;
+      }
+      const member = entry.members.find((m) => m.key === key);
+      if (member) return member.section;
+      const unlisted = entry.unlisted.find((m) => m.key === key);
+      if (unlisted?.why === "hidden" || unlisted?.why === "snoozed") return unlisted.why;
+    }
+  }
+  return null;
+}
+
+/**
+ * Opens subject `key` in the app, switching section and clearing the repo filter when needed.
+ * Returns false when the inbox does not have it, so the caller's link goes to GitHub instead.
+ * This is the one place that decides between the app and GitHub.
+ */
+export function openSubject(key: string): ViewThunk<boolean> {
+  return (dispatch, getState) => {
+    if (dispatch(selectSubject(key))) return true;
+    const section = subjectSection(getState(), key);
+    if (section === null) return false;
+    dispatch(sectionSelected(section));
+    if (dispatch(selectSubject(key))) return true;
+    if (selectInbox(getState()) !== undefined) return false;
+    // The section's inbox is still loading; the selection resolves by key once it arrives.
+    dispatch(rowSelected({ key, index: 0 }));
+    return true;
+  };
+}
+
 /**
  * Expands or collapses a workstream (toggles when `expand` is omitted). Collapsing while one of
  * its members is selected moves the selection to the group row.

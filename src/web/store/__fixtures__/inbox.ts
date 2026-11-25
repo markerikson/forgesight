@@ -41,6 +41,8 @@ export function group(id: string, members: InboxRow[], extra: Partial<InboxGroup
     summary: null,
     priority: "normal",
     isNew: false,
+    firstBuild: false,
+    rootBody: null,
     section: members.some((m) => m.section === "waiting") ? "waiting" : "updates",
     sortAt: members.map((m) => m.sortAt).sort().at(-1) ?? "",
     members,

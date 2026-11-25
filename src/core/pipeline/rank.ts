@@ -201,7 +201,8 @@ const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
 
 /**
  * Picks the inbox section. Waiting: an open review request for me, a new mention of me, or
- * new human comments on something I authored, reviewed, was assigned or am participating in.
+ * new human comments on something I authored, reviewed, was assigned or am participating in,
+ * or any open PR of mine (drafts too) that I have not marked done since its last shown event.
  * Once something I authored is closed, only a new mention or review request makes it waiting.
  * Updates: anything else new and shown. Hidden: nothing new and shown, a PR someone else
  * merged or closed with no new human comment, or a PR its author closed unmerged that I never
@@ -239,6 +240,8 @@ export function rank(input: RankInput): Rank {
     if (threads.some((t) => PARTICIPATING_REASONS.has(t.reason))) add("participating");
   }
   const closed = subject.state === "MERGED" || subject.state === "CLOSED";
+  // My open PRs, drafts included, are my work queue. Done still clears one until something new shows.
+  if (isPr && mine && subject.state === "OPEN" && (state.doneAt == null || shown.length > 0)) add("myOpenPr");
   // Once my own PR or issue is closed, only a new mention or review request keeps it waiting.
   const waits = closed && mine
     ? reasons.some((r) => r === "mentioned" || r === "reviewRequested")

@@ -3,6 +3,7 @@ import type { InboxRow } from "../../core/index.ts";
 import { isMuted } from "../store/actions.ts";
 import { relativeTime, repoShortName, rowByline } from "../format.ts";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
+import { GitHubIcon } from "./SubjectLink.tsx";
 import styles from "./ThreadRow.module.css";
 
 interface Props {
@@ -52,6 +53,11 @@ export const ThreadRow = memo(function ThreadRow({
           {repoShortName(row.repo)}
           {row.number !== null && `#${row.number}`}
         </span>
+        {row.url && (
+          <span className={styles.github}>
+            <GitHubIcon url={row.url} />
+          </span>
+        )}
         {row.newMeaningfulCount > 0 && (
           <span className={styles.newCount} title={`${row.newMeaningfulCount} new`}>
             {row.newMeaningfulCount}

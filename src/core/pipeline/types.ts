@@ -186,6 +186,7 @@ export type RankReason =
   | "mentioned"
   | "assigned"
   | "onMine"
+  | "myOpenPr"
   | "onMyReview"
   | "participating"
   | "newActivity"

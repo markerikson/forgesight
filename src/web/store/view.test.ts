@@ -14,6 +14,7 @@ import {
   groupsToggled,
   lingeringDropped,
   moveSelection,
+  openSubject,
   repoCounts,
   repoSelected,
   resolveSelection,
@@ -267,6 +268,8 @@ describe("workstream groups", () => {
           url: null,
           state: null,
           draft: false,
+          author: null,
+          updatedAt: null,
           why: "hidden",
         },
       ],
@@ -320,6 +323,38 @@ describe("workstream groups", () => {
     expect(store.dispatch(selectSubject("acme/app#19"))).toBe(true);
     expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#19");
     expect(store.dispatch(selectSubject("acme/app#99"))).toBe(false);
+  });
+
+  test("openSubject switches section and clears the repo filter to select the subject", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(repoSelected("acme/lib"));
+    expect(store.dispatch(openSubject("acme/app#1"))).toBe(true);
+    expect(store.getState().view).toMatchObject({ section: "waiting", repo: null });
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#1");
+  });
+
+  test("openSubject returns false for a subject the inbox does not have", () => {
+    const store = storeWith(entries);
+    expect(store.dispatch(openSubject("acme/app#99"))).toBe(false);
+    expect(store.getState().view.section).toBe("waiting");
+  });
+
+  test("openSubject waits for a hidden member's section to load", () => {
+    const hidden = {
+      key: "acme/app#30",
+      number: 30,
+      title: "read one",
+      url: null,
+      state: "OPEN" as const,
+      draft: false,
+      author: null,
+      updatedAt: null,
+      why: "hidden" as const,
+    };
+    const store = storeWith([group("s2", [members[0]!], { unlisted: [hidden] })]);
+    expect(store.dispatch(openSubject("acme/app#30"))).toBe(true);
+    expect(store.getState().view).toMatchObject({ section: "hidden", selectedKey: "acme/app#30" });
   });
 
   test("members count as listed for gone keys", () => {

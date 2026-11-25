@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { entryKey, type InboxPayload, type Section, type SubjectView } from "../../core/index.ts";
+import { resolveConfig } from "../../config/load.ts";
+import { entryKey, type InboxPayload, type Section, type SubjectDetail, type SubjectView } from "../../core/index.ts";
+import { openPullsMetaKey } from "../../core/meta-keys.ts";
 import { toViewRecord } from "../../core/pipeline/row.ts";
+import type { OpenPull, OpenPullsListing } from "../../github/queries/open-pulls.ts";
+import { setMeta } from "../../store/meta.ts";
+import { rebuildWorkstreams } from "../../worker/workstreams.ts";
 import { DEFAULT_ITEM_STATE, putItemState } from "../../store/item-state.ts";
 import { ensureSubjects, getSubject, recordNotFound } from "../../store/subjects.ts";
 import { upsertThreads } from "../../store/threads.ts";
@@ -198,5 +203,32 @@ describe("subjectHandler", () => {
     ensureSubjects(c.db, [{ subjectKey: "acme/app#1", repo: "acme/app", number: 1, kind: "pr", origin: "thread" }]);
     await get(subjectHandler, "/api/subjects/acme/app/1", c);
     expect(getSubject(c.db, "acme/app#1")?.dirtyAt).toBeNull();
+  });
+
+  test("names stack members with no view from the open-PR listing", async () => {
+    const c = seeded();
+    const pull = (number: number, baseRef: string, title: string): OpenPull => ({
+      number,
+      title,
+      author: "alice",
+      authorType: "User",
+      headRef: `b${number}`,
+      baseRef,
+      headSha: `sha${number}`,
+      updatedAt: "2026-11-24T10:00:00Z",
+      isDraft: false,
+    });
+    const listing: OpenPullsListing = {
+      repo: "acme/app",
+      fetchedAt: NOW.toISOString(),
+      pulls: [pull(1, "main", "First part"), pull(3, "b1", "Third part")],
+    };
+    setMeta(c.db, openPullsMetaKey("acme/app"), JSON.stringify(listing), NOW.toISOString());
+    const config = resolveConfig({ me: "mark", repos: { "acme/app": { view: "overview" } } });
+    rebuildWorkstreams(c.db, config, "acme/app", NOW);
+    const { body } = await get(subjectHandler, "/api/subjects/acme/app/1", c);
+    const workstream = (body as SubjectDetail).workstream;
+    expect(workstream?.stack.children).toEqual(["acme/app#3"]);
+    expect(workstream?.titles["acme/app#3"]).toBe("Third part");
   });
 });
