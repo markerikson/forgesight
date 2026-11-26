@@ -142,6 +142,7 @@ function RemoveButton({ group, subjectKey }: { group: InboxGroup; subjectKey: Su
       type="button"
       className={styles.memberRemove}
       title={`Remove ${keyLabel(subjectKey)} from ${group.name}`}
+      aria-label={`Remove ${keyLabel(subjectKey)} from ${group.name}`}
       onClick={() => dispatch(removeFromWorkstream(group, subjectKey))}
     >
       Remove

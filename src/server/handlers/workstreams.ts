@@ -1,7 +1,9 @@
 import type { Database } from "bun:sqlite";
 import type { InboxRow, SubjectKey } from "../../core/index.ts";
 import { isValidWorkstreamOp, type WorkstreamOp } from "../../core/workstream-state.ts";
+import { workstreamDisplayName } from "../../core/inbox.ts";
 import { subjectKeyOf } from "../../core/workstreams.ts";
+import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { applyWorkstreamOps } from "../../store/workstream-ops.ts";
 import { getWorkstream, listWorkstreams, type StoredWorkstream, workstreamIdsFor } from "../../store/workstreams.ts";
 import { readListing } from "../../worker/workstreams.ts";
@@ -22,8 +24,13 @@ export interface WorkstreamStateResponse {
   workstreams: Record<string, WorkstreamSnapshot | null>;
 }
 
+export interface ListedWorkstream extends WorkstreamSnapshot {
+  /** The name the inbox shows: a manual rename, else the summary's name, else the detected one. */
+  displayName: string;
+}
+
 export interface WorkstreamsResponse {
-  workstreams: WorkstreamSnapshot[];
+  workstreams: ListedWorkstream[];
 }
 
 function parseRequest(body: unknown): WorkstreamStateRequest | string {
@@ -83,9 +90,16 @@ export async function workstreamStateHandler(req: Request, ctx: ServerCtx): Prom
 export async function workstreamsHandler(req: Request, ctx: ServerCtx): Promise<Response> {
   const repo = new URL(req.url).searchParams.get("repo") ?? undefined;
   const db = ctx.db;
-  const workstreams = listWorkstreams(db, repo)
-    .map((ws) => snapshot(db, ws.id))
-    .filter((ws): ws is WorkstreamSnapshot => ws !== null);
+  const stored = listWorkstreams(db, repo);
+  const summaries = latestWorkstreamSummaries(
+    db,
+    stored.map((ws) => ws.id),
+  );
+  const workstreams = stored.flatMap((ws): ListedWorkstream[] => {
+    const snap = snapshot(db, ws.id);
+    if (!snap) return [];
+    return [{ ...snap, displayName: workstreamDisplayName(snap, summaries.get(ws.id)?.name) }];
+  });
   const body: WorkstreamsResponse = { workstreams };
   return Response.json(body);
 }

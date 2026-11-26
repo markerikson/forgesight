@@ -389,9 +389,15 @@ function groupSummary(input: WorkstreamInput): GroupSummary | null {
 
 /** A manual rename wins over the summary's suggested name, which wins over the detected name. */
 function groupName(input: WorkstreamInput): string {
-  const { workstream: ws, summary } = input;
+  return workstreamDisplayName(input.workstream, input.summary?.name);
+}
+
+export function workstreamDisplayName(
+  ws: Pick<WorkstreamInput["workstream"], "name" | "nameSource">,
+  summaryName: string | null | undefined,
+): string {
   if (ws.nameSource === "manual") return ws.name;
-  return summary?.name || ws.name;
+  return summaryName || ws.name;
 }
 
 /** An empty group for a workstream; `reflowEntries` fills in its members. */

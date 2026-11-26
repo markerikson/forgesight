@@ -192,7 +192,9 @@ function ActionBar({ row, url, subject }: { row: InboxRow; url: string | null; s
 function AddToWorkstream({ header }: { header: SubjectHeader }) {
   const dispatch = useAppDispatch();
   const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
-  const eligible = header.kind === "pr" && header.state === "OPEN" && !header.merged;
+  // A listed pull request that is not loaded yet has no state; the server checks it is open.
+  const eligible =
+    header.kind === "pr" && !header.merged && (header.state === null || header.state === "OPEN");
   const { data } = useGetWorkstreamsQuery(header.repo, { skip: !eligible });
   if (!eligible || !data?.workstreams.some((ws) => !ws.closed)) return null;
   return (

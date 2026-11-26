@@ -20,8 +20,11 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
   const needle = query.trim().toLowerCase();
   const choices = (data?.workstreams ?? [])
     .filter((ws) => ws.id !== excludeId && !ws.closed)
-    .filter((ws) => needle === "" || ws.name.toLowerCase().includes(needle) || ws.author.toLowerCase().includes(needle))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .filter(
+      (ws) =>
+        needle === "" || ws.displayName.toLowerCase().includes(needle) || ws.author.toLowerCase().includes(needle),
+    )
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const choose = (id: string) => {
     onClose();
@@ -41,7 +44,7 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
       }}
     >
       <div
-        className={`${styles.menu} ${anchor ? styles.anchored : ""}`}
+        className={`${styles.menu} ${pickerStyles.picker} ${anchor ? styles.anchored : ""}`}
         style={anchor ?? undefined}
         role="dialog"
         aria-label={title}
@@ -74,7 +77,9 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
               className={`${styles.item} ${pickerStyles.choice}`}
               onClick={() => choose(ws.id)}
             >
-              <span className={pickerStyles.name}>{ws.name}</span>
+              <span className={pickerStyles.name} title={ws.displayName}>
+                {ws.displayName}
+              </span>
               <span className={pickerStyles.meta}>
                 {ws.author} · {ws.members.length} PRs
               </span>

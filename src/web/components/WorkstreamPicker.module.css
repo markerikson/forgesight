@@ -1,3 +1,9 @@
+/* Fixed to the width `anchorBelow` keeps on screen, so filtering does not resize it. */
+.picker {
+  width: 280px;
+  box-sizing: border-box;
+}
+
 .search {
   margin: 0 8px 6px;
   padding: 4px 8px;
@@ -17,7 +23,8 @@
 
 .choice {
   justify-content: space-between;
-  max-width: 360px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .name {

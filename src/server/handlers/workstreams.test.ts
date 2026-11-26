@@ -2,8 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { resolveConfig } from "../../config/load.ts";
 import { openPullsMetaKey } from "../../core/meta-keys.ts";
 import type { OpenPull, OpenPullsListing } from "../../github/queries/open-pulls.ts";
+import { saveSummary } from "../../store/llm.ts";
 import { setMeta } from "../../store/meta.ts";
-import { getWorkstream, getWorkstreamState } from "../../store/workstreams.ts";
+import { getWorkstream, getWorkstreamState, setManualName } from "../../store/workstreams.ts";
 import { rebuildWorkstreams } from "../../worker/workstreams.ts";
 import { testCtx } from "../test-ctx.ts";
 import { readInbox } from "./inbox.ts";
@@ -217,5 +218,31 @@ describe("workstreamsHandler", () => {
       await workstreamsHandler(new Request("http://localhost:7777/api/workstreams?repo=x/y"), ctx)
     ).json()) as WorkstreamsResponse;
     expect(none.workstreams).toEqual([]);
+  });
+
+  test("names each workstream as the inbox does", async () => {
+    const ctx = setup();
+    saveSummary(ctx.db, {
+      kind: "workstream",
+      subjectKey: A,
+      inputHash: "h1",
+      promptVersion: 1,
+      model: "m",
+      name: "Summary name",
+      text: "t",
+      status: "ok",
+      outputJson: "{}",
+      costUsd: 0,
+      createdAt: "2026-11-24T12:00:00.000Z",
+    });
+    const list = async () =>
+      (
+        (await (
+          await workstreamsHandler(new Request("http://localhost:7777/api/workstreams"), ctx)
+        ).json()) as WorkstreamsResponse
+      ).workstreams.find((w) => w.id === A)?.displayName;
+    expect(await list()).toBe("Summary name");
+    setManualName(ctx.db, A, "Mine", "2026-11-24T12:00:00.000Z");
+    expect(await list()).toBe("Mine");
   });
 });
