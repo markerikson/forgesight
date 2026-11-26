@@ -4,13 +4,14 @@ import { subjectEvents } from "../core/pipeline/index.ts";
 import type { ViewEvent } from "../core/pipeline/types.ts";
 import type { SubjectKey } from "../core/types.ts";
 import {
+  applyWorkstreamOp,
   snoozeWakesOnActivity,
   type WorkstreamState,
   workstreamSnoozeActive,
 } from "../core/workstream-state.ts";
 import { getSubject } from "../store/subjects.ts";
 import { stickiesFor, timelineFor } from "../store/timeline.ts";
-import { getWorkstream, getWorkstreamStates, workstreamIdsFor } from "../store/workstreams.ts";
+import { getWorkstream, getWorkstreamStates, putWorkstreamState, workstreamIdsFor } from "../store/workstreams.ts";
 
 /** Classified events of a stored subject; none for a listing-only member. */
 function memberEvents(db: Database, config: Config, key: SubjectKey): ViewEvent[] {
@@ -49,20 +50,23 @@ export function groupSnoozed(
 }
 
 /**
- * Workstreams of `keys` whose snooze was ended by member activity rather than time. Nothing
- * is written when that happens, so the caller announces them for the inbox to regroup.
+ * Ends the snooze of each workstream of `keys` that member activity woke, and returns their
+ * IDs. Storing the wake keeps the group awake when the member that woke it later leaves.
  */
-export function workstreamsWokenBy(db: Database, config: Config, keys: readonly SubjectKey[], now: Date): string[] {
+export function endWokenSnoozes(db: Database, config: Config, keys: readonly SubjectKey[], now: Date): string[] {
   if (keys.length === 0) return [];
   const ids = [...new Set(workstreamIdsFor(db, [...keys]).values())];
   const states = getWorkstreamStates(db, ids);
   const me = config.me ?? null;
+  const nowIso = now.toISOString();
   const woken: string[] = [];
   for (const id of ids) {
     const state = states.get(id);
     if (!state || !snoozeWakesOnActivity(state) || !workstreamSnoozeActive(state, [], me, now)) continue;
     const members = getWorkstream(db, id)?.members.map((m) => m.key) ?? [];
-    if (!groupSnoozed(db, config, state, members, now)) woken.push(id);
+    if (groupSnoozed(db, config, state, members, now)) continue;
+    putWorkstreamState(db, id, applyWorkstreamOp(state, { kind: "unsnooze" }, nowIso), nowIso);
+    woken.push(id);
   }
   return woken;
 }

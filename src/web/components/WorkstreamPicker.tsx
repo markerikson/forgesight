@@ -1,4 +1,4 @@
-import { type KeyboardEvent, useState } from "react";
+import { type FocusEvent, type KeyboardEvent, useState } from "react";
 import { useGetWorkstreamsQuery } from "../store/api.ts";
 import styles from "./SnoozeMenu.module.css";
 import pickerStyles from "./WorkstreamPicker.module.css";
@@ -38,6 +38,11 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
     e.stopPropagation();
     if (e.key === "Escape") onClose();
   };
+  // Focus moving to the page (Tab past the last choice) closes the picker for the same reason.
+  const onBlur = (e: FocusEvent<HTMLDivElement>) => {
+    const next = e.relatedTarget;
+    if (next instanceof Node && !e.currentTarget.contains(next)) onClose();
+  };
 
   return (
     <div
@@ -54,6 +59,9 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKey}
+        onBlur={onBlur}
+        // Clicks on the title or empty space keep focus inside the picker.
+        tabIndex={-1}
       >
         <div className={styles.title}>{title}</div>
         <input

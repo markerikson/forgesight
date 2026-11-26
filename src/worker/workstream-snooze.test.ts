@@ -6,10 +6,10 @@ import type { Workstream } from "../core/workstreams.ts";
 import { ensureSubjects, saveEnrichment } from "../store/subjects.ts";
 import { memoryDb } from "../store/test-db.ts";
 import { changesAfter } from "../store/views.ts";
-import { putWorkstreamState, writeWorkstreams } from "../store/workstreams.ts";
+import { getWorkstreamState, putWorkstreamState, writeWorkstreams } from "../store/workstreams.ts";
 import { deriveViews } from "./derive.ts";
 import type { Logger } from "./scheduler.ts";
-import { groupSnoozed, workstreamsWokenBy } from "./workstream-snooze.ts";
+import { endWokenSnoozes, groupSnoozed } from "./workstream-snooze.ts";
 
 const REPO = "octo/repo";
 const KEY = `${REPO}#1`;
@@ -125,11 +125,28 @@ describe("groupSnoozed", () => {
   });
 });
 
-describe("workstreamsWokenBy", () => {
-  test("names the workstream of a member whose activity ended its snooze", () => {
+describe("endWokenSnoozes", () => {
+  test("ends the snooze of the workstream a member's activity woke", () => {
     const { db, config } = setup([{ login: "bob", at: AFTER }]);
-    expect(workstreamsWokenBy(db, config, [OTHER], NOW)).toEqual([ID]);
-    expect(workstreamsWokenBy(db, config, [`${REPO}#99`], NOW)).toEqual([]);
+    expect(endWokenSnoozes(db, config, [`${REPO}#99`], NOW)).toEqual([]);
+    expect(endWokenSnoozes(db, config, [OTHER], NOW)).toEqual([ID]);
+    const state = getWorkstreamState(db, ID);
+    expect(state.snoozeUntil).toBeNull();
+    expect(state.snoozedAt).toBeNull();
+    expect(endWokenSnoozes(db, config, [OTHER], NOW)).toEqual([]);
+  });
+
+  test("the group stays awake after the member that woke it leaves", () => {
+    const { db, config } = setup([{ login: "bob", at: AFTER }]);
+    endWokenSnoozes(db, config, [KEY], NOW);
+    const state = getWorkstreamState(db, ID);
+    expect(groupSnoozed(db, config, state, [OTHER], NOW)).toBe(false);
+  });
+
+  test("a snooze still held is left alone", () => {
+    const { db, config } = setup([{ login: "ci-bot", at: AFTER, bot: true }]);
+    expect(endWokenSnoozes(db, config, [KEY], NOW)).toEqual([]);
+    expect(getWorkstreamState(db, ID).snoozedAt).toBe(SNOOZED_AT);
   });
 
   test("derive announces the woken workstream so the inbox regroups", () => {

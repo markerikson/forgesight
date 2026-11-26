@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+.picker:focus {
+  outline: none;
+}
+
 .search {
   margin: 0 8px 6px;
   padding: 4px 8px;
