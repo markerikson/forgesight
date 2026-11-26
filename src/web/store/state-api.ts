@@ -207,6 +207,8 @@ export const stateApi = api.injectEndpoints({
           // The response carries stored workstreams, not inbox groups, so refetch the groups.
           // Subject previews show the workstream name and summary too.
           dispatch(api.util.invalidateTags(workstreamTags(ids, op.kind !== "seen")));
+          // The added PR's preview had no workstream tag to invalidate.
+          if (op.kind === "add") dispatch(api.util.invalidateTags([{ type: "Subject", id: op.key }]));
           if (op.kind === "seen") return;
           dispatch(undoPushed({ opId: data.opId, label, keys: [], workstream: targetId, at: now }));
           dispatch(toastShown(label, { opId: data.opId }));

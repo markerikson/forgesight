@@ -13,6 +13,7 @@ import { reviewThreadsFor, stickiesFor, timelineFor } from "../store/timeline.ts
 import { appendChange, changesAfter, putViews, staleViewKeys } from "../store/views.ts";
 import { stackContextsFor, workstreamSnoozesEndedBetween } from "../store/workstreams.ts";
 import type { Job, Logger } from "./scheduler.ts";
+import { workstreamsWokenBy } from "./workstream-snooze.ts";
 
 export const DERIVE_BATCH = 200;
 
@@ -143,6 +144,9 @@ export function deriveViews(
   if (maxSeq !== null) setMeta(db, META.deriveSeq, String(maxSeq), nowIso);
   // A workstream snooze that lapses writes nothing, so announce it for the inbox to regroup.
   for (const id of workstreamSnoozesEndedBetween(db, getMeta(db, META.deriveAt) ?? null, nowIso)) {
+    appendChange(db, "workstream", id, nowIso);
+  }
+  for (const id of workstreamsWokenBy(db, config, keys, now)) {
     appendChange(db, "workstream", id, nowIso);
   }
   setMeta(db, META.deriveAt, nowIso, nowIso);

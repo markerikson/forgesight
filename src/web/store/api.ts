@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { type InboxPayload, isGroup, type SubjectDetail } from "../../core/index.ts";
 import type { StatusPayload } from "../../server/handlers/status.ts";
+import type { WorkstreamsResponse } from "../../server/handlers/workstreams.ts";
 
 export interface InboxArg {
   includeHidden: boolean;
@@ -46,10 +47,18 @@ export const api = createApi({
       query: () => "status",
       providesTags: ["Status"],
     }),
+    /** The stored workstreams of one repo (`owner/name`), for the merge and add pickers. */
+    getWorkstreams: build.query<WorkstreamsResponse, string>({
+      query: (repo) => `workstreams?repo=${encodeURIComponent(repo)}`,
+      providesTags: (result) => [
+        { type: "Workstream", id: "LIST" },
+        ...(result?.workstreams ?? []).map((ws) => ({ type: "Workstream" as const, id: ws.id })),
+      ],
+    }),
   }),
 });
 
-export const { useGetInboxQuery, useGetSubjectQuery, useGetStatusQuery, usePrefetch } = api;
+export const { useGetInboxQuery, useGetSubjectQuery, useGetStatusQuery, useGetWorkstreamsQuery, usePrefetch } = api;
 
 /** While the event stream is down, the inbox and status poll on this interval. */
 export const POLL_MS = 60_000;

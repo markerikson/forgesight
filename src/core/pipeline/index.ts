@@ -120,21 +120,34 @@ function rankFromThreads(input: DeriveInput): Rank {
   };
 }
 
+export type SubjectEventsInput = Pick<
+  DeriveInput,
+  "subject" | "items" | "stickies" | "config" | "me" | "pushVerdicts"
+> & {
+  dismissedAt: string | null;
+};
+
+/** A subject's classified timeline events. */
+export function subjectEvents(input: SubjectEventsInput): ViewEvent[] {
+  const { subject, config, me } = input;
+  return classify(normalize({ repo: subject.repo, items: input.items, stickies: input.stickies }), {
+    config,
+    me,
+    mode: repoConfig(config, subject.repo).mode,
+    subjectKind: subject.kind,
+    mySubject: isMe(subject.author ?? undefined, me),
+    dismissedAt: input.dismissedAt,
+    ...(input.pushVerdicts ? { pushVerdicts: input.pushVerdicts } : {}),
+  });
+}
+
 /**
  * Pure derivation from stored GitHub data and local state to one subject's view. Same input,
  * same output: `now`, `config` and `me` are passed in.
  */
 export function deriveSubjectView(input: DeriveInput): SubjectView {
   const { subject, threads, state, config, me, now } = input;
-  const events = classify(normalize({ repo: subject.repo, items: input.items, stickies: input.stickies }), {
-    config,
-    me,
-    mode: repoConfig(config, subject.repo).mode,
-    subjectKind: subject.kind,
-    mySubject: isMe(subject.author ?? undefined, me),
-    dismissedAt: state.dismissedAt,
-    ...(input.pushVerdicts ? { pushVerdicts: input.pushVerdicts } : {}),
-  });
+  const events = subjectEvents({ ...input, dismissedAt: state.dismissedAt });
   const allRounds = buildRounds(events);
   const shown = onlyNewestRoundIfUnvisited(subject, state, events, allRounds);
   const rounds = shown.rounds;

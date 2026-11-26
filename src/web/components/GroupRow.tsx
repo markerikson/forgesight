@@ -11,6 +11,7 @@ import { firstLine } from "../../core/pipeline/text.ts";
 import {
   doneAllWorkstream,
   doneKeys,
+  mergeWorkstreamInto,
   openWorkstreamSnooze,
   renameWorkstream,
   setWorkstreamPriority,
@@ -22,6 +23,7 @@ import { StateIcon } from "./Badges.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { SubjectLink } from "./SubjectLink.tsx";
 import { rowDomId } from "./ThreadRow.tsx";
+import { WorkstreamPicker } from "./WorkstreamPicker.tsx";
 import rowStyles from "./ThreadRow.module.css";
 import styles from "./GroupRow.module.css";
 
@@ -40,6 +42,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
   const dispatch = useAppDispatch();
   const [editing, setEditing] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [mergeAnchor, setMergeAnchor] = useState<{ top: number; left: number } | null>(null);
   const key = groupKey(group.id);
   const count = group.members.length + group.moreCount;
   const gone = useAppSelector(selectGoneKeys);
@@ -130,6 +133,13 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
             >
               Snooze
             </button>
+            <button
+              type="button"
+              title="Merge this workstream into another"
+              onClick={(e) => act(e, () => setMergeAnchor(anchorBelow(e.currentTarget)))}
+            >
+              Merge…
+            </button>
             {group.section !== "hidden" && doneCount > 0 && (
               <button
                 type="button"
@@ -164,6 +174,16 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
         )}
       </div>
       {summaryOpen && group.summary && <p className={styles.summaryText}>{group.summary.text}</p>}
+      {mergeAnchor && (
+        <WorkstreamPicker
+          repo={group.repo}
+          title={`Merge “${group.name}” into…`}
+          excludeId={group.id}
+          anchor={mergeAnchor}
+          onChoose={(id) => dispatch(mergeWorkstreamInto(group, id))}
+          onClose={() => setMergeAnchor(null)}
+        />
+      )}
     </li>
   );
 });

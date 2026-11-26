@@ -35,13 +35,13 @@ function pull(number: number, base: string): OpenPull {
   };
 }
 
-function setup() {
+function setup(extra: OpenPull[] = []) {
   const config = resolveConfig({ me: "mark", repos: { [REPO]: { view: "overview" } } });
   const ctx = testCtx(NOW, { config });
   const listing: OpenPullsListing = {
     repo: REPO,
     fetchedAt: NOW.toISOString(),
-    pulls: [pull(10, "main"), pull(11, "b10"), pull(20, "main"), pull(21, "b20")],
+    pulls: [pull(10, "main"), pull(11, "b10"), pull(20, "main"), pull(21, "b20"), ...extra],
   };
   setMeta(ctx.db, openPullsMetaKey(REPO), JSON.stringify(listing), NOW.toISOString());
   rebuildWorkstreams(ctx.db, config, REPO, NOW);
@@ -140,6 +140,43 @@ describe("workstreamStateHandler", () => {
     const undone = (await undo.json()) as UndoResponse;
     if (undone.result !== "undone") throw new Error(undone.result);
     expect(undone.workstreams?.[B]?.name).toBe("Billing");
+  });
+
+  test("removing one of two members ends the workstream, and undo puts it back", async () => {
+    const ctx = setup();
+    const res = await call(ctx, { id: A, op: { kind: "remove", key: k(11) } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as WorkstreamStateResponse;
+    expect(body.workstreams[A]).toBeNull();
+    expect(Object.keys(body.rows).sort()).toEqual([k(10), k(11)]);
+
+    const undo = await undoHandler(post("/api/state/undo", { opId: body.opId }), ctx);
+    const undone = (await undo.json()) as UndoResponse;
+    expect(undone.result).toBe("undone");
+    expect(getWorkstream(ctx.db, A)?.members.map((m) => m.key)).toEqual([k(10), k(11)]);
+  });
+
+  test.each([
+    ["a member", k(11), "is already"],
+    ["a member of another workstream", k(20), "merge the workstreams instead"],
+    ["a pull that is not open", k(99), "is not an open pull request"],
+  ])("add rejects %s", async (_name, key, message) => {
+    const res = await call(setup([pull(30, "main")]), { id: A, op: { kind: "add", key } });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { message?: string }).message ?? "").toContain(message);
+  });
+
+  test("add joins a lone pull request, and undo takes it out again", async () => {
+    const ctx = setup([pull(30, "main")]);
+    const res = await call(ctx, { id: A, op: { kind: "add", key: k(30) } });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as WorkstreamStateResponse;
+    expect(body.workstreams[A]?.members.map((m) => m.key)).toContain(k(30));
+    expect(body.rows[k(30)]).toBeDefined();
+
+    const undo = await undoHandler(post("/api/state/undo", { opId: body.opId }), ctx);
+    expect(((await undo.json()) as UndoResponse).result).toBe("undone");
+    expect(getWorkstream(ctx.db, A)?.members.map((m) => m.key)).toEqual([k(10), k(11)]);
   });
 
   test("rename sets the displayed name", async () => {

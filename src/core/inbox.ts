@@ -289,7 +289,7 @@ export function groupSection(group: Pick<InboxGroup, "priority" | "snoozed" | "i
  * Puts each row that belongs to a listed group into it (or back out as its own row when it
  * left Waiting and Updates), recomputes each group's members, section, `sortAt` and
  * `moreCount`, drops groups left with no members unless they are new or muted (muted ones stay
- * in Hidden), and sorts.
+ * in Hidden) and still have an unlisted member to show, and sorts.
  * A row listed twice keeps its last copy.
  */
 export function reflowEntries(entries: readonly InboxEntry[]): InboxEntry[] {
@@ -318,10 +318,11 @@ export function reflowEntries(entries: readonly InboxEntry[]): InboxEntry[] {
   }
   for (const group of groups) {
     if (group.members.length === 0 && !group.isNew && group.priority !== "muted") continue;
+    group.unlisted = unlistedMembers(group, loose);
+    if (group.members.length === 0 && group.unlisted.length === 0) continue;
     const order = new Map(group.memberKeys.map((key, i) => [key, i]));
     group.members.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
     group.moreCount = group.memberKeys.length - group.members.length;
-    group.unlisted = unlistedMembers(group, loose);
     if (group.members.length > 0) {
       group.sortAt = group.members.reduce((max, m) => (m.sortAt > max ? m.sortAt : max), "");
     }

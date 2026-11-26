@@ -207,6 +207,26 @@ describe("buildInboxPayload with workstreams", () => {
     expect(group.members.map((m) => m.key)).toEqual([K1, K3]);
   });
 
+  test("a muted group with no member left to show is not listed", () => {
+    // Members marked Done and quiet have no row at all.
+    const rows = ROWS.filter((r) => !r.key.startsWith("replayio/"));
+    const payload = build([input({ state: { priority: "muted" } })], true, rows);
+    expect(payload.rows.map(entryKey)).toEqual(["acme/app#9"]);
+    expect(payload.sidebar.sections.hidden).toBe(0);
+  });
+
+  test("a muted group whose members are all hidden still lists them as unlisted", () => {
+    const rows = ROWS.map((r) => (r.repo === "replayio/backend" ? { ...r, section: "hidden" as const } : r));
+    const group = groupOf(build([input({ state: { priority: "muted" } })], true, rows));
+    expect(group.members).toEqual([]);
+    expect(group.unlisted.map((m) => m.key)).toEqual([K1, K2, K3, K4]);
+  });
+
+  test("a new group with no member left to show is not listed", () => {
+    const rows = ROWS.filter((r) => !r.key.startsWith("replayio/"));
+    expect(build([input({ state: null })], true, rows).rows.every((e) => !isGroup(e))).toBe(true);
+  });
+
   test("a workstream never seen is new and sorts first in Updates", () => {
     const rows = ROWS.map((r) => (r.section === "waiting" ? row(r.key, "updates", { repo: r.repo, sortAt: r.sortAt }) : r));
     const payload = build([input({ state: null })], false, rows);
@@ -271,6 +291,24 @@ describe("patchWorkstream", () => {
       includeHidden: false,
     });
     expect(groupOf(next).name).toBe("Uploads");
+  });
+
+  test("add folds a loose row into the group", () => {
+    const K5 = "replayio/backend#5";
+    const rows = [...ROWS, row(K5, "updates", { sortAt: "2026-11-02T00:00:00Z" })];
+    const payload = build([input()], false, rows);
+    expect(payload.rows.map(entryKey)).toContain(K5);
+    const next = patchWorkstream(payload, "ws1", { kind: "add", key: K5 }, NOW_ISO, { includeHidden: false });
+    expect(next.rows.map(entryKey)).not.toContain(K5);
+    expect(groupOf(next).members.map((m) => m.key)).toContain(K5);
+  });
+
+  test("remove puts the member back as its own row", () => {
+    const next = patchWorkstream(build([input()]), "ws1", { kind: "remove", key: K3 }, NOW_ISO, {
+      includeHidden: false,
+    });
+    expect(groupOf(next).members.map((m) => m.key)).toEqual([K1, K2]);
+    expect(next.rows.map(entryKey)).toContain(K3);
   });
 
   test("an unknown workstream leaves the payload alone", () => {

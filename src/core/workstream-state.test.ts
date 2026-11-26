@@ -86,6 +86,8 @@ describe("isValidWorkstreamOp", () => {
     [{ kind: "merge", from: "o/r:ws:1" }, true],
     [{ kind: "remove", key: "o/r#1" }, true],
     [{ kind: "remove" }, false],
+    [{ kind: "add", key: "o/r#2" }, true],
+    [{ kind: "add", key: "" }, false],
     [{ kind: "seen", summaryHash: null }, true],
     [{ kind: "done" }, false],
   ])("%j → %p", (op, valid) => {

@@ -60,7 +60,7 @@ export function snapshot(db: Database, id: string): WorkstreamSnapshot | null {
   return ws ? { ...ws, state: getWorkstreamState(db, id) } : null;
 }
 
-const STRUCTURAL = new Set(["rename", "merge", "remove"]);
+const STRUCTURAL = new Set(["rename", "merge", "remove", "add"]);
 
 /**
  * After a workstream op or its undo: rebuilds the repo's workstreams from the stored
@@ -78,7 +78,10 @@ export function afterWorkstreamOp(
   const keys = new Set<SubjectKey>();
   if (STRUCTURAL.has(record.op.kind)) {
     for (const ws of before) for (const m of ws.members) keys.add(m.key);
-    const repo = before[0]?.repo;
+    const opKey = record.op.kind === "remove" || record.op.kind === "add" ? record.op.key : null;
+    if (opKey) keys.add(opKey);
+    // Undoing a remove that left one member has no stored workstream to name the repo.
+    const repo = before[0]?.repo ?? opKey?.slice(0, opKey.lastIndexOf("#"));
     if (repo) {
       const rebuilt = rebuildWorkstreams(db, workerConfig(ctx, db), repo, ctx.now(), idHints);
       for (const key of rebuilt?.changedKeys ?? []) keys.add(key);

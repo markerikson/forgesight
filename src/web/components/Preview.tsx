@@ -3,8 +3,18 @@ import type { InboxRow, SubjectDetail, SubjectHeader } from "../../core/index.ts
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { keepNewFlags } from "../new-flags.ts";
-import { isMuted, markDone, markWorkstreamSeen, muteAndUnsubscribe, nextRow, openSnoozeMenu, toggleMute, toggleUnread } from "../store/actions.ts";
-import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
+import {
+  addToWorkstream,
+  isMuted,
+  markDone,
+  markWorkstreamSeen,
+  muteAndUnsubscribe,
+  nextRow,
+  openSnoozeMenu,
+  toggleMute,
+  toggleUnread,
+} from "../store/actions.ts";
+import { useGetStatusQuery, useGetSubjectQuery, useGetWorkstreamsQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState, openSubject, refreshSubject } from "../store/state-api.ts";
 import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
@@ -16,6 +26,7 @@ import { anchorBelow } from "./SnoozeMenu.tsx";
 import { GitHubIcon, SubjectLink } from "./SubjectLink.tsx";
 import { subjectKeyForUrl } from "../links.ts";
 import { StackBox, WorkstreamPane } from "./WorkstreamPreview.tsx";
+import { WorkstreamPicker } from "./WorkstreamPicker.tsx";
 import styles from "./Preview.module.css";
 
 const FETCH_POLL_MS = 3000;
@@ -164,6 +175,7 @@ function ActionBar({ row, url, subject }: { row: InboxRow; url: string | null; s
           {subject.fetching ? "Refreshing…" : "Refresh"}
         </button>
       )}
+      {subject && subject.workstream === null && <AddToWorkstream header={subject.header} />}
       {url && (
         <a className={styles.button} href={url} target="_blank" rel="noopener noreferrer" title="Open on GitHub (o)">
           Open on GitHub
@@ -173,6 +185,35 @@ function ActionBar({ row, url, subject }: { row: InboxRow; url: string | null; s
         Next
       </button>
     </div>
+  );
+}
+
+/** Joins an open pull request that has no workstream to one of its repo's workstreams. */
+function AddToWorkstream({ header }: { header: SubjectHeader }) {
+  const dispatch = useAppDispatch();
+  const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
+  const eligible = header.kind === "pr" && header.state === "OPEN" && !header.merged;
+  const { data } = useGetWorkstreamsQuery(header.repo, { skip: !eligible });
+  if (!eligible || !data?.workstreams.some((ws) => !ws.closed)) return null;
+  return (
+    <>
+      <button
+        type="button"
+        title="Add this pull request to a workstream"
+        onClick={(e) => setAnchor(anchorBelow(e.currentTarget))}
+      >
+        Add to workstream…
+      </button>
+      {anchor && (
+        <WorkstreamPicker
+          repo={header.repo}
+          title={`Add #${header.number ?? ""} to…`}
+          anchor={anchor}
+          onChoose={(id) => dispatch(addToWorkstream(header.key, id))}
+          onClose={() => setAnchor(null)}
+        />
+      )}
+    </>
   );
 }
 

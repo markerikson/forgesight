@@ -62,6 +62,8 @@ export function workstreamOpLabel(op: WorkstreamOp, name: string): string {
       return `Seen: ${name}`;
     case "remove":
       return `Removed from ${name}`;
+    case "add":
+      return `Added to ${name}`;
     case "merge":
       return `Merged into ${name}`;
   }
