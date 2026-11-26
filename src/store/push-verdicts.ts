@@ -143,23 +143,30 @@ export function saveVerdict(db: Database, pushNodeId: string, result: DecidedVer
   ).run(result.verdict, result.reason, result.baseBefore, result.baseAfter, now, pushNodeId);
 }
 
-/** Leaves the push pending and counts the failed attempt. */
-export function deferVerdict(db: Database, pushNodeId: string, nextAttemptAt: string, reason: string): void {
+/** Leaves the push pending until `nextAttemptAt`, counting the failed attempt unless told not to. */
+export function deferVerdict(
+  db: Database,
+  pushNodeId: string,
+  nextAttemptAt: string,
+  reason: string,
+  { countAttempt = true }: { countAttempt?: boolean } = {},
+): void {
   db.query(
-    `UPDATE push_verdicts SET attempts = attempts + 1, next_attempt_at = ?, reason = ?
+    `UPDATE push_verdicts SET attempts = attempts + ?, next_attempt_at = ?, reason = ?
      WHERE push_node_id = ?`,
-  ).run(nextAttemptAt, reason, pushNodeId);
+  ).run(countAttempt ? 1 : 0, nextAttemptAt, reason, pushNodeId);
 }
 
-/** Verdicts for a subject's pushes, keyed by the SHA each push moved the head to. */
+/** Verdicts for a subject's pushes, keyed by the push's timeline node id. */
 export function verdictsFor(db: Database, subjectKey: string): Map<string, PushVerdict> {
   const rows = db
-    .query<{ after_sha: string; verdict: PushVerdictKind; reason: string | null; base_after: string | null }, [string]>(
-      "SELECT after_sha, verdict, reason, base_after FROM push_verdicts WHERE subject_key = ?",
-    )
+    .query<
+      { push_node_id: string; verdict: PushVerdictKind; reason: string | null; base_after: string | null },
+      [string]
+    >("SELECT push_node_id, verdict, reason, base_after FROM push_verdicts WHERE subject_key = ?")
     .all(subjectKey);
   return new Map(
-    rows.map((r) => [r.after_sha, { verdict: r.verdict, reason: r.reason, onto: ontoBranch(r.base_after) }]),
+    rows.map((r) => [r.push_node_id, { verdict: r.verdict, reason: r.reason, onto: ontoBranch(r.base_after) }]),
   );
 }
 

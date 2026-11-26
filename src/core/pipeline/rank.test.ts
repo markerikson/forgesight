@@ -564,21 +564,20 @@ describe("rounds", () => {
 
   test("rebase-only and unchanged force-pushes join the current round instead of starting one", () => {
     const rebased = (onto: string | null): PushVerdict => ({ verdict: "rebase_only", reason: "patches equal", onto });
+    const p1 = forcePush("2026-11-21T01:00:00Z", "p1");
+    const said = comment("alice", "2026-11-21T01:30:00Z", "looks good");
+    const p2 = forcePush("2026-11-21T02:00:00Z", "p2");
+    const p3 = forcePush("2026-11-21T03:00:00Z", "p3");
+    const p4 = forcePush("2026-11-21T04:00:00Z", "p4");
+    const p5 = forcePush("2026-11-21T05:00:00Z", "p5");
     const view = derive({
-      items: [
-        forcePush("2026-11-21T01:00:00Z", "p1"),
-        comment("alice", "2026-11-21T01:30:00Z", "looks good"),
-        forcePush("2026-11-21T02:00:00Z", "p2"),
-        forcePush("2026-11-21T03:00:00Z", "p3"),
-        forcePush("2026-11-21T04:00:00Z", "p4"),
-        forcePush("2026-11-21T05:00:00Z", "p5"),
-      ],
+      items: [p1, said, p2, p3, p4, p5],
       pushVerdicts: new Map<string, PushVerdict>([
-        ["p1", { verdict: "changed", reason: "1 file differs", onto: null }],
-        ["p2", rebased("master")],
-        ["p3", rebased(null)],
-        ["p4", { verdict: "noop", reason: "patches equal, same base", onto: null }],
-        ["p5", { verdict: "pending", reason: null, onto: null }],
+        [p1.nodeId, { verdict: "changed", reason: "1 file differs", onto: null }],
+        [p2.nodeId, rebased("master")],
+        [p3.nodeId, rebased(null)],
+        [p4.nodeId, { verdict: "noop", reason: "patches equal, same base", onto: null }],
+        [p5.nodeId, { verdict: "pending", reason: null, onto: null }],
       ]),
     });
     expect(view.rounds.map((r) => [r.startLabel, r.pushCount])).toEqual([
@@ -590,17 +589,32 @@ describe("rounds", () => {
   });
 
   test("a single rebase reads as where it landed", () => {
+    const rebased: PushVerdict = { verdict: "rebase_only", reason: null, onto: "master" };
+    const push = forcePush("2026-11-21T02:00:00Z", "p1");
     const view = derive({
-      items: [comment("alice", "2026-11-21T01:00:00Z", "first"), forcePush("2026-11-21T02:00:00Z", "p1")],
-      pushVerdicts: new Map<string, PushVerdict>([["p1", { verdict: "rebase_only", reason: null, onto: "master" }]]),
+      items: [comment("alice", "2026-11-21T01:00:00Z", "first"), push],
+      pushVerdicts: new Map([[push.nodeId, rebased]]),
     });
     expect(groupSummaries(view)).toEqual(["comment", "rebased onto master"]);
     expect(view.summaryLine).toBe("alice commented: first");
-    const pushOnly = derive({
-      items: [forcePush("2026-11-21T02:00:00Z", "p1")],
-      pushVerdicts: new Map<string, PushVerdict>([["p1", { verdict: "rebase_only", reason: null, onto: "master" }]]),
-    });
+    const only = forcePush("2026-11-21T02:00:00Z", "p1");
+    const pushOnly = derive({ items: [only], pushVerdicts: new Map([[only.nodeId, rebased]]) });
     expect(pushOnly.summaryLine).toBe("bob rebased onto master");
+  });
+
+  test("a push back to an earlier SHA keeps its own verdict", () => {
+    const rebase = forcePush("2026-11-21T01:00:00Z", "b");
+    const change = forcePush("2026-11-21T02:00:00Z", "c");
+    const revert = forcePush("2026-11-21T03:00:00Z", "b");
+    const view = derive({
+      items: [rebase, change, revert],
+      pushVerdicts: new Map<string, PushVerdict>([
+        [rebase.nodeId, { verdict: "rebase_only", reason: "patches equal", onto: null }],
+        [change.nodeId, { verdict: "changed", reason: "1 file differs", onto: null }],
+        [revert.nodeId, { verdict: "changed", reason: "1 file differs", onto: null }],
+      ]),
+    });
+    expect(view.hiddenStats).toMatchObject({ pushes: 2, rebases: 1 });
   });
 
   const crossRef = (at: string, number: number, willClose = false, actor = "alice") =>

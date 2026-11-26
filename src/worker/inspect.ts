@@ -110,8 +110,7 @@ export function subjectDetail(db: Database, key: string): string[] {
   const verdicts = verdictsFor(db, key);
   lines.push("", `timeline (${items.length})`);
   for (const item of items) {
-    const after = item.typename === "HeadRefForcePushedEvent" ? str(path(item.raw, "afterCommit", "oid")) : null;
-    const verdict = after ? verdicts.get(after) : undefined;
+    const verdict = item.typename === "HeadRefForcePushedEvent" ? verdicts.get(item.nodeId) : undefined;
     const suffix = verdict ? `  [${verdict.verdict}${verdict.reason ? `: ${verdict.reason}` : ""}]` : "";
     lines.push(`  ${item.createdAt}  ${item.typename}  ${itemActor(item.raw)}  ${itemText(item.raw)}${suffix}`);
   }

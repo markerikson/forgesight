@@ -97,7 +97,8 @@ async function decide(ctx: JobContext, push: PendingPush): Promise<DecidedVerdic
 /**
  * Decides whether each head force-push on an open PR in an overview repo was a rebase with no
  * change of its own. Queues new pushes, then checks up to 10 due ones with two compare calls each.
- * Server errors defer the push with backoff; after 5 failed attempts it is marked unknown.
+ * Server errors defer the push with backoff; after 5 failed attempts it is marked unknown. Network
+ * failures defer it without using an attempt.
  */
 export const rebaseDetectorJob: Job = {
   name: "rebaseDetector",
@@ -124,6 +125,12 @@ export const rebaseDetectorJob: Job = {
       } catch (err) {
         if (err instanceof NotFoundError) {
           decided = { verdict: "unknown", reason: "not found", baseBefore: null, baseAfter: null };
+        } else if (err instanceof GitHubApiError && err.status === 0) {
+          // Status 0 is a network failure or timeout, which says nothing about this push. It
+          // does not use up an attempt; the error goes to the scheduler so it backs off.
+          const at = new Date(now.getTime() + backoffMs(1)).toISOString();
+          deferVerdict(db, push.pushNodeId, at, "network error", { countAttempt: false });
+          throw err;
         } else if (err instanceof GitHubApiError && err.status >= 500 && push.attempts + 1 < MAX_ATTEMPTS) {
           const at = new Date(now.getTime() + backoffMs(push.attempts + 1)).toISOString();
           deferVerdict(db, push.pushNodeId, at, `HTTP ${err.status}`);

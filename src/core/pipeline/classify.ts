@@ -49,7 +49,7 @@ export interface ClassifyContext {
   mySubject: boolean;
   /** Events after this time are new; null means everything is new. */
   dismissedAt: string | null;
-  /** Checked head force-pushes, keyed by the SHA the push moved the head to. */
+  /** Checked head force-pushes, keyed by the push's timeline node id. */
   pushVerdicts?: ReadonlyMap<string, PushVerdict>;
 }
 
@@ -65,8 +65,8 @@ export function restackText(e: Event): string {
 }
 
 function withVerdict(e: Event, verdicts: ReadonlyMap<string, PushVerdict> | undefined): Event {
-  if (e.kind !== "forcePush" || e.data.afterSha === undefined) return e;
-  const v = verdicts?.get(e.data.afterSha);
+  if (e.kind !== "forcePush") return e;
+  const v = verdicts?.get(e.id);
   if (v === undefined || v.verdict === "pending") return e;
   const data: EventData = { ...e.data, verdict: v.verdict };
   if (v.onto !== null) data.onto = v.onto;

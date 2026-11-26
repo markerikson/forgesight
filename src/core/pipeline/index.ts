@@ -37,7 +37,7 @@ export interface DeriveInput {
   now: Date;
   /** The subject's place in its workstream, when it belongs to one. */
   stack?: StackContext | null;
-  /** Checked head force-pushes, keyed by the SHA each push landed on. */
+  /** Checked head force-pushes, keyed by the push's timeline node id. */
   pushVerdicts?: ReadonlyMap<string, PushVerdict>;
 }
 

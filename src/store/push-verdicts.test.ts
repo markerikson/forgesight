@@ -59,7 +59,7 @@ describe("push verdicts", () => {
     expect(nextPending(db, NOW, 2, null).map((p) => p.pushNodeId)).toEqual(["P2", "P1"]);
   });
 
-  test("saved verdicts leave the queue and show up by after SHA", () => {
+  test("saved verdicts leave the queue and show up by push node", () => {
     const db = setup();
     saveVerdict(db, "P2", { verdict: "rebase_only", reason: "patches equal", baseBefore: "master", baseAfter: "master" }, NOW);
     saveVerdict(
@@ -71,11 +71,11 @@ describe("push verdicts", () => {
     expect(nextPending(db, NOW, 10, null).map((p) => p.pushNodeId)).toEqual(["P1"]);
     expect(verdictsFor(db, "o/r#1")).toEqual(
       new Map([
-        ["b", { verdict: "pending", reason: null, onto: null }],
-        ["c", { verdict: "rebase_only", reason: "patches equal", onto: "master" }],
+        ["P1", { verdict: "pending", reason: null, onto: null }],
+        ["P2", { verdict: "rebase_only", reason: "patches equal", onto: "master" }],
       ]),
     );
-    expect(verdictsFor(db, "o/r#2").get("y")?.onto).toBeNull();
+    expect(verdictsFor(db, "o/r#2").get("P3")?.onto).toBeNull();
   });
 
   test("deferred pushes wait until their next attempt", () => {
@@ -84,6 +84,13 @@ describe("push verdicts", () => {
     expect(nextPending(db, NOW, 10, null).map((p) => p.pushNodeId)).toEqual(["P2", "P3"]);
     const later = nextPending(db, "2026-11-25T12:05:00Z", 10, null).find((p) => p.pushNodeId === "P1");
     expect(later?.attempts).toBe(1);
+  });
+
+  test("a deferral can leave the attempt count alone", () => {
+    const db = setup();
+    deferVerdict(db, "P1", "2026-11-25T12:05:00Z", "network error", { countAttempt: false });
+    const later = nextPending(db, "2026-11-25T12:05:00Z", 10, null).find((p) => p.pushNodeId === "P1");
+    expect(later?.attempts).toBe(0);
   });
 });
 

@@ -113,7 +113,7 @@ describe("rebaseDetectorJob", () => {
 
     expect(await rebaseDetectorJob.run(makeCtx())).toBe("worked");
     expect(row()).toMatchObject({ verdict: "rebase_only", base_before: "master", base_after: "master", attempts: 1 });
-    expect(verdictsFor(db, KEY).get("bbb")?.verdict).toBe("rebase_only");
+    expect(verdictsFor(db, KEY).get("P1")?.verdict).toBe("rebase_only");
     expect(changesAfter(db, 0)).toEqual([expect.objectContaining({ kind: "raw", subjectKey: KEY })]);
     expect(await rebaseDetectorJob.run(makeCtx())).toBe("idle");
   });
@@ -169,6 +169,20 @@ describe("rebaseDetectorJob", () => {
     gh.nextError = new GitHubApiError("boom", 502);
     await rebaseDetectorJob.run(makeCtx());
     expect(row()).toMatchObject({ verdict: "unknown", reason: "HTTP 502", attempts: MAX_ATTEMPTS });
+  });
+
+  test("defers network failures without using an attempt", async () => {
+    seedSubject("master");
+    seedPush("P1", "2026-11-24T10:00:00Z", "aaa", "bbb");
+    gh.nextError = new GitHubApiError("timeout", 0);
+
+    await expect(rebaseDetectorJob.run(makeCtx())).rejects.toThrow("timeout");
+    expect(row()).toMatchObject({
+      verdict: "pending",
+      reason: "network error",
+      attempts: 0,
+      next_attempt_at: new Date(now.getTime() + backoffMs(1)).toISOString(),
+    });
   });
 
   test("queues pushes but spends nothing when the budget disallows rebase work", async () => {
