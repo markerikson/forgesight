@@ -396,6 +396,13 @@ describe("workstream groups", () => {
     expect(store.dispatch(openWorkstream("missing"))).toBe(false);
   });
 
+  test("openWorkstream selects the group by key while its section's inbox is still loading", () => {
+    const store = storeWith([group("s1", [row("acme/app#1", "updates")])], true);
+    store.dispatch(sectionSelected("hidden"));
+    expect(store.dispatch(openWorkstream("s1"))).toBe(true);
+    expect(store.getState().view).toMatchObject({ section: "updates", selectedKey: "workstream:s1" });
+  });
+
   test("clicks and sidebar choices add history entries; j/k does not", () => {
     const store = storeWith(entries);
     const pushes: boolean[] = [];

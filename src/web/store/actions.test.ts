@@ -12,8 +12,10 @@ describe("doneKeys", () => {
     expect(doneKeys([a, group("ws", [b, c])], new Set([b.key]))).toEqual([a.key, c.key]);
   });
 
-  test("skips muted groups in Hidden", () => {
-    expect(doneKeys([a, group("ws", [b], { section: "hidden", priority: "muted" })])).toEqual([a.key]);
+  test("takes only the hidden members of a group in Hidden", () => {
+    const hidden = row("acme/app#4", "hidden");
+    const muted = group("ws", [b, hidden], { section: "hidden", priority: "muted" });
+    expect(doneKeys([a, muted])).toEqual([a.key, hidden.key]);
   });
 });
 

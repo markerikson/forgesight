@@ -570,7 +570,11 @@ export function openWorkstream(id: string): ViewThunk<boolean> {
     const group = findWorkstream(getState(), id);
     if (group === null) return false;
     dispatch(sectionSelected(group.section));
-    return select();
+    if (select()) return true;
+    if (selectInbox(getState()) !== undefined) return false;
+    // The section's inbox is still loading; the selection resolves by key once it arrives.
+    dispatch(rowSelected({ key, index: 0 }));
+    return true;
   };
 }
 
