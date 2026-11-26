@@ -65,6 +65,9 @@ export function describeEvent(event: Event): string {
     case "labeled":
       return `${d.added === false ? "removed" : "added"} label ${d.label ?? ""}`;
     case "assigned":
+      if (d.target && event.actor && d.target.toLowerCase() === event.actor.login.toLowerCase()) {
+        return d.added === false ? "unassigned themselves" : "self-assigned";
+      }
       return `${d.added === false ? "unassigned" : "assigned"} ${target}`;
     case "mentioned":
       return `mentioned ${target}`;

@@ -167,7 +167,7 @@ describe("buildInboxPayload with workstreams", () => {
   test("closed-by-author counts move into the group", () => {
     const payload = build([input()]);
     expect(groupOf(payload).closedByAuthor).toBe(1);
-    expect(payload.countLines.some((line) => line.includes("closed"))).toBe(false);
+    expect(payload.closedByAuthor).toEqual([]);
   });
 
   test("a group counts once in the sidebar", () => {

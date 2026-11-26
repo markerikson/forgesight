@@ -10,7 +10,7 @@ import type {
 import type { StackContext } from "../workstreams.ts";
 import { classify, isMe } from "./classify.ts";
 import { normalize } from "./normalize.ts";
-import { applyOverrides, type Rank, rank } from "./rank.ts";
+import { applyOverrides, openedLine, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
 import { buildHeader, buildLinks, subjectBody } from "./row.ts";
 import { isAfter } from "./time.ts";
@@ -109,7 +109,8 @@ function rankFromThreads(input: DeriveInput): Rank {
     reasons,
     score: 0,
     newMeaningfulCount: 0,
-    summaryLine: (newest && threadReasonLine(newest.reason)) || (willEnrich(input) ? "not loaded yet" : ""),
+    summaryLine:
+      (newest && threadReasonLine(newest.reason)) || (willEnrich(input) ? "not loaded yet" : openedLine(input.subject)),
     hiddenStats: { pushes: 0, merged: 0, closed: 0 },
     sortAt,
   };

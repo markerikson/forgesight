@@ -67,7 +67,7 @@ export function payload(rows: InboxEntry[]): InboxPayload {
         { repo: "acme/lib", waiting: 1, updates: 1 },
       ],
     },
-    countLines: [],
+    closedByAuthor: [],
     generatedAt: "2026-11-01T00:00:00Z",
   };
 }

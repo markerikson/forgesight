@@ -46,16 +46,31 @@ function isCrossReference(e: ViewEvent): boolean {
   return e.kind === "crossReference";
 }
 
+/** Up to two names, then a count of the rest: "alice, bob and 2 others". */
+function nameList(names: string[], unnamed: number): string {
+  const shown = names.slice(0, 2);
+  const rest = names.length - shown.length + unnamed;
+  if (rest > 0) return `${shown.join(", ")} and ${rest} ${rest === 1 ? "other" : "others"}`;
+  return shown.length === 2 ? `${shown[0]} and ${shown[1]}` : (shown[0] ?? "");
+}
+
+/** Names who made a run of cross-references, so it doesn't read as the author's doing. */
+function crossReferenceSummary(events: ViewEvent[]): string {
+  const kinds = new Set(events.map((e) => e.data.ref?.kind));
+  const from = kinds.size === 1 && kinds.has("pr") ? "PRs" : kinds.size === 1 && kinds.has("issue") ? "issues" : "PRs and issues";
+  const names = [...new Set(events.flatMap((e) => (e.actor ? [e.actor.login] : [])))];
+  const unnamed = events.some((e) => e.actor === null) ? 1 : 0;
+  if (names.length === 0) return `${plural(events.length, "reference")} from other ${from}`;
+  if (names.length === 1 && unnamed === 0) return `${names[0]} referenced this from ${events.length} ${from}`;
+  return `${plural(events.length, "reference")} from ${nameList(names, unnamed)}`;
+}
+
 /**
  * "3 bot comments, 2 cross-references", in order of first appearance. A group of only
- * cross-references reads "12 references from other PRs".
+ * cross-references names who made them: "alice referenced this from 3 PRs".
  */
 export function groupSummary(events: ViewEvent[]): string {
-  if (events.length > 1 && events.every(isCrossReference)) {
-    const kinds = new Set(events.map((e) => e.data.ref?.kind));
-    const from = kinds.size === 1 && kinds.has("pr") ? "PRs" : kinds.size === 1 && kinds.has("issue") ? "issues" : "PRs and issues";
-    return `${plural(events.length, "reference")} from other ${from}`;
-  }
+  if (events.length > 1 && events.every(isCrossReference)) return crossReferenceSummary(events);
   const counts = new Map<string, number>();
   for (const e of events) {
     const n = noun(e);

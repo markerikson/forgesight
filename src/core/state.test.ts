@@ -233,7 +233,7 @@ describe("patchInbox", () => {
     expect(next.rows.map(entryKey)).toEqual(["acme/app#2", "acme/app#4"]);
     expect(next.sidebar.sections).toEqual({ waiting: 1, updates: 1, snoozed: 0, hidden: 1 });
     expect(next.sidebar.repos).toEqual([{ repo: "acme/app", waiting: 1, updates: 1 }]);
-    expect(next.countLines).toBe(payload.countLines);
+    expect(next.closedByAuthor).toBe(payload.closedByAuthor);
   });
 
   test("done drops rows from a list that shows hidden rows, Hidden ones included", () => {

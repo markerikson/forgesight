@@ -8,6 +8,7 @@ import { useGetStatusQuery, useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState, openSubject, refreshSubject } from "../store/state-api.ts";
 import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
+import { Avatar } from "./Avatar.tsx";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
@@ -234,7 +235,7 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
         </span>
         {header.author && (
           <span>
-            by {header.author}
+            by <Avatar login={header.author} isBot={header.authorIsBot} /> {header.author}
             {header.authorIsBot && " (bot)"}
           </span>
         )}

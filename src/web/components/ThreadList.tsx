@@ -1,6 +1,13 @@
 import { Fragment, useCallback, useEffect } from "react";
 import type { InboxRow } from "../../core/index.ts";
-import { entryKey, type InboxEntry, isGroup } from "../../core/inbox.ts";
+import {
+  closedByAuthorLines,
+  entryKey,
+  hiddenActivityLine,
+  hiddenActivitySince,
+  type InboxEntry,
+  isGroup,
+} from "../../core/inbox.ts";
 import { confirmDoneAll, doneKeys, markDone, openSnoozeMenu, toggleMute } from "../store/actions.ts";
 import { useGetInboxQuery, usePrefetch } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
@@ -20,6 +27,7 @@ import {
   workstreamShowAll,
 } from "../store/view.ts";
 import { repoShortName } from "../format.ts";
+import { useHiddenSince } from "../hooks/useHiddenSince.ts";
 import { useNow } from "../hooks/useNow.ts";
 import { GroupFooter, GroupRow } from "./GroupRow.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
@@ -44,6 +52,7 @@ export function ThreadList() {
   const selectedIndex = useAppSelector(selectSelectedIndex);
   const prefetchSubject = usePrefetch("getSubject");
   const now = useNow();
+  const hiddenSince = useHiddenSince(view.section === "hidden");
 
   const topEntries = useAppSelector(selectTopEntries);
   const groupOf = useAppSelector(selectGroupOf);
@@ -92,6 +101,13 @@ export function ThreadList() {
   else if (isLoading && !inbox) empty = "Loading…";
   else if (rows.length === 0) empty = `Nothing in ${SECTION_LABELS[view.section]}${view.repo ? ` for ${view.repo}` : ""}.`;
 
+  const onHidden = view.section === "hidden";
+  const activityLine =
+    onHidden && inbox && hiddenSince !== null
+      ? hiddenActivityLine(hiddenActivitySince(inbox.rows, hiddenSince, view.repo))
+      : null;
+  const closedLines = onHidden && inbox ? closedByAuthorLines(inbox.closedByAuthor, view.repo) : [];
+
   return (
     <section className={styles.list} aria-label="Threads">
       <header className={styles.header}>
@@ -105,6 +121,7 @@ export function ThreadList() {
           </button>
         )}
       </header>
+      {activityLine !== null && <p className={styles.activity}>{activityLine}</p>}
       {empty !== null ? (
         <p className={styles.empty}>{empty}</p>
       ) : (
@@ -164,9 +181,9 @@ export function ThreadList() {
           })}
         </ul>
       )}
-      {inbox && inbox.countLines.length > 0 && (
+      {closedLines.length > 0 && (
         <ul className={styles.countLines}>
-          {inbox.countLines.map((line) => (
+          {closedLines.map((line) => (
             <li key={line}>{line}</li>
           ))}
         </ul>

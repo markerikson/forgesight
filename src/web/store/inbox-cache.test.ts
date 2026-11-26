@@ -7,7 +7,7 @@ function inbox(rows: InboxEntry[], hidden: number): InboxPayload {
   return {
     rows,
     sidebar: { sections: { waiting: 0, updates: 0, snoozed: 0, hidden }, repos: [] },
-    countLines: ["kept as is"],
+    closedByAuthor: [{ repo: "acme/app", count: 1 }],
     generatedAt: "2026-11-01T00:00:00Z",
   };
 }
@@ -27,7 +27,7 @@ describe("replaceRows", () => {
       { repo: "acme/app", waiting: 1, updates: 0 },
       { repo: "acme/lib", waiting: 1, updates: 0 },
     ]);
-    expect(result.countLines).toEqual(["kept as is"]);
+    expect(result.closedByAuthor).toEqual([{ repo: "acme/app", count: 1 }]);
   });
 
   test("drops rows that became hidden from a cache without Hidden, counting them", () => {

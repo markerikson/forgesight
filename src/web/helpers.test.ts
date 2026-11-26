@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Event } from "../core/index.ts";
 import { describeEvent } from "./events.ts";
-import { relativeTime, repoShortName, rowByline, stateBadge } from "./format.ts";
+import { avatarUrls, relativeTime, repoShortName, rowByline, stateBadge } from "./format.ts";
 import { parseUrlState } from "./hooks/useUrlState.ts";
 
 function event(kind: Event["kind"], data: Partial<Event["data"]> = {}): Event {
@@ -30,6 +30,12 @@ describe("describeEvent", () => {
     expect(describeEvent(event("labeled", { label: "bug", added: false }))).toBe("removed label bug");
   });
 
+  test("assigning yourself reads as self-assigned", () => {
+    const actor = { login: "Domiii", isBot: false };
+    expect(describeEvent({ ...event("assigned", { target: "domiii", added: true }), actor })).toBe("self-assigned");
+    expect(describeEvent({ ...event("assigned", { target: "bob", added: true }), actor })).toBe("assigned bob");
+  });
+
   test("unknown events fall back to a readable typename", () => {
     expect(describeEvent(event("unknown", { typename: "AutoMergeEnabledEvent" }))).toBe("auto merge enabled");
   });
@@ -56,6 +62,39 @@ describe("rowByline", () => {
   test("keeps a latest actor who is named nowhere else", () => {
     expect(rowByline("bob", "referenced in o/r#4", "carol")).toEqual({ summary: "referenced in o/r#4", actor: "carol" });
     expect(rowByline(null, "", "carol")).toEqual({ summary: "", actor: "carol" });
+  });
+
+  test("drops a latest actor the summary names anywhere", () => {
+    expect(rowByline("bob", "alice commented: thanks @tpluscode", "tpluscode")).toEqual({
+      summary: "alice commented: thanks @tpluscode",
+      actor: null,
+    });
+    expect(rowByline("bob", "aryaemami59 assigned markerikson", "markerikson")).toEqual({
+      summary: "aryaemami59 assigned markerikson",
+      actor: null,
+    });
+    expect(rowByline("bob", "alice commented: see carol-bot", "carol")).toEqual({
+      summary: "alice commented: see carol-bot",
+      actor: "carol",
+    });
+  });
+
+  test("an author's self-assignment names them once", () => {
+    expect(rowByline("Domiii", "Domiii self-assigned", "Domiii")).toEqual({ summary: "self-assigned", actor: null });
+  });
+});
+
+describe("avatarUrls", () => {
+  test("users use their profile image, bots try the app avatar first", () => {
+    expect(avatarUrls("alice", false)).toEqual(["https://github.com/alice.png?size=40"]);
+    expect(avatarUrls("renovate", true)).toEqual([
+      "https://avatars.githubusercontent.com/renovate%5Bbot%5D?s=40",
+      "https://github.com/renovate.png?size=40",
+    ]);
+    expect(avatarUrls("renovate", null)).toEqual([
+      "https://github.com/renovate.png?size=40",
+      "https://avatars.githubusercontent.com/renovate%5Bbot%5D?s=40",
+    ]);
   });
 });
 
