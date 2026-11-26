@@ -16,6 +16,7 @@ export const restNotification = type({
 export const restUser = type({ login: "string" });
 
 const restCommitFile = type({
+  "sha?": "string | null",
   filename: "string",
   status: "string",
   additions: "number",
@@ -36,6 +37,7 @@ export const restCompare = type({
   ahead_by: "number",
   behind_by: "number",
   merge_base_commit: { sha: "string" },
+  "total_commits?": "number",
   commits: type({ sha: "string" }).array(),
   "files?": restCommitFile.array(),
 });
@@ -70,6 +72,7 @@ export function toLogin(raw: unknown): string {
 
 function toFiles(files: (typeof restCommitFile.infer)[] | undefined): CommitFile[] {
   return (files ?? []).map((f) => ({
+    sha: f.sha ?? null,
     filename: f.filename,
     status: f.status,
     additions: f.additions,
@@ -99,6 +102,7 @@ export function toCompare(raw: unknown): Compare {
     behindBy: c.behind_by,
     mergeBaseSha: c.merge_base_commit.sha,
     commitShas: c.commits.map((x) => x.sha),
+    totalCommits: c.total_commits ?? c.commits.length,
     files: toFiles(c.files),
     raw,
   };

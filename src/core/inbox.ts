@@ -459,6 +459,8 @@ export interface HiddenActivity {
   /** Hidden rows with activity after `since`. */
   items: number;
   pushes: number;
+  /** Force-pushes checked as rebase-only or unchanged. */
+  rebases: number;
   merged: number;
   closed: number;
 }
@@ -474,7 +476,7 @@ export function hiddenActivitySince(
   since: string,
   repo: string | null,
 ): HiddenActivity {
-  const out: HiddenActivity = { items: 0, pushes: 0, merged: 0, closed: 0 };
+  const out: HiddenActivity = { items: 0, pushes: 0, rebases: 0, merged: 0, closed: 0 };
   const seen = new Set<SubjectKey>();
   const sinceMs = Date.parse(since);
   for (const row of entries.flatMap((e) => (isGroup(e) ? e.members : [e]))) {
@@ -485,17 +487,19 @@ export function hiddenActivitySince(
     if (!(Date.parse(row.sortAt) > sinceMs)) continue;
     out.items += 1;
     out.pushes += row.hiddenStats.pushes;
+    out.rebases += row.hiddenStats.rebases ?? 0;
     out.merged += row.hiddenStats.merged;
     out.closed += row.hiddenStats.closed;
   }
   return out;
 }
 
-/** e.g. "Since you last looked: 12 pushes, 3 merged across 5 hidden items". */
+/** e.g. "Since you last looked: 12 pushes, 40 rebases, 3 merged across 5 hidden items". */
 export function hiddenActivityLine(activity: HiddenActivity): string {
   if (activity.items === 0) return "Nothing new in Hidden since you last looked";
   const parts = [
     activity.pushes > 0 ? `${activity.pushes} ${activity.pushes === 1 ? "push" : "pushes"}` : null,
+    activity.rebases > 0 ? `${activity.rebases} ${activity.rebases === 1 ? "rebase" : "rebases"}` : null,
     activity.merged > 0 ? `${activity.merged} merged` : null,
     activity.closed > 0 ? `${activity.closed} closed` : null,
   ].filter((p) => p !== null);

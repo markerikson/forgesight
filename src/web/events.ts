@@ -1,4 +1,4 @@
-import { typenameLabel, type Event, type SubjectRef } from "../core/index.ts";
+import { isRestack, restackText, typenameLabel, type Event, type SubjectRef } from "../core/index.ts";
 
 function shortSha(sha: string | undefined): string {
   return sha ? sha.slice(0, 7) : "";
@@ -35,6 +35,7 @@ export function describeEvent(event: Event): string {
     case "commit":
       return `pushed ${shortSha(d.sha)}${d.headline ? ` ${d.headline}` : ""}`;
     case "forcePush":
+      if (isRestack(event)) return restackText(event);
       return `force-pushed ${shortSha(d.beforeSha)} → ${shortSha(d.afterSha)}`;
     case "baseForcePush":
       return `force-pushed the base ${shortSha(d.beforeSha)} → ${shortSha(d.afterSha)}`;

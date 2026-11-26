@@ -12,6 +12,7 @@ import type {
 } from "../types.ts";
 import { type DeriveInput, deriveSubjectView } from "./index.ts";
 import type { RepoMode } from "../config.ts";
+import type { PushVerdict } from "../rebase/patch.ts";
 import type { SubjectView } from "./types.ts";
 
 const FIXTURES = join(import.meta.dir, "..", "__fixtures__");
@@ -86,7 +87,12 @@ export async function loadFixture(name: string): Promise<DeriveInput> {
     muted: false,
   };
   const config = resolveConfig({ me: ME, repos: { [repo]: { mode: meta.mode } } });
+  const verdictsPath = join(dir, "verdicts.json");
+  const verdicts = (await Bun.file(verdictsPath).exists())
+    ? await readJson<Record<string, PushVerdict>>(verdictsPath)
+    : null;
   return {
+    ...(verdicts ? { pushVerdicts: new Map(Object.entries(verdicts)) } : {}),
     subject,
     threads,
     items,

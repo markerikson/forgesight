@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { resolveConfig } from "../../config/load.ts";
 import type { RepoMode } from "../config.ts";
+import type { PushVerdict } from "../rebase/patch.ts";
 import type { ItemState, SubjectRecord, ThreadRecord, TimelineItemRecord } from "../types.ts";
 import { deriveSubjectView, subjectBody } from "./index.ts";
 
@@ -36,8 +37,8 @@ const commit = (at: string, headline = "change") =>
     commit: { oid: `sha${seq}`, messageHeadline: headline, committedDate: at, author: { user: { login: "bob" } } },
   });
 
-const forcePush = (at: string) =>
-  item("HeadRefForcePushedEvent", at, { actor: user("bob"), beforeCommit: { oid: "a" }, afterCommit: { oid: "b" } });
+const forcePush = (at: string, after = "b") =>
+  item("HeadRefForcePushedEvent", at, { actor: user("bob"), beforeCommit: { oid: "a" }, afterCommit: { oid: after } });
 
 const rename = (at: string) =>
   item("RenamedTitleEvent", at, { actor: user("bob"), previousTitle: "a", currentTitle: "b" });
@@ -54,6 +55,7 @@ interface Opts {
   enriched?: boolean;
   bots?: Parameters<typeof resolveConfig>[0]["bots"];
   enrichIssues?: boolean;
+  pushVerdicts?: Map<string, PushVerdict>;
 }
 
 function derive(opts: Opts) {
@@ -118,6 +120,7 @@ function derive(opts: Opts) {
     }),
     me: ME,
     now: NOW,
+    ...(opts.pushVerdicts ? { pushVerdicts: opts.pushVerdicts } : {}),
   });
 }
 
@@ -557,6 +560,47 @@ describe("rounds", () => {
     ]);
     expect(view.rounds[0]?.entries.map((e) => e.type)).toEqual(["group"]);
     expect(view.hiddenStats.pushes).toBe(5);
+  });
+
+  test("rebase-only and unchanged force-pushes join the current round instead of starting one", () => {
+    const rebased = (onto: string | null): PushVerdict => ({ verdict: "rebase_only", reason: "patches equal", onto });
+    const view = derive({
+      items: [
+        forcePush("2026-11-21T01:00:00Z", "p1"),
+        comment("alice", "2026-11-21T01:30:00Z", "looks good"),
+        forcePush("2026-11-21T02:00:00Z", "p2"),
+        forcePush("2026-11-21T03:00:00Z", "p3"),
+        forcePush("2026-11-21T04:00:00Z", "p4"),
+        forcePush("2026-11-21T05:00:00Z", "p5"),
+      ],
+      pushVerdicts: new Map<string, PushVerdict>([
+        ["p1", { verdict: "changed", reason: "1 file differs", onto: null }],
+        ["p2", rebased("master")],
+        ["p3", rebased(null)],
+        ["p4", { verdict: "noop", reason: "patches equal, same base", onto: null }],
+        ["p5", { verdict: "pending", reason: null, onto: null }],
+      ]),
+    });
+    expect(view.rounds.map((r) => [r.startLabel, r.pushCount])).toEqual([
+      ["force-pushed", 1],
+      ["force-pushed", 1],
+    ]);
+    expect(groupSummaries(view)).toEqual(["comment", "2 rebases, 1 unchanged re-push"]);
+    expect(view.hiddenStats).toMatchObject({ pushes: 2, rebases: 3 });
+  });
+
+  test("a single rebase reads as where it landed", () => {
+    const view = derive({
+      items: [comment("alice", "2026-11-21T01:00:00Z", "first"), forcePush("2026-11-21T02:00:00Z", "p1")],
+      pushVerdicts: new Map<string, PushVerdict>([["p1", { verdict: "rebase_only", reason: null, onto: "master" }]]),
+    });
+    expect(groupSummaries(view)).toEqual(["comment", "rebased onto master"]);
+    expect(view.summaryLine).toBe("alice commented: first");
+    const pushOnly = derive({
+      items: [forcePush("2026-11-21T02:00:00Z", "p1")],
+      pushVerdicts: new Map<string, PushVerdict>([["p1", { verdict: "rebase_only", reason: null, onto: "master" }]]),
+    });
+    expect(pushOnly.summaryLine).toBe("bob rebased onto master");
   });
 
   const crossRef = (at: string, number: number, willClose = false, actor = "alice") =>

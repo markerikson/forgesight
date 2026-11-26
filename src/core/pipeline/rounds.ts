@@ -1,3 +1,4 @@
+import { isRestack, restackText } from "./classify.ts";
 import { plural } from "./text.ts";
 import { ms } from "./time.ts";
 import type { CollapsedGroup, EventKind, Round, RoundEntry, ViewEvent } from "./types.ts";
@@ -38,6 +39,7 @@ const NOUNS: Record<EventKind, string> = {
 };
 
 function noun(e: ViewEvent): string {
+  if (isRestack(e)) return e.data.verdict === "noop" ? "unchanged re-push" : "rebase";
   const base = NOUNS[e.kind];
   return e.actor?.isBot && (e.kind === "comment" || e.kind === "review") ? `bot ${base}` : base;
 }
@@ -67,9 +69,12 @@ function crossReferenceSummary(events: ViewEvent[]): string {
 
 /**
  * "3 bot comments, 2 cross-references", in order of first appearance. A group of only
- * cross-references names who made them: "alice referenced this from 3 PRs".
+ * cross-references names who made them: "alice referenced this from 3 PRs". A lone rebase reads
+ * "rebased onto master".
  */
 export function groupSummary(events: ViewEvent[]): string {
+  const [only] = events;
+  if (events.length === 1 && only && isRestack(only)) return restackText(only);
   if (events.length > 1 && events.every(isCrossReference)) return crossReferenceSummary(events);
   const counts = new Map<string, number>();
   for (const e of events) {
@@ -181,8 +186,8 @@ function mergePushOnly(rounds: Round[]): Round[] {
  * each force-push and at each batch of commits; commits within 10 minutes of the previous
  * commit join its batch unless a visible event came in between. Inside a round, runs of collapsed events between shown events
  * become one group; hidden events are only counted. Consecutive rounds with nothing shown
- * merge into one, so a run of rebases reads as "5 pushes". Every force-push counts as real until
- * push verdicts exist.
+ * merge into one, so a run of pushes reads as "5 pushes". Force-pushes checked as rebase-only or
+ * unchanged do not start a round; they join the current one as collapsed events ("3 rebases").
  */
 export function buildRounds(events: ViewEvent[]): Round[] {
   const rounds: Round[] = [];
@@ -193,7 +198,7 @@ export function buildRounds(events: ViewEvent[]): Round[] {
   };
 
   for (const e of events) {
-    if (e.kind === "forcePush") {
+    if (e.kind === "forcePush" && !isRestack(e)) {
       current = start(e);
       continue;
     }

@@ -6,7 +6,8 @@
   "summaryLine": "Domiii force-pushed",
   "newMeaningfulCount": 0,
   "hiddenStats": {
-    "pushes": 54,
+    "pushes": 45,
+    "rebases": 9,
     "merged": 0,
     "closed": 0
   },
@@ -14,11 +15,11 @@
   "links": [],
   "rounds": [
     {
-      "start": "54 pushes",
+      "start": "45 pushes",
       "isNew": true,
       "hidden": 0,
       "entries": [
-        "[1 rename, 8 stack changes, 36 base force-pushes] (new)",
+        "[1 rename, 8 stack changes, 36 base force-pushes, 8 rebases, 1 unchanged re-push] (new)",
         "[Domiii referenced this from 3 PRs] (new)"
       ]
     },

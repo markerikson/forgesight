@@ -19,6 +19,11 @@ export interface RepoConfig {
   view: RepoView;
   /** Base branches that are not part of a stack. */
   trunks: string[];
+  /**
+   * Files a push may change without counting as a change, compiled from globs. For generated files that
+   * conflict resolution rewrites during a rebase.
+   */
+  rebaseIgnore: RegExp[];
   workstreams: WorkstreamConfig;
 }
 

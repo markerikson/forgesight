@@ -2,7 +2,8 @@ import type { Config, ContentLevel, RepoMode } from "../config.ts";
 import { extract, findRule, ruleBotKind, ruleLevel } from "./rules.ts";
 import { isAfter } from "./time.ts";
 import type { SubjectKind } from "../types.ts";
-import type { Event, EventKind, ViewEvent } from "./types.ts";
+import type { PushVerdict } from "../rebase/patch.ts";
+import type { Event, EventData, EventKind, ViewEvent } from "./types.ts";
 
 const BODY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>(["comment", "review", "reviewComment"]);
 
@@ -48,6 +49,28 @@ export interface ClassifyContext {
   mySubject: boolean;
   /** Events after this time are new; null means everything is new. */
   dismissedAt: string | null;
+  /** Checked head force-pushes, keyed by the SHA the push moved the head to. */
+  pushVerdicts?: ReadonlyMap<string, PushVerdict>;
+}
+
+/** A head force-push that only moved the branch onto a new base, or changed nothing. */
+export function isRestack(e: Event): boolean {
+  return e.kind === "forcePush" && (e.data.verdict === "rebase_only" || e.data.verdict === "noop");
+}
+
+/** "rebased onto master", "rebased", or "re-pushed, no change". */
+export function restackText(e: Event): string {
+  if (e.data.verdict === "noop") return "re-pushed, no change";
+  return e.data.onto === undefined ? "rebased" : `rebased onto ${e.data.onto}`;
+}
+
+function withVerdict(e: Event, verdicts: ReadonlyMap<string, PushVerdict> | undefined): Event {
+  if (e.kind !== "forcePush" || e.data.afterSha === undefined) return e;
+  const v = verdicts?.get(e.data.afterSha);
+  if (v === undefined || v.verdict === "pending") return e;
+  const data: EventData = { ...e.data, verdict: v.verdict };
+  if (v.onto !== null) data.onto = v.onto;
+  return { ...e, data };
 }
 
 export function isMe(login: string | undefined, me: string | null): boolean {
@@ -90,7 +113,8 @@ function classifyOne(e: Event, ctx: ClassifyContext): Omit<ViewEvent, keyof Even
  * is hidden. Events by me are never new, except mentions of me.
  */
 export function classify(events: Event[], ctx: ClassifyContext): ViewEvent[] {
-  return events.map((e) => {
+  return events.map((raw) => {
+    const e = withVerdict(raw, ctx.pushVerdicts);
     const v: ViewEvent = {
       ...e,
       ...classifyOne(e, ctx),

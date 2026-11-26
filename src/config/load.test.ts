@@ -97,6 +97,22 @@ describe("resolveConfig", () => {
     });
   });
 
+  test("rebaseIgnore globs compile per repo and inherit from '*'", () => {
+    const config = resolveConfig({
+      repos: {
+        "*": { rebaseIgnore: ["*.lock"] },
+        "a/b": { rebaseIgnore: ["src/**/toolResult*.json"] },
+      },
+    });
+    expect(repoConfig(config, "x/y").rebaseIgnore[0]?.test("deep/dir/bun.lock")).toBe(true);
+    const [glob] = repoConfig(config, "a/b").rebaseIgnore;
+    expect(glob?.test("src/analysis/execution-data/toolResultFingerprints.json")).toBe(true);
+    expect(glob?.test("src/toolResultVersions.json")).toBe(true);
+    expect(glob?.test("lib/src/toolResultFingerprints.json")).toBe(false);
+    expect(glob?.test("src/toolResultFingerprints.json.bak")).toBe(false);
+    expect(resolveConfig({}).repos["*"]?.rebaseIgnore).toEqual([]);
+  });
+
   test("workstream settings resolve field by field per repo", () => {
     const config = resolveConfig({
       repos: {

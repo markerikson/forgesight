@@ -23,6 +23,16 @@ describe("describeEvent", () => {
     );
   });
 
+  test("checked force-pushes say whether they only rebased", () => {
+    const push = { beforeSha: "aaaaaaaaa", afterSha: "bbbbbbbbb" };
+    expect(describeEvent(event("forcePush", { ...push, verdict: "rebase_only", onto: "master" }))).toBe(
+      "rebased onto master",
+    );
+    expect(describeEvent(event("forcePush", { ...push, verdict: "rebase_only" }))).toBe("rebased");
+    expect(describeEvent(event("forcePush", { ...push, verdict: "noop" }))).toBe("re-pushed, no change");
+    expect(describeEvent(event("forcePush", { ...push, verdict: "changed" }))).toBe("force-pushed aaaaaaa → bbbbbbb");
+  });
+
   test("references name the other item", () => {
     expect(
       describeEvent(event("crossReference", { ref: { kind: "pr", repo: "o/r", number: 5, title: "Fix" }, willClose: true })),

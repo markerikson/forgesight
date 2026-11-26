@@ -9,6 +9,7 @@ const repoEntry = type({
   "branchRules?": type({ "+": "reject", pattern: "string", link: "'issue'" }).array(),
   "view?": "'overview' | 'triage'",
   "trunks?": "string[]",
+  "rebaseIgnore?": "string[]",
   "workstreams?": {
     "+": "reject",
     "forkMinSize?": "number.integer >= 2",

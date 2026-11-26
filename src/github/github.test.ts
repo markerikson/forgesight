@@ -119,11 +119,13 @@ describe("schemas", () => {
       ahead_by: 2,
       behind_by: 1,
       merge_base_commit: { sha: "base" },
+      total_commits: 2,
       commits: [{ sha: "a" }, { sha: "b" }],
-      files: [{ filename: "x.ts", status: "modified", additions: 1, deletions: 0 }],
+      files: [{ sha: "blob1", filename: "x.ts", status: "modified", additions: 1, deletions: 0 }],
     });
-    expect(c).toMatchObject({ aheadBy: 2, mergeBaseSha: "base", commitShas: ["a", "b"] });
+    expect(c).toMatchObject({ aheadBy: 2, mergeBaseSha: "base", commitShas: ["a", "b"], totalCommits: 2 });
     expect(c.files[0]).toEqual({
+      sha: "blob1",
       filename: "x.ts",
       status: "modified",
       additions: 1,

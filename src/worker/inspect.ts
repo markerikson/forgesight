@@ -5,6 +5,7 @@ import type { InboxRow, Round, SubjectView } from "../core/pipeline/types.ts";
 import type { ThreadRecord } from "../core/types.ts";
 import { hourlySpendSince } from "../store/api-calls.ts";
 import { defaultDbPath, openDb } from "../store/db.ts";
+import { verdictCounts, verdictsFor } from "../store/push-verdicts.ts";
 import { getSubject } from "../store/subjects.ts";
 import { listThreads, threadsForSubject } from "../store/threads.ts";
 import { reviewThreadsFor, stickiesFor, timelineCounts, timelineFor } from "../store/timeline.ts";
@@ -106,9 +107,13 @@ export function subjectDetail(db: Database, key: string): string[] {
   }
 
   const items = timelineFor(db, key);
+  const verdicts = verdictsFor(db, key);
   lines.push("", `timeline (${items.length})`);
   for (const item of items) {
-    lines.push(`  ${item.createdAt}  ${item.typename}  ${itemActor(item.raw)}  ${itemText(item.raw)}`);
+    const after = item.typename === "HeadRefForcePushedEvent" ? str(path(item.raw, "afterCommit", "oid")) : null;
+    const verdict = after ? verdicts.get(after) : undefined;
+    const suffix = verdict ? `  [${verdict.verdict}${verdict.reason ? `: ${verdict.reason}` : ""}]` : "";
+    lines.push(`  ${item.createdAt}  ${item.typename}  ${itemActor(item.raw)}  ${itemText(item.raw)}${suffix}`);
   }
 
   const reviewThreads = reviewThreadsFor(db, key);
@@ -175,6 +180,11 @@ export function viewsSummary(db: Database, perSection = 10): string[] {
   return lines.length > 0 ? lines : ["No views"];
 }
 
+export function pushVerdictsLine(db: Database): string {
+  const counts = Object.entries(verdictCounts(db));
+  return `push verdicts: ${counts.length === 0 ? "none" : counts.map(([verdict, n]) => `${verdict} ${n}`).join(", ")}`;
+}
+
 /** API spend per hour, resource and work class over the last 24 hours. */
 export function budgetSummary(db: Database, now: Date): string[] {
   const rows = hourlySpendSince(db, new Date(now.getTime() - DAY_MS).toISOString());
@@ -211,7 +221,7 @@ if (import.meta.main) {
   const now = new Date();
   const [key] = positionals;
   const lines = values.budget
-    ? budgetSummary(db, now)
+    ? [...budgetSummary(db, now), "", pushVerdictsLine(db)]
     : values.view
       ? key
         ? viewDetail(db, key)

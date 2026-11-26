@@ -58,6 +58,8 @@ export interface GqlResult<T> {
 }
 
 export interface CommitFile {
+  /** Blob SHA of the file after the change; null for a deleted file. */
+  sha: string | null;
   filename: string;
   status: string;
   additions: number;
@@ -81,6 +83,9 @@ export interface Compare {
   behindBy: number;
   mergeBaseSha: string;
   commitShas: string[];
+  /** All commits in the range. `commitShas` stops at 250. */
+  totalCommits: number;
+  /** At most 300 files; GitHub drops the rest. */
   files: CommitFile[];
   raw: unknown;
 }

@@ -5,6 +5,7 @@ import workstreamsSql from "./migrations/003-workstreams.sql" with { type: "text
 import llmSql from "./migrations/004-llm.sql" with { type: "text" };
 import outboxCancelSql from "./migrations/005-outbox-cancel.sql" with { type: "text" };
 import itemStateReadAtSql from "./migrations/006-item-state-read-at.sql" with { type: "text" };
+import pushVerdictsSql from "./migrations/007-push-verdicts.sql" with { type: "text" };
 import { userVersion } from "./schema-version.ts";
 
 export type Migration = { version: number; name: string; sql: string };
@@ -16,6 +17,7 @@ export const migrations: Migration[] = [
   { version: 4, name: "llm", sql: llmSql },
   { version: 5, name: "outbox-cancel", sql: outboxCancelSql },
   { version: 6, name: "item-state-read-at", sql: itemStateReadAtSql },
+  { version: 7, name: "push-verdicts", sql: pushVerdictsSql },
 ];
 
 export function latest(list: Migration[]): number {
