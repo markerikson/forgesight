@@ -208,8 +208,11 @@ export function patchInbox(
     const next = patchRow(row, op, now, { includeHidden: true });
     return next ? [next] : [];
   };
+  // A done member leaves the inbox, so its group stops showing it as unlisted too.
+  const unlisted = (group: InboxGroup) =>
+    op.kind === "done" ? group.unlisted.filter((u) => !targets.has(u.key)) : group.unlisted;
   const entries = payload.rows.flatMap<InboxEntry>((entry) =>
-    isGroup(entry) ? [{ ...entry, members: entry.members.flatMap(patch) }] : patch(entry),
+    isGroup(entry) ? [{ ...entry, members: entry.members.flatMap(patch), unlisted: unlisted(entry) }] : patch(entry),
   );
   return settleInbox(payload, entries, includeHidden);
 }

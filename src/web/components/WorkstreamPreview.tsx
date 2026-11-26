@@ -12,7 +12,7 @@ import { relativeTime, repoShortName } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
 import {
   doneAllWorkstream,
-  doneKeys,
+  groupDoneKeys,
   mergeWorkstreamInto,
   openWorkstreamSnooze,
   removeFromWorkstream,
@@ -156,7 +156,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const now = useNow();
   const stack = stackOrder(group);
   const gone = useAppSelector(selectGoneKeys);
-  const doneCount = doneKeys([group], gone).length;
+  const doneCount = groupDoneKeys(group, gone).length;
   const totals = totalsText(group, now);
   const [mergeAnchor, setMergeAnchor] = useState<{ top: number; left: number } | null>(null);
   // Removing the last member would leave nothing to split off.
@@ -173,8 +173,8 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
           <button
             type="button"
             className={previewStyles.primary}
-            disabled={group.section === "hidden" || doneCount === 0}
-            title="Mark the listed members done (e)"
+            disabled={doneCount === 0}
+            title="Mark every member with a notification done (e)"
             onClick={() => dispatch(doneAllWorkstream(group))}
           >
             Done all ({doneCount})

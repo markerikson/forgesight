@@ -94,6 +94,8 @@ const ROWS = [
   row("acme/app#9", "updates", { repo: "acme/app", sortAt: "2026-11-06T00:00:00Z" }),
 ];
 
+const BACKEND_HIDDEN = ROWS.map((r) => (r.repo === "replayio/backend" ? { ...r, section: "hidden" as const } : r));
+
 function build(inputs: WorkstreamInput[], includeHidden = false, rows = ROWS): InboxPayload {
   return buildInboxPayload(rows, { includeHidden, now: NOW, workstreams: inputs });
 }
@@ -216,8 +218,7 @@ describe("buildInboxPayload with workstreams", () => {
   });
 
   test("a muted group whose members are all hidden still lists them as unlisted", () => {
-    const rows = ROWS.map((r) => (r.repo === "replayio/backend" ? { ...r, section: "hidden" as const } : r));
-    const group = groupOf(build([input({ state: { priority: "muted" } })], true, rows));
+    const group = groupOf(build([input({ state: { priority: "muted" } })], true, BACKEND_HIDDEN));
     expect(group.members).toEqual([]);
     expect(group.unlisted.map((m) => m.key)).toEqual([K1, K2, K3, K4]);
   });
@@ -329,6 +330,15 @@ describe("patchInbox on group members", () => {
   test("done on every shown member drops the group row", () => {
     const payload = build([input()]);
     const next = patchInbox(payload, [K1, K2, K3], { kind: "done" }, NOW_ISO, { includeHidden: false });
+    expect(next.rows.map(entryKey)).toEqual(["acme/app#9"]);
+  });
+
+  test("done on the unlisted members of a muted group in Hidden drops the group", () => {
+    const payload = build([input({ state: { priority: "muted" } })], true, BACKEND_HIDDEN);
+    expect(groupOf(payload).unlisted).toHaveLength(4);
+    // Hidden rows not in the list, as when the inbox is read without Hidden entries.
+    const withoutRows = { ...payload, rows: payload.rows.filter((e) => isGroup(e) || e.section !== "hidden") };
+    const next = patchInbox(withoutRows, [K1, K2, K3, K4], { kind: "done" }, NOW_ISO, { includeHidden: true });
     expect(next.rows.map(entryKey)).toEqual(["acme/app#9"]);
   });
 });

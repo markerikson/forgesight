@@ -10,7 +10,7 @@ import type { WsPriority as WorkstreamPriority } from "../../core/workstream-sta
 import { firstLine } from "../../core/pipeline/text.ts";
 import {
   doneAllWorkstream,
-  doneKeys,
+  groupDoneKeys,
   mergeWorkstreamInto,
   openWorkstreamSnooze,
   renameWorkstream,
@@ -46,7 +46,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
   const key = groupKey(group.id);
   const count = group.members.length + group.moreCount;
   const gone = useAppSelector(selectGoneKeys);
-  const doneCount = doneKeys([group], gone).length;
+  const doneCount = groupDoneKeys(group, gone).length;
   const summaryFirst = group.summary ? firstLine(group.summary.text) : "";
   const summaryMore = group.summary !== null && group.summary.text.trim() !== summaryFirst;
 
@@ -140,11 +140,11 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
             >
               Merge…
             </button>
-            {group.section !== "hidden" && doneCount > 0 && (
+            {doneCount > 0 && (
               <button
                 type="button"
                 className={rowStyles.done}
-                title="Mark the listed members done (e)"
+                title="Mark every member with a notification done (e)"
                 onClick={(e) => act(e, () => dispatch(doneAllWorkstream(group)))}
               >
                 Done all ({doneCount})
