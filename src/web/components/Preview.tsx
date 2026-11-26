@@ -87,12 +87,12 @@ export function Preview() {
 
   // An opened workstream keeps its place while the user reads it, even once reading its members
   // or marking it seen moves it out of this section.
-  const lingeredGroup = useRef<string | null>(null);
+  const lingering = useAppSelector(
+    (state) => currentGroupId !== null && state.view.lingeringGroups.some((g) => g.id === currentGroupId),
+  );
   useEffect(() => {
-    if (!currentGroup || lingeredGroup.current === currentGroup.id) return;
-    lingeredGroup.current = currentGroup.id;
-    dispatch(groupOpened(currentGroup));
-  }, [dispatch, currentGroup]);
+    if (currentGroup && !lingering) dispatch(groupOpened(currentGroup));
+  }, [dispatch, currentGroup, lingering]);
 
   if (!row) {
     if (group) return <WorkstreamPane group={group} />;
