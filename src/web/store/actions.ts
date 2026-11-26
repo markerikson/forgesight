@@ -118,6 +118,20 @@ export function renameWorkstream(group: InboxGroup, name: string): ViewThunk {
   return applyWorkstream(group.id, { kind: "rename", name: trimmed === "" ? null : trimmed });
 }
 
+/** Merges the group into workstream `targetId`; the target keeps its ID and name. */
+export function mergeWorkstreamInto(group: InboxGroup, targetId: string, targetName: string): ViewThunk {
+  return applyWorkstream(targetId, { kind: "merge", from: group.id }, targetName);
+}
+
+export function removeFromWorkstream(group: InboxGroup, key: SubjectKey): ViewThunk {
+  return applyWorkstream(group.id, { kind: "remove", key });
+}
+
+/** Adds a PR that is in no workstream to workstream `id`. */
+export function addToWorkstream(key: SubjectKey, id: string, name: string): ViewThunk {
+  return applyWorkstream(id, { kind: "add", key }, name);
+}
+
 /**
  * Records that the group was opened, clearing "new workstream" and "summary changed". Reads the
  * group's current entry: one that an op already moved out of the list, or that a priority change

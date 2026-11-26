@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   type GroupSummary,
   groupTotals,
@@ -12,7 +13,9 @@ import { useNow } from "../hooks/useNow.ts";
 import {
   doneAllWorkstream,
   doneKeys,
+  mergeWorkstreamInto,
   openWorkstreamSnooze,
+  removeFromWorkstream,
   renameWorkstream,
   setWorkstreamPriority,
 } from "../store/actions.ts";
@@ -24,6 +27,7 @@ import { CiDot, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
 import { GitHubIcon, SubjectLink } from "./SubjectLink.tsx";
 import { UNLISTED_LABELS } from "./GroupRow.tsx";
+import { WorkstreamPicker } from "./WorkstreamPicker.tsx";
 import previewStyles from "./Preview.module.css";
 import styles from "./WorkstreamPreview.module.css";
 
@@ -131,6 +135,21 @@ function stackOrder(group: InboxGroup) {
     .filter((entry) => entry.member !== undefined || entry.unlisted !== undefined);
 }
 
+function RemoveButton({ group, subjectKey }: { group: InboxGroup; subjectKey: SubjectKey }) {
+  const dispatch = useAppDispatch();
+  return (
+    <button
+      type="button"
+      className={styles.memberRemove}
+      title={`Remove ${keyLabel(subjectKey)} from ${group.name}`}
+      aria-label={`Remove ${keyLabel(subjectKey)} from ${group.name}`}
+      onClick={() => dispatch(removeFromWorkstream(group, subjectKey))}
+    >
+      Remove
+    </button>
+  );
+}
+
 /** Preview of a selected workstream row: summary, state controls and the whole stack. */
 export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const dispatch = useAppDispatch();
@@ -139,6 +158,9 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const gone = useAppSelector(selectGoneKeys);
   const doneCount = doneKeys([group], gone).length;
   const totals = totalsText(group, now);
+  const [mergeAnchor, setMergeAnchor] = useState<{ top: number; left: number } | null>(null);
+  // Removing the last member would leave nothing to split off.
+  const removable = group.memberKeys.length > 1;
   const rename = () => {
     const name = window.prompt("Workstream name (empty resets to the generated name)", group.name);
     if (name !== null && name.trim() !== group.name) dispatch(renameWorkstream(group, name));
@@ -184,7 +206,24 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
           <button type="button" onClick={rename}>
             Rename…
           </button>
+          <button
+            type="button"
+            title="Merge this workstream into another"
+            onClick={(e) => setMergeAnchor(anchorBelow(e.currentTarget))}
+          >
+            Merge into…
+          </button>
         </div>
+        {mergeAnchor && (
+          <WorkstreamPicker
+            repo={group.repo}
+            title={`Merge “${group.name}” into…`}
+            excludeId={group.id}
+            anchor={mergeAnchor}
+            onChoose={(id, name) => dispatch(mergeWorkstreamInto(group, id, name))}
+            onClose={() => setMergeAnchor(null)}
+          />
+        )}
         <header className={previewStyles.header}>
           <h2 className={previewStyles.title}>{group.name}</h2>
           <div className={previewStyles.meta}>
@@ -223,6 +262,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
                   )}
                   {member.author && <span className={styles.memberAuthor}>{member.author}</span>}
                   {now !== null && <span className={styles.memberTime}>{relativeTime(member.sortAt, now)}</span>}
+                  {removable && <RemoveButton group={group} subjectKey={key} />}
                 </li>
               ) : unlisted ? (
                 <li key={key} className={styles.member}>
@@ -239,6 +279,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
                   {now !== null && unlisted.updatedAt && (
                     <span className={styles.memberTime}>{relativeTime(unlisted.updatedAt, now)}</span>
                   )}
+                  {removable && <RemoveButton group={group} subjectKey={key} />}
                 </li>
               ) : null,
             )}

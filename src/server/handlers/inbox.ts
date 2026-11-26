@@ -7,11 +7,12 @@ import {
   buildInboxPayload,
 } from "../../core/index.ts";
 import type { SubjectKey } from "../../core/types.ts";
-import { isListedWorkstream, type MemberFacts, workstreamSnoozeActive } from "../../core/workstream-state.ts";
+import { isListedWorkstream, type MemberFacts } from "../../core/workstream-state.ts";
 import { latestWorkstreamSummaries } from "../../store/llm.ts";
 import { PR_BODY_LIMIT } from "../../github/queries/pr-texts.ts";
 import { getPrTexts } from "../../store/pr-texts.ts";
 import { readListing } from "../../worker/workstreams.ts";
+import { groupSnoozed } from "../../worker/workstream-snooze.ts";
 import { listViews } from "../../store/views.ts";
 import {
   firstWorkstreamBuild,
@@ -31,7 +32,8 @@ import { withoutQuietDone, workerConfig } from "./derive-now.ts";
 export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<SubjectKey> = new Set()): WorkstreamInput[] {
   const stored = listWorkstreams(ctx.db);
   if (stored.length === 0) return [];
-  const me = workerConfig(ctx, ctx.db).me ?? null;
+  const config = workerConfig(ctx, ctx.db);
+  const me = config.me ?? null;
   const now = ctx.now();
   const keys = stored.flatMap((w) => w.members.map((m) => m.key));
   const facts = new Map<SubjectKey, MemberFacts>(memberFacts(ctx.db, keys));
@@ -51,8 +53,7 @@ export function loadWorkstreamInputs(ctx: ServerCtx, rowKeys: ReadonlySet<Subjec
     const workstream = toWorkstream(s);
     const state = states.get(s.id) ?? null;
     if (!isListedWorkstream(workstream, facts, me, state)) continue;
-    // Wake on time only; human-event and ready wakes need member events the inbox read does not load.
-    const snoozed = state !== null && workstreamSnoozeActive(state, [], me, now);
+    const snoozed = state !== null && groupSnoozed(ctx.db, config, state, workstream.members, now);
     const pulls = listedPulls(
       ctx,
       s.repo,

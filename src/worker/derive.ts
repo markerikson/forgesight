@@ -13,6 +13,7 @@ import { reviewThreadsFor, stickiesFor, timelineFor } from "../store/timeline.ts
 import { appendChange, changesAfter, putViews, staleViewKeys } from "../store/views.ts";
 import { stackContextsFor, workstreamSnoozesEndedBetween } from "../store/workstreams.ts";
 import type { Job, Logger } from "./scheduler.ts";
+import { endWokenSnoozes } from "./workstream-snooze.ts";
 
 export const DERIVE_BATCH = 200;
 
@@ -106,7 +107,8 @@ export interface DerivedKeys {
 
 /**
  * Derives and stores the views for `keys` in batches of `DERIVE_BATCH`. Uses only the store
- * and the pure pipeline, so the web server calls it right after a state op.
+ * and the pure pipeline, so the web server calls it right after a state op. Also ends the
+ * snooze of any workstream that activity on these subjects woke.
  */
 export function deriveKeys(
   db: Database,
@@ -124,6 +126,7 @@ export function deriveKeys(
     result.failed.push(...batch.failed);
     result.changed.push(...putViews(db, batch.views, nowIso));
   }
+  endWokenSnoozes(db, config, keys, now);
   return result;
 }
 

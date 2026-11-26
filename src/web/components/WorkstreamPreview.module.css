@@ -179,3 +179,14 @@
 .memberTime {
   margin-left: auto;
 }
+
+.memberRemove {
+  flex: none;
+  margin-left: auto;
+  padding: 0 6px;
+  font-size: 11px;
+}
+
+.memberTime ~ .memberRemove {
+  margin-left: 0;
+}

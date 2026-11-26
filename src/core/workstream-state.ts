@@ -51,6 +51,8 @@ export type WorkstreamOp =
   | { kind: "merge"; from: string }
   /** `key` leaves the target workstream. */
   | { kind: "remove"; key: SubjectKey }
+  /** `key`, an open PR in no workstream, joins the target workstream. */
+  | { kind: "add"; key: SubjectKey }
   /** Mark opened the workstream; `summaryHash` is the summary he saw, if any. */
   | { kind: "seen"; summaryHash: string | null };
 
@@ -110,6 +112,7 @@ export function isValidWorkstreamOp(value: unknown): value is WorkstreamOp {
     case "merge":
       return hasKeys(value, ["kind", "from"]) && typeof value.from === "string" && value.from.length > 0;
     case "remove":
+    case "add":
       return hasKeys(value, ["kind", "key"]) && typeof value.key === "string" && value.key.length > 0;
     case "seen":
       return (
@@ -153,6 +156,14 @@ export function workstreamSnoozeActive(
   };
   if (memberEvents.length === 0) return snoozeActive(item, [], me, now);
   return memberEvents.every((events) => snoozeActive(item, events, me, now));
+}
+
+/**
+ * Whether a group snooze can end on member activity (a human event or a member becoming
+ * ready), so holding it needs the members' events, not just the time.
+ */
+export function snoozeWakesOnActivity(state: WorkstreamState): boolean {
+  return state.snoozedAt !== null && (state.snoozeUntilHumanEvent || state.snoozeUntilReady);
 }
 
 /** What the store knows about one workstream member, for deciding whether Mark is involved. */

@@ -164,14 +164,14 @@ export const stateApi = api.injectEndpoints({
         }
       },
     }),
-    applyWorkstream: build.mutation<WorkstreamStateResponse, WorkstreamStateRequest>({
-      query: (body) => ({ url: "workstreams/state", method: "POST", body }),
-      async onQueryStarted({ id: targetId, op }, { dispatch, getState, queryFulfilled }) {
+    applyWorkstream: build.mutation<WorkstreamStateResponse, WorkstreamStateRequest & { name?: string | undefined }>({
+      query: ({ id, op }) => ({ url: "workstreams/state", method: "POST", body: { id, op } }),
+      async onQueryStarted({ id: targetId, op, name: givenName }, { dispatch, getState, queryFulfilled }) {
         const before = getState() as ViewRootState;
         const { selected, index: selectedIndex } = selectionBefore(before);
         const now = new Date().toISOString();
         const ids = op.kind === "merge" ? [targetId, op.from] : [targetId];
-        let name = targetId;
+        let name = givenName ?? targetId;
 
         // Rollback puts back only the touched groups and their member rows.
         const originals = cachedInboxArgs(before).map((arg) => {
@@ -207,6 +207,8 @@ export const stateApi = api.injectEndpoints({
           // The response carries stored workstreams, not inbox groups, so refetch the groups.
           // Subject previews show the workstream name and summary too.
           dispatch(api.util.invalidateTags(workstreamTags(ids, op.kind !== "seen")));
+          // The added PR's preview had no workstream tag to invalidate.
+          if (op.kind === "add") dispatch(api.util.invalidateTags([{ type: "Subject", id: op.key }]));
           if (op.kind === "seen") return;
           dispatch(undoPushed({ opId: data.opId, label, keys: [], workstream: targetId, at: now }));
           dispatch(toastShown(label, { opId: data.opId }));
@@ -305,10 +307,13 @@ export function applyState(keys: SubjectKey[], op: StateOp): ViewThunk {
   };
 }
 
-/** Applies `op` to workstream `id`, optimistically. */
-export function applyWorkstream(id: string, op: WorkstreamOp): ViewThunk {
+/**
+ * Applies `op` to workstream `id`, optimistically. `name` labels the toast when the
+ * workstream is not a group in the cached inbox.
+ */
+export function applyWorkstream(id: string, op: WorkstreamOp, name?: string): ViewThunk {
   return (dispatch) => {
-    const request = dispatch(stateApi.endpoints.applyWorkstream.initiate({ id, op }));
+    const request = dispatch(stateApi.endpoints.applyWorkstream.initiate({ id, op, name }));
     void request.then(() => request.reset());
   };
 }

@@ -57,6 +57,8 @@ function overrideFor(db: Database, id: string, op: WorkstreamOp): WsOverride | n
       return { kind: "merge", keys: [anchorMember(db, id), anchorMember(db, op.from)] };
     case "remove":
       return { kind: "remove", key: op.key };
+    case "add":
+      return { kind: "merge", keys: [anchorMember(db, id), op.key] };
     default:
       return null;
   }
@@ -65,7 +67,7 @@ function overrideFor(db: Database, id: string, op: WorkstreamOp): WsOverride | n
 /**
  * Applies `op` to workstream `id` in one transaction and records it for undo. State ops
  * write `workstream_state`; rename sets `manual_name`, which wins over the detected name;
- * merge and remove add an override row that the next rebuild applies. The caller rebuilds
+ * merge, remove and add add an override row that the next rebuild applies. The caller rebuilds
  * and re-derives.
  */
 export function applyWorkstreamOps(db: Database, id: string, op: WorkstreamOp, now: string): { opId: number } {

@@ -273,6 +273,9 @@ export function patchGroup(group: InboxGroup, op: WorkstreamOp, _now: string): I
         memberKeys: group.memberKeys.filter((k) => k !== op.key),
         members: group.members.filter((m) => m.key !== op.key),
       };
+    case "add":
+      // The added row is loose in the payload and reflows into the group.
+      return group.memberKeys.includes(op.key) ? group : { ...group, memberKeys: [...group.memberKeys, op.key] };
     case "merge":
       return group;
   }
