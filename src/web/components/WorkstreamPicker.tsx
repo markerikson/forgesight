@@ -9,7 +9,7 @@ interface Props {
   /** The workstream the choice acts on, left out of the list. */
   excludeId?: string;
   anchor: { top: number; left: number } | null;
-  onChoose: (id: string) => void;
+  onChoose: (id: string, name: string) => void;
   onClose: () => void;
 }
 
@@ -26,13 +26,17 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
     )
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-  const choose = (id: string) => {
+  const choose = (id: string, name: string) => {
     onClose();
-    onChoose(id);
+    onChoose(id, name);
   };
-  const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
+  const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && choices[0]) choose(choices[0].id, choices[0].displayName);
+  };
+  // Keys stay inside the picker so the inbox shortcuts never act on the row behind it.
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    e.stopPropagation();
     if (e.key === "Escape") onClose();
-    else if (e.key === "Enter" && choices[0]) choose(choices[0].id);
   };
 
   return (
@@ -49,6 +53,7 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
         role="dialog"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={onKey}
       >
         <div className={styles.title}>{title}</div>
         <input
@@ -58,7 +63,7 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
           aria-label="Filter workstreams"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={onKey}
+          onKeyDown={onSearchKey}
           // biome-ignore lint/a11y/noAutofocus: the picker opens to type a filter
           autoFocus
         />
@@ -75,7 +80,7 @@ export function WorkstreamPicker({ repo, title, excludeId, anchor, onChoose, onC
               role="option"
               aria-selected={false}
               className={`${styles.item} ${pickerStyles.choice}`}
-              onClick={() => choose(ws.id)}
+              onClick={() => choose(ws.id, ws.displayName)}
             >
               <span className={pickerStyles.name} title={ws.displayName}>
                 {ws.displayName}

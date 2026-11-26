@@ -17,7 +17,8 @@
 .list {
   display: flex;
   flex-direction: column;
-  max-height: 240px;
+  /* With the title and search box, keeps the picker inside the height `anchorBelow` reserves. */
+  max-height: 180px;
   overflow-y: auto;
 }
 

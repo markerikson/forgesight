@@ -220,7 +220,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
             title={`Merge “${group.name}” into…`}
             excludeId={group.id}
             anchor={mergeAnchor}
-            onChoose={(id) => dispatch(mergeWorkstreamInto(group, id))}
+            onChoose={(id, name) => dispatch(mergeWorkstreamInto(group, id, name))}
             onClose={() => setMergeAnchor(null)}
           />
         )}

@@ -211,7 +211,7 @@ function AddToWorkstream({ header }: { header: SubjectHeader }) {
           repo={header.repo}
           title={`Add #${header.number ?? ""} to…`}
           anchor={anchor}
-          onChoose={(id) => dispatch(addToWorkstream(header.key, id))}
+          onChoose={(id, name) => dispatch(addToWorkstream(header.key, id, name))}
           onClose={() => setAnchor(null)}
         />
       )}

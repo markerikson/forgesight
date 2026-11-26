@@ -119,8 +119,8 @@ export function renameWorkstream(group: InboxGroup, name: string): ViewThunk {
 }
 
 /** Merges the group into workstream `targetId`; the target keeps its ID and name. */
-export function mergeWorkstreamInto(group: InboxGroup, targetId: string): ViewThunk {
-  return applyWorkstream(targetId, { kind: "merge", from: group.id });
+export function mergeWorkstreamInto(group: InboxGroup, targetId: string, targetName: string): ViewThunk {
+  return applyWorkstream(targetId, { kind: "merge", from: group.id }, targetName);
 }
 
 export function removeFromWorkstream(group: InboxGroup, key: SubjectKey): ViewThunk {
@@ -128,8 +128,8 @@ export function removeFromWorkstream(group: InboxGroup, key: SubjectKey): ViewTh
 }
 
 /** Adds a PR that is in no workstream to workstream `id`. */
-export function addToWorkstream(key: SubjectKey, id: string): ViewThunk {
-  return applyWorkstream(id, { kind: "add", key });
+export function addToWorkstream(key: SubjectKey, id: string, name: string): ViewThunk {
+  return applyWorkstream(id, { kind: "add", key }, name);
 }
 
 /**
