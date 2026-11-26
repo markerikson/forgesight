@@ -1,4 +1,5 @@
 import type { CiState, RankReason, ReviewDecision, SubjectKind, SubjectState } from "../core/index.ts";
+import type { GroupTotals } from "../core/inbox.ts";
 
 export function repoShortName(repo: string): string {
   return repo.slice(repo.indexOf("/") + 1);
@@ -18,6 +19,18 @@ export function relativeTime(iso: string, now: number): string {
   if (diff < DAY) return `${Math.floor(diff / HOUR)}h`;
   if (diff < 30 * DAY) return `${Math.floor(diff / DAY)}d`;
   return new Date(at).toISOString().slice(0, 10);
+}
+
+/** "3 open, 2 draft, 1 merged", leaving out states with no members. */
+export function stateCountsText(totals: GroupTotals): string {
+  return [
+    totals.open > 0 && `${totals.open} open`,
+    totals.draft > 0 && `${totals.draft} draft`,
+    totals.merged > 0 && `${totals.merged} merged`,
+    totals.closed > 0 && `${totals.closed} closed`,
+  ]
+    .filter((part) => part !== false)
+    .join(", ");
 }
 
 export interface RowByline {

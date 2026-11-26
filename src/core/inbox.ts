@@ -219,6 +219,19 @@ export function groupTotals(group: Pick<InboxGroup, "members" | "unlisted">): Gr
   return totals;
 }
 
+/** The group's main authors: the `limit` with the most members, then how many other authors it has. */
+export function groupAuthors(
+  group: Pick<InboxGroup, "members" | "unlisted">,
+  limit = 2,
+): { top: string[]; others: number } {
+  const counts = new Map<string, number>();
+  for (const { author } of [...group.members, ...group.unlisted]) {
+    if (author) counts.set(author, (counts.get(author) ?? 0) + 1);
+  }
+  const ranked = [...counts].sort(([a, na], [b, nb]) => nb - na || (a < b ? -1 : a > b ? 1 : 0));
+  return { top: ranked.slice(0, limit).map(([author]) => author), others: Math.max(0, ranked.length - limit) };
+}
+
 const isNewGroup = (e: InboxEntry) => (isGroup(e) && isNewWorkstream(e) ? 0 : 1);
 
 /** Inbox order: section, then new workstreams, then `sortAt` newest first, then key. */
@@ -277,8 +290,19 @@ function absorbs(group: InboxGroup, row: InboxRow): boolean {
   return group.priority === "normal" || !keepsSection(row);
 }
 
+/**
+ * A group listed in Hidden lists its Hidden members too, instead of leaving them as their own
+ * rows: a muted group, and a group with nothing in Waiting or Updates. A new group stays in
+ * Updates to be seen, and a group listed elsewhere shows its Hidden members as unlisted.
+ */
+function gathersHidden(group: InboxGroup): boolean {
+  if (group.priority === "muted") return true;
+  return group.members.length === 0 && !group.isNew;
+}
+
 export function groupSection(group: Pick<InboxGroup, "priority" | "snoozed" | "isNew" | "members">): Section {
   if (group.priority === "muted") return "hidden";
+  if (group.members.length > 0 && group.members.every((m) => m.section === "hidden")) return "hidden";
   if (group.snoozed) return "snoozed";
   if (group.members.length === 0) return group.isNew ? "updates" : "hidden";
   if (group.priority === "low") return "updates";
@@ -287,7 +311,7 @@ export function groupSection(group: Pick<InboxGroup, "priority" | "snoozed" | "i
 
 /**
  * Puts each row that belongs to a listed group into it (or back out as its own row when it
- * left Waiting and Updates), recomputes each group's members, section, `sortAt` and
+ * left Waiting and Updates, unless the group gathers its Hidden members), recomputes each group's members, section, `sortAt` and
  * `moreCount`, drops groups left with no members unless they are new or muted (muted ones stay
  * in Hidden) and still have an unlisted member to show, and sorts.
  * A row listed twice keeps its last copy.
@@ -311,9 +335,17 @@ export function reflowEntries(entries: readonly InboxEntry[]): InboxEntry[] {
   for (const group of groups) for (const key of group.memberKeys) if (!owner.has(key)) owner.set(key, group);
 
   const out: InboxEntry[] = [];
+  const hidden: InboxRow[] = [];
   for (const row of loose.values()) {
     const group = owner.get(row.key);
     if (group && absorbs(group, row)) group.members.push(row);
+    else if (group && row.section === "hidden") hidden.push(row);
+    else out.push(row);
+  }
+  const gathering = new Set(groups.filter(gathersHidden));
+  for (const row of hidden) {
+    const group = owner.get(row.key);
+    if (group && gathering.has(group)) group.members.push(row);
     else out.push(row);
   }
   for (const group of groups) {

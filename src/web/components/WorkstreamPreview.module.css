@@ -22,6 +22,34 @@
   color: var(--fg-mute);
 }
 
+.stackToggle {
+  margin-left: auto;
+  flex: none;
+}
+
+.stackMembers {
+  overflow-y: auto;
+  max-height: 240px;
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stackMembers > li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 1px 0;
+}
+
+.currentLabel {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .relations {
   display: grid;
   grid-template-columns: max-content 1fr;

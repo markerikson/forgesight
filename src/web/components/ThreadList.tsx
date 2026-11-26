@@ -13,6 +13,7 @@ import { useGetInboxQuery, usePrefetch } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { SECTION_LABELS } from "../store/types.ts";
 import {
+  clickRow,
   inboxArgFor,
   MEMBER_CAP,
   rowSelected,
@@ -79,7 +80,7 @@ export function ThreadList() {
     if (nextKey) prefetchSubject(nextKey);
   }, [prevKey, nextKey, prefetchSubject]);
 
-  const onSelect = useCallback((key: string, index: number) => dispatch(rowSelected({ key, index })), [dispatch]);
+  const onSelect = useCallback((key: string, index: number) => dispatch(clickRow(key, index)), [dispatch]);
   const onDone = useCallback((row: InboxRow) => dispatch(markDone([row.key])), [dispatch]);
   const onMute = useCallback((row: InboxRow) => dispatch(toggleMute(row)), [dispatch]);
   const onSnooze = useCallback(

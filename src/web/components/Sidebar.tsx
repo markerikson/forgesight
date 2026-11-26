@@ -1,6 +1,6 @@
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { SECTION_LABELS, SECTIONS } from "../store/types.ts";
-import { repoSelected, sectionSelected, selectInbox, selectRepoCounts, selectView } from "../store/view.ts";
+import { selectInbox, selectRepoCounts, selectView, showRepo, showSection } from "../store/view.ts";
 import { repoShortName } from "../format.ts";
 import styles from "./Sidebar.module.css";
 
@@ -23,7 +23,7 @@ export function Sidebar() {
               className={`${styles.item} ${view.section === section ? styles.active : ""}`}
               aria-current={view.section === section ? "page" : undefined}
               title={SECTION_KEYS[section]}
-              onClick={() => dispatch(sectionSelected(section))}
+              onClick={() => dispatch(showSection(section))}
             >
               <span className={styles.label}>{SECTION_LABELS[section]}</span>
               {counts && <span className={styles.count}>{counts[section]}</span>}
@@ -39,7 +39,7 @@ export function Sidebar() {
               <button
                 type="button"
                 className={`${styles.item} ${view.repo === null ? styles.active : ""}`}
-                onClick={() => dispatch(repoSelected(null))}
+                onClick={() => dispatch(showRepo(null))}
               >
                 <span className={styles.label}>All</span>
               </button>
@@ -50,7 +50,7 @@ export function Sidebar() {
                   type="button"
                   className={`${styles.item} ${view.repo === repo ? styles.active : ""}`}
                   title={repo}
-                  onClick={() => dispatch(repoSelected(view.repo === repo ? null : repo))}
+                  onClick={() => dispatch(showRepo(view.repo === repo ? null : repo))}
                 >
                   <span className={styles.label}>{repoShortName(repo)}</span>
                   <span className={styles.count}>{count}</span>

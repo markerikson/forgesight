@@ -70,6 +70,21 @@
   color: var(--fg);
 }
 
+.author {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 30%;
+  min-width: 0;
+}
+
+/* The wrapper already caps the width; a percentage cap on the login would resolve against the wrapper. */
+.author > :last-child {
+  min-width: 0;
+  max-width: none;
+}
+
 .closed {
   flex: none;
   color: var(--fg-fade);
