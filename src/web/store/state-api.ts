@@ -11,6 +11,7 @@ import { api, type InboxArg, subjectPath } from "./api.ts";
 import { replaceRows } from "./inbox-cache.ts";
 import {
   lingeringDropped,
+  lingeringGroupsDropped,
   resolveSelection,
   rowRead,
   rowSelected,
@@ -172,6 +173,7 @@ export const stateApi = api.injectEndpoints({
         const now = new Date().toISOString();
         const ids = op.kind === "merge" ? [targetId, op.from] : [targetId];
         let name = givenName ?? targetId;
+        if (op.kind !== "seen") dispatch(lingeringGroupsDropped(ids));
 
         // Rollback puts back only the touched groups and their member rows.
         const originals = cachedInboxArgs(before).map((arg) => {

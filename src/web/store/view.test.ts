@@ -15,6 +15,7 @@ import {
   selectSelectedGroup,
   selectSubject,
   toggleWorkstream,
+  groupOpened,
   groupsToggled,
   lingeringDropped,
   moveSelection,
@@ -299,6 +300,45 @@ describe("workstream groups", () => {
     expect("members" in result[0]! ? result[0].members.map((m) => m.key) : []).toEqual(
       members.slice(0, 2).map((m) => m.key),
     );
+  });
+
+  test("withLingering keeps an opened group the live list no longer has, with its read member", () => {
+    const opened = group("s1", members.slice(0, 2), { section: "updates" });
+    const read = { ...members[1]!, section: "hidden" as const };
+    const loose = row("acme/app#2", "updates");
+    const result = withLingering([loose, members[0]!], [read], "updates", null, [opened]);
+    expect(result.map(entryKey).sort()).toEqual(["acme/app#10", "acme/app#2", "workstream:s1"]);
+    const kept = result.find((entry) => entryKey(entry) === "workstream:s1")!;
+    // The member the live list now has as its own row is not shown twice.
+    expect("members" in kept ? kept.members.map((m) => m.key) : []).toEqual([members[1]!.key]);
+  });
+
+  test("withLingering prefers the live group, and skips opened groups of other sections", () => {
+    const live = group("s1", [members[0]!]);
+    const opened = group("s1", members.slice(0, 2));
+    expect(withLingering([live], [], "updates", null, [opened])).toEqual([live]);
+    expect(withLingering([], [], "waiting", null, [{ ...opened, section: "updates" }])).toEqual([]);
+  });
+
+  test("lingeringDropped forgets an opened group holding a dropped row", () => {
+    const store = storeWith([]);
+    store.dispatch(groupOpened(group("s1", members.slice(0, 2))));
+    store.dispatch(lingeringDropped([members[1]!.key]));
+    expect(store.getState().view.lingeringGroups).toEqual([]);
+  });
+
+  test("a group whose last member was read stays listed and selectable after Back", () => {
+    const opened = group("s1", members.slice(0, 2), { section: "updates" });
+    const store = storeWith([opened]);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(clickRow("workstream:s1", 0));
+    store.dispatch(groupOpened(opened));
+    // Reading both members empties the group out of Updates.
+    store.dispatch(
+      api.util.upsertQueryEntries([{ endpointName: "getInbox", arg: { includeHidden: false }, value: payload([]) }]),
+    );
+    store.dispatch(restoreHistory({ section: "updates", selectedKey: "workstream:s1" }));
+    expect(selectSelectedGroup(store.getState())?.id).toBe("s1");
   });
 
   test("resolveSelection maps a member of a collapsed group to the group row", () => {

@@ -17,7 +17,7 @@ import {
 import { useGetStatusQuery, useGetSubjectQuery, useGetWorkstreamsQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { applyState, openSubject, refreshSubject } from "../store/state-api.ts";
-import { rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
+import { groupOpened, rowRead, selectGroupOf, selectSelectedGroup, selectSelectedRow } from "../store/view.ts";
 import { Avatar } from "./Avatar.tsx";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
@@ -84,6 +84,15 @@ export function Preview() {
     openGroup.current = currentGroupId;
     if (previous !== null && previous !== currentGroupId) dispatch(markWorkstreamSeen(previous));
   }, [dispatch, currentGroupId]);
+
+  // An opened workstream keeps its place while the user reads it, even once reading its members
+  // or marking it seen moves it out of this section.
+  const lingering = useAppSelector(
+    (state) => currentGroupId !== null && state.view.lingeringGroups.some((g) => g.id === currentGroupId),
+  );
+  useEffect(() => {
+    if (currentGroup && !lingering) dispatch(groupOpened(currentGroup));
+  }, [dispatch, currentGroup, lingering]);
 
   if (!row) {
     if (group) return <WorkstreamPane group={group} />;
