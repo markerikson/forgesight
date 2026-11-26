@@ -41,11 +41,17 @@ export interface SideComparison {
 const MAX_FILES = 300;
 const MAX_COMMITS = 250;
 
-/** Keeps only added and removed lines, so hunk offsets and context shifts from a rebase do not count. */
+/**
+ * Keeps only added and removed lines, so hunk offsets and context shifts from a rebase do not count.
+ * GitHub's patches start at the first hunk; any `---`/`+++` file header before it is skipped, while
+ * changed lines inside hunks that start with `--` or `++` are kept.
+ */
 export function normalizePatch(patch: string): string {
-  return patch
-    .split("\n")
-    .filter((line) => (line.startsWith("+") || line.startsWith("-")) && !line.startsWith("+++") && !line.startsWith("---"))
+  const lines = patch.split("\n");
+  const firstHunk = lines.findIndex((line) => line.startsWith("@@"));
+  return lines
+    .slice(Math.max(firstHunk, 0))
+    .filter((line) => line.startsWith("+") || line.startsWith("-"))
     .join("\n");
 }
 

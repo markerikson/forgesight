@@ -14,6 +14,13 @@ describe("normalizePatch", () => {
     expect(normalizePatch("--- a/x\n+++ b/x\n@@ -1,3 +1,3 @@\n ctx\n-old\n+new\n more")).toBe("-old\n+new");
   });
 
+  test("keeps changed lines that start with -- or ++", () => {
+    expect(normalizePatch("@@ -1,3 +1,3 @@\n--- note\n----\n+++x\n ctx")).toBe("--- note\n----\n+++x");
+    const before = side([file({ filename: "m.sql", patch: "@@ -1 +1 @@\n--- old note" })]);
+    const after = side([file({ filename: "m.sql", patch: "@@ -1 +1 @@\n--- new note" })], { mergeBaseSha: "base2" });
+    expect(compareSides(before, after).verdict).toBe("changed");
+  });
+
   test("ignores hunk offsets and context", () => {
     expect(normalizePatch("@@ -1,2 +1,2 @@\n a\n-x\n+y")).toBe(normalizePatch("@@ -40,2 +44,2 @@\n b\n-x\n+y"));
   });
