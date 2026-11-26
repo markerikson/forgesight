@@ -16,7 +16,6 @@ import {
   clickRow,
   inboxArgFor,
   MEMBER_CAP,
-  rowSelected,
   selectGoneKeys,
   selectGroupOf,
   selectInbox,
@@ -25,6 +24,7 @@ import {
   selectTopEntries,
   selectVisibleRows,
   selectView,
+  settleSelection,
   workstreamShowAll,
 } from "../store/view.ts";
 import { repoShortName } from "../format.ts";
@@ -67,7 +67,7 @@ export function ThreadList() {
   // row that left the list), so later polls that insert or remove rows don't move the selection.
   useEffect(() => {
     if (selectedKey !== undefined && (selectedKey !== view.selectedKey || selectedIndex !== view.selectedIndex)) {
-      dispatch(rowSelected({ key: selectedKey, index: selectedIndex }));
+      dispatch(settleSelection());
     }
   }, [dispatch, selectedKey, selectedIndex, view.selectedKey, view.selectedIndex]);
 

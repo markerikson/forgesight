@@ -509,6 +509,26 @@ export function selectSubject(key: string): ViewThunk<boolean> {
   };
 }
 
+/**
+ * Stores the row shown as selected. When that row is the collapsed workstream of the selected
+ * member (a URL or history entry restored before its inbox loaded), expands it to the member
+ * instead, so the URL keeps naming the member.
+ */
+export function settleSelection(): ViewThunk {
+  return (dispatch, getState) => {
+    const state = getState();
+    const entry = selectSelectedEntry(state);
+    if (!entry) return;
+    const { selectedKey, selectedIndex } = state.view;
+    const memberOfGroup =
+      selectedKey !== null && isGroup(entry) && entry.members.some((member) => member.key === selectedKey);
+    if (memberOfGroup && dispatch(selectSubject(selectedKey))) return;
+    const key = entryKey(entry);
+    const index = selectSelectedIndex(state);
+    if (key !== selectedKey || index !== selectedIndex) dispatch(rowSelected({ key, index }));
+  };
+}
+
 /** Section that lists subject `key` in either loaded inbox, or null when neither has it. */
 export function subjectSection(state: ViewRootState, key: string): Section | null {
   for (const payload of [selectWithoutHidden(state).data, selectWithHidden(state).data]) {

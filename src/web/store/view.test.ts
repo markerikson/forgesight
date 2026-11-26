@@ -26,6 +26,7 @@ import {
   rowRead,
   rowSelected,
   sectionSelected,
+  settleSelection,
   selectGoneKeys,
   selectRepoCounts,
   selectSelectedRow,
@@ -385,6 +386,25 @@ describe("workstream groups", () => {
     store.dispatch(rowSelected({ key: "workstream:s1", index: 0 }));
     store.dispatch(restoreHistory({}));
     expect(store.getState().view).toMatchObject({ section: "waiting", repo: null, selectedKey: null });
+  });
+
+  test("settleSelection expands a collapsed group to the member the URL names", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    // As when history restores the member before the section's inbox has loaded.
+    store.dispatch(rowSelected({ key: "acme/app#19", index: 0 }));
+    expect(selectSelectedGroup(store.getState())?.id).toBe("s1");
+    store.dispatch(settleSelection());
+    expect(store.getState().view.selectedKey).toBe("acme/app#19");
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#19");
+  });
+
+  test("settleSelection stores the neighbor shown in place of a row that left", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(rowSelected({ key: "acme/app#99", index: 0 }));
+    store.dispatch(settleSelection());
+    expect(store.getState().view.selectedKey).toBe("workstream:s1");
   });
 
   test("openWorkstream switches section and clears the repo filter to select the group row", () => {
