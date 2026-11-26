@@ -2,7 +2,14 @@ import { useEffect } from "react";
 import type { Section } from "../../core/index.ts";
 import { useAppStore } from "../store/hooks.ts";
 import { SECTIONS } from "../store/types.ts";
-import { selectSelectedRow, urlStateRestored, type UrlState, type ViewRootState } from "../store/view.ts";
+import { takeHistoryPush } from "../store/history.ts";
+import {
+  restoreHistory,
+  selectSelectedRow,
+  urlStateRestored,
+  type UrlState,
+  type ViewRootState,
+} from "../store/view.ts";
 
 function isSection(value: string | null): value is Section {
   return SECTIONS.some((s) => s === value);
@@ -29,7 +36,11 @@ export function urlSearchFor(state: ViewRootState): string {
   return `?${params}`;
 }
 
-/** Restores section, repo and selection from the URL on mount, then mirrors them back with replaceState. */
+/**
+ * Restores section, repo and selection from the URL on mount, then mirrors them back: a click that
+ * navigates adds a history entry, other changes replace the current one. Back and Forward restore
+ * the entry's view.
+ */
 export function useUrlState(): void {
   const store = useAppStore();
 
@@ -41,9 +52,20 @@ export function useUrlState(): void {
       const search = urlSearchFor(store.getState());
       if (search === last) return;
       last = search;
-      window.history.replaceState(window.history.state, "", `${window.location.pathname}${search}`);
+      const url = `${window.location.pathname}${search}`;
+      if (takeHistoryPush()) window.history.pushState(null, "", url);
+      else window.history.replaceState(window.history.state, "", url);
+    };
+    const onPopState = () => {
+      last = window.location.search;
+      store.dispatch(restoreHistory(parseUrlState(window.location.search)));
     };
     sync();
-    return store.subscribe(sync);
+    const unsubscribe = store.subscribe(sync);
+    window.addEventListener("popstate", onPopState);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("popstate", onPopState);
+    };
   }, [store]);
 }

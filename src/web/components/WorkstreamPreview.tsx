@@ -8,7 +8,7 @@ import {
 } from "../../core/inbox.ts";
 import type { SubjectKey } from "../../core/types.ts";
 import type { WsPriority as WorkstreamPriority } from "../../core/workstream-state.ts";
-import { relativeTime, repoShortName } from "../format.ts";
+import { relativeTime, repoShortName, stateCountsText } from "../format.ts";
 import { useNow } from "../hooks/useNow.ts";
 import {
   doneAllWorkstream,
@@ -21,7 +21,7 @@ import {
 } from "../store/actions.ts";
 import { useGetSubjectQuery } from "../store/api.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
-import { selectGoneKeys, selectSubject } from "../store/view.ts";
+import { findWorkstream, navigate, openWorkstream, selectGoneKeys, selectSubject } from "../store/view.ts";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { CiDot, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
@@ -67,15 +67,9 @@ function StackLink({ subjectKey, title }: { subjectKey: SubjectKey; title: strin
 
 function totalsText(group: InboxGroup, now: number | null): string {
   const totals = groupTotals(group);
-  const counts = [
-    totals.open > 0 && `${totals.open} open`,
-    totals.draft > 0 && `${totals.draft} draft`,
-    totals.merged > 0 && `${totals.merged} merged`,
-    totals.closed > 0 && `${totals.closed} closed`,
-  ].filter((part) => part !== false);
   const activity =
     now !== null && totals.lastActivityAt !== null ? `last activity ${relativeTime(totals.lastActivityAt, now)} ago` : null;
-  return [counts.join(", "), activity].filter(Boolean).join(" · ");
+  return [stateCountsText(totals), activity].filter(Boolean).join(" · ");
 }
 
 /** The first member's description: from the payload when it has no inbox row, else its subject. */
@@ -93,18 +87,70 @@ function RootDescription({ group }: { group: InboxGroup }) {
   return <Description key={rootKey} body={body} label={label} />;
 }
 
+/** Members of the cached workstream row, with the open subject marked. */
+function StackMembers({ group, subjectKey }: { group: InboxGroup; subjectKey: SubjectKey }) {
+  return (
+    <ol className={styles.stackMembers}>
+      {stackOrder(group).map(({ key, member, unlisted }) => {
+        const title = member?.title ?? unlisted?.title;
+        const draft = member?.draft ?? unlisted?.draft ?? false;
+        const state = member?.state ?? unlisted?.state ?? null;
+        const merged = member?.merged ?? state === "MERGED";
+        return (
+          <li key={key}>
+            <StateIcon kind={member?.kind ?? "pr"} state={state} draft={draft} merged={merged} />
+            {key === subjectKey ? (
+              <span className={styles.currentLabel} aria-current="true">
+                {keyLabel(key)} {title}
+              </span>
+            ) : (
+              <StackLink subjectKey={key} title={title} />
+            )}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 /** Where the open subject sits in its stack, and what the workstream is about. */
-export function StackBox({ workstream }: { workstream: SubjectWorkstream }) {
+export function StackBox({ workstream, subjectKey }: { workstream: SubjectWorkstream; subjectKey: SubjectKey }) {
   const { stack, titles } = workstream;
+  const dispatch = useAppDispatch();
+  const group = useAppSelector((state) => findWorkstream(state, workstream.id));
+  const [showMembers, setShowMembers] = useState(false);
+  const count = group ? stackOrder(group).length : 0;
   return (
     <section className={styles.stack} aria-label="Stack">
       <div className={styles.stackHead}>
-        <span className={styles.stackName}>{workstream.name}</span>
+        {group ? (
+          <button
+            type="button"
+            className={`${styles.link} ${styles.stackName}`}
+            title="Open the workstream"
+            onClick={() => dispatch(navigate(openWorkstream(workstream.id)))}
+          >
+            {workstream.name}
+          </button>
+        ) : (
+          <span className={styles.stackName}>{workstream.name}</span>
+        )}
         <span className={styles.position}>
           {stack.position} of {stack.size}
           {workstream.stacked && " in stack"}
         </span>
+        {count > 1 && (
+          <button
+            type="button"
+            className={`${styles.link} ${styles.stackToggle}`}
+            aria-expanded={showMembers}
+            onClick={() => setShowMembers((shown) => !shown)}
+          >
+            {showMembers ? "Hide members" : `Show all ${count}`}
+          </button>
+        )}
       </div>
+      {group && showMembers && <StackMembers group={group} subjectKey={subjectKey} />}
       {workstream.stacked && (
         <dl className={styles.relations}>
           <dt>Based on</dt>
@@ -248,7 +294,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
               member ? (
                 <li key={key} className={styles.member}>
                   <StateIcon kind={member.kind} state={member.state} draft={member.draft} merged={member.merged} />
-                  <button type="button" className={styles.memberMain} onClick={() => dispatch(selectSubject(member.key))}>
+                  <button type="button" className={styles.memberMain} onClick={() => dispatch(navigate(selectSubject(member.key)))}>
                     <span className={styles.memberNumber}>
                       {repoShortName(member.repo)}#{member.number}
                     </span>

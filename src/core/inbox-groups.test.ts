@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   buildInboxPayload,
   entryKey,
+  groupAuthors,
   groupTotals,
   type InboxGroup,
   type InboxPayload,
@@ -94,7 +95,11 @@ const ROWS = [
   row("acme/app#9", "updates", { repo: "acme/app", sortAt: "2026-11-06T00:00:00Z" }),
 ];
 
-const BACKEND_HIDDEN = ROWS.map((r) => (r.repo === "replayio/backend" ? { ...r, section: "hidden" as const } : r));
+function backendIn(section: Section): InboxRow[] {
+  return ROWS.map((r) => (r.repo === "replayio/backend" ? { ...r, section } : r));
+}
+const BACKEND_HIDDEN = backendIn("hidden");
+const BACKEND_SNOOZED = backendIn("snoozed");
 
 function build(inputs: WorkstreamInput[], includeHidden = false, rows = ROWS): InboxPayload {
   return buildInboxPayload(rows, { includeHidden, now: NOW, workstreams: inputs });
@@ -206,7 +211,7 @@ describe("buildInboxPayload with workstreams", () => {
     const withHidden = build([input({ state: { priority: "muted" } })], true, rows);
     const group = groupOf(withHidden);
     expect(group.section).toBe("hidden");
-    expect(group.members.map((m) => m.key)).toEqual([K1, K3]);
+    expect(group.members.map((m) => m.key)).toEqual([K1, K3, K4]);
   });
 
   test("a muted group with no member left to show is not listed", () => {
@@ -217,8 +222,31 @@ describe("buildInboxPayload with workstreams", () => {
     expect(payload.sidebar.sections.hidden).toBe(0);
   });
 
-  test("a muted group whose members are all hidden still lists them as unlisted", () => {
+  test("a muted group lists its hidden members", () => {
     const group = groupOf(build([input({ state: { priority: "muted" } })], true, BACKEND_HIDDEN));
+    expect(group.section).toBe("hidden");
+    expect(group.members.map((m) => m.key)).toEqual([K1, K2, K3, K4]);
+    expect(group.unlisted).toEqual([]);
+  });
+
+  test("a group with every member hidden goes to Hidden as one row", () => {
+    const payload = build([input()], true, BACKEND_HIDDEN);
+    expect(payload.rows.map(entryKey)).toEqual(["acme/app#9", "workstream:ws1"]);
+    const group = groupOf(payload);
+    expect(group.section).toBe("hidden");
+    expect(group.members.map((m) => m.key)).toEqual([K1, K2, K3, K4]);
+    expect(payload.sidebar.sections).toMatchObject({ waiting: 0, updates: 1, hidden: 1 });
+    expect(build([input()], false, BACKEND_HIDDEN).rows.map(entryKey)).toEqual(["acme/app#9"]);
+  });
+
+  test("a snoozed group with every member hidden goes to Hidden", () => {
+    const state = { snoozeUntil: "2026-12-01T00:00:00Z" };
+    expect(groupOf(build([input({ state })], true, BACKEND_HIDDEN)).section).toBe("hidden");
+  });
+
+  test("a new group with every member hidden stays in Updates and lists them as unlisted", () => {
+    const group = groupOf(build([input({ state: null })], true, BACKEND_HIDDEN));
+    expect(group.section).toBe("updates");
     expect(group.members).toEqual([]);
     expect(group.unlisted.map((m) => m.key)).toEqual([K1, K2, K3, K4]);
   });
@@ -334,10 +362,10 @@ describe("patchInbox on group members", () => {
   });
 
   test("done on the unlisted members of a muted group in Hidden drops the group", () => {
-    const payload = build([input({ state: { priority: "muted" } })], true, BACKEND_HIDDEN);
+    const payload = build([input({ state: { priority: "muted" } })], true, BACKEND_SNOOZED);
     expect(groupOf(payload).unlisted).toHaveLength(4);
-    // Hidden rows not in the list, as when the inbox is read without Hidden entries.
-    const withoutRows = { ...payload, rows: payload.rows.filter((e) => isGroup(e) || e.section !== "hidden") };
+    // Snoozed rows not in the list, as when they were read in another section.
+    const withoutRows = { ...payload, rows: payload.rows.filter((e) => isGroup(e) || e.section !== "snoozed") };
     const next = patchInbox(withoutRows, [K1, K2, K3, K4], { kind: "done" }, NOW_ISO, { includeHidden: true });
     expect(next.rows.map(entryKey)).toEqual(["acme/app#9"]);
   });
@@ -419,5 +447,22 @@ describe("groupTotals", () => {
 
   test("an empty group has no activity", () => {
     expect(groupTotals({ members: [], unlisted: [] })).toEqual({ open: 0, draft: 0, merged: 0, closed: 0, lastActivityAt: null });
+  });
+});
+
+describe("groupAuthors", () => {
+  test("ranks authors by member count over listed and unlisted members", () => {
+    const members = [row(K1, "updates", { author: "bea" }), row(K2, "updates", { author: "al" })];
+    const base = { number: 4, title: "t", url: null, draft: false, state: null, updatedAt: null, why: "hidden" as const };
+    const unlisted = [
+      { ...base, key: K3, author: "al" },
+      { ...base, key: K4, author: "cy" },
+      { ...base, key: "replayio/backend#5", author: null },
+    ];
+    expect(groupAuthors({ members, unlisted })).toEqual({ top: ["al", "bea"], others: 1 });
+  });
+
+  test("a group with no known authors has none", () => {
+    expect(groupAuthors({ members: [], unlisted: [] })).toEqual({ top: [], others: 0 });
   });
 });

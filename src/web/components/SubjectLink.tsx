@@ -1,7 +1,7 @@
 import type { MouseEvent, ReactNode } from "react";
 import { githubUrlForKey, isPlainClick } from "../links.ts";
 import { useAppDispatch } from "../store/hooks.ts";
-import { openSubject } from "../store/view.ts";
+import { navigate, openSubject } from "../store/view.ts";
 import styles from "./SubjectLink.module.css";
 
 /** Small link that always opens `url` on GitHub in a new tab. */
@@ -40,7 +40,7 @@ export function SubjectLink({ subjectKey, url, children, className, title }: Pro
   const onClick = (e: MouseEvent<HTMLElement>) => {
     e.stopPropagation();
     if (!isPlainClick(e)) return;
-    if (dispatch(openSubject(subjectKey))) e.preventDefault();
+    if (dispatch(navigate(openSubject(subjectKey)))) e.preventDefault();
   };
   if (href === null) {
     return (

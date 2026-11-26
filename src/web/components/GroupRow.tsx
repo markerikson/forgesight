@@ -1,6 +1,8 @@
 import { memo, useState, type KeyboardEvent, type MouseEvent } from "react";
 import {
+  groupAuthors,
   groupKey,
+  groupTotals,
   type InboxGroup,
   isNewWorkstream,
   type UnlistedMember,
@@ -18,7 +20,8 @@ import {
 } from "../store/actions.ts";
 import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { MEMBER_CAP, selectGoneKeys, toggleWorkstream } from "../store/view.ts";
-import { relativeTime, repoShortName } from "../format.ts";
+import { relativeTime, repoShortName, stateCountsText } from "../format.ts";
+import { Avatar } from "./Avatar.tsx";
 import { StateIcon } from "./Badges.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { SubjectLink } from "./SubjectLink.tsx";
@@ -49,6 +52,9 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
   const doneCount = groupDoneKeys(group, gone).length;
   const summaryFirst = group.summary ? firstLine(group.summary.text) : "";
   const summaryMore = group.summary !== null && group.summary.text.trim() !== summaryFirst;
+  const authors = groupAuthors(group);
+  const totals = groupTotals(group);
+  const activityAt = group.sortAt || totals.lastActivityAt;
 
   const act = (e: MouseEvent, fn: () => void) => {
     e.stopPropagation();
@@ -154,6 +160,22 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
         )}
       </div>
       <div className={`${rowStyles.line} ${rowStyles.sub}`}>
+        {authors.top.map((login) => (
+          <span key={login} className={styles.author}>
+            <Avatar login={login} />
+            <span className={rowStyles.author}>{login}</span>
+          </span>
+        ))}
+        {authors.others > 0 && <span className={styles.closed}>+{authors.others}</span>}
+        <span className={rowStyles.summary}>{stateCountsText(totals)}</span>
+        {group.closedByAuthor > 0 && <span className={styles.closed}>{group.closedByAuthor} closed by author</span>}
+        {now !== null && activityAt && (
+          <span className={rowStyles.time} title="Latest member activity">
+            {relativeTime(activityAt, now)}
+          </span>
+        )}
+      </div>
+      <div className={`${rowStyles.line} ${rowStyles.sub}`}>
         <span className={rowStyles.summary}>
           {group.summary?.status && <span className={styles.status}>{group.summary.status} · </span>}
           {summaryFirst || "No summary yet"}
@@ -167,10 +189,6 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
           >
             {summaryOpen ? "less" : "more"}
           </button>
-        )}
-        {group.closedByAuthor > 0 && <span className={styles.closed}>{group.closedByAuthor} closed by author</span>}
-        {now !== null && group.sortAt !== "" && (
-          <span className={rowStyles.time}>{relativeTime(group.sortAt, now)}</span>
         )}
       </div>
       {summaryOpen && group.summary && <p className={styles.summaryText}>{group.summary.text}</p>}

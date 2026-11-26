@@ -234,7 +234,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
         <ActionBar row={row} url={subject.githubUrl ?? subject.header.url} subject={subject} />
         <Header header={subject.header} subject={subject} />
       </div>
-      {subject.workstream && <StackBox workstream={subject.workstream} />}
+      {subject.workstream && <StackBox workstream={subject.workstream} subjectKey={subject.key} />}
       {subject.body && <Description key={subject.key} body={subject.body} />}
       {subject.rounds.length === 0 && (
         <p className={styles.message}>{subject.fetching ? "Loading from GitHub…" : "No activity stored yet."}</p>

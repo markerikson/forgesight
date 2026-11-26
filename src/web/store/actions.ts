@@ -77,9 +77,10 @@ export function confirmDoneAll(count: number): boolean {
 }
 
 /**
- * Subject keys "Done all" acts on: loose rows plus the members each group shows. Muted groups in
- * Hidden are skipped: their members are live Waiting or Updates rows, not hidden ones. Keys in
- * `gone` (dimmed rows that already left the live list) are skipped too.
+ * Subject keys "Done all" acts on: loose rows plus the members each group shows. A group in
+ * Hidden contributes only its hidden members: a muted group also lists live Waiting or Updates
+ * rows, which a Hidden "Done all" leaves alone. Keys in `gone` (dimmed rows that already left the
+ * live list) are skipped too.
  */
 export function doneKeys(
   entries: readonly InboxEntry[],
@@ -88,7 +89,9 @@ export function doneKeys(
   const keys = new Set<SubjectKey>();
   for (const entry of entries) {
     if (isGroup(entry)) {
-      if (entry.section !== "hidden") for (const member of entry.members) keys.add(member.key);
+      for (const member of entry.members) {
+        if (entry.section !== "hidden" || member.section === "hidden") keys.add(member.key);
+      }
     }
     else keys.add(entry.key);
   }

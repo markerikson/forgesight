@@ -23,10 +23,10 @@ import {
   helpToggled,
   moveSelection,
   roundFocused,
-  sectionSelected,
   selectGroupOf,
   selectSelectedGroup,
   selectSelectedRow,
+  showSection,
   snoozeMenuClosed,
   snoozeMenuMoved,
   toggleWorkstream,
@@ -280,7 +280,7 @@ export function useKeyboardNav(): void {
           if (subject) store.dispatch(groupsToggled(roundGroupIds(subject, state.view.roundIndex)));
           break;
         case "section":
-          store.dispatch(sectionSelected(action.section));
+          store.dispatch(showSection(action.section));
           break;
         case "help":
           store.dispatch(helpToggled());

@@ -2,6 +2,7 @@ import { createSelector, createSlice, type PayloadAction, type ThunkAction, type
 import type { InboxPayload, InboxRow, Section } from "../../core/index.ts";
 import { api, POLL_MS } from "./api.ts";
 import { compareRows, entryKey, groupKey, type InboxEntry, type InboxGroup, isGroup } from "../../core/inbox.ts";
+import { asNavigation } from "./history.ts";
 
 export interface ViewState {
   section: Section;
@@ -210,6 +211,21 @@ export const viewSlice = createSlice({
       if (repo !== undefined) state.repo = repo;
       if (selectedKey !== undefined) state.selectedKey = selectedKey;
     },
+    /** Back or Forward moved to a history entry; state the URL leaves out goes back to its default. */
+    historyRestored(state, action: PayloadAction<UrlState>) {
+      const section = action.payload.section ?? initialViewState.section;
+      const repo = action.payload.repo ?? null;
+      const selectedKey = action.payload.selectedKey ?? null;
+      if (section !== state.section || repo !== state.repo) {
+        state.section = section;
+        state.repo = repo;
+        state.selectedIndex = 0;
+        state.lingering = [];
+      }
+      if (selectedKey !== state.selectedKey) state.roundIndex = 0;
+      state.selectedKey = selectedKey;
+      state.snoozeMenu = null;
+    },
   },
 });
 
@@ -224,6 +240,7 @@ export const {
   helpToggled,
   helpClosed,
   urlStateRestored,
+  historyRestored,
   rowRead,
   lingeringDropped,
   undoPushed,
@@ -430,6 +447,38 @@ export const selectPollInterval = (state: ViewRootState) => (state.view.connecti
 
 export type ViewThunk<R = void> = ThunkAction<R, ViewRootState, unknown, UnknownAction>;
 
+/** Runs `thunk` as a user navigation, so the URL change it makes gets its own Back/Forward entry. */
+export function navigate<R>(thunk: ViewThunk<R>): ViewThunk<R> {
+  return (dispatch) => asNavigation(() => dispatch(thunk));
+}
+
+/** Clicking a list row. */
+export function clickRow(key: string, index: number): ViewThunk {
+  return navigate((dispatch) => {
+    dispatch(rowSelected({ key, index }));
+  });
+}
+
+export function showSection(section: Section): ViewThunk {
+  return navigate((dispatch) => {
+    dispatch(sectionSelected(section));
+  });
+}
+
+export function showRepo(repo: string | null): ViewThunk {
+  return navigate((dispatch) => {
+    dispatch(repoSelected(repo));
+  });
+}
+
+/** Restores the view a history entry's URL describes, expanding the selected member's workstream. */
+export function restoreHistory(url: UrlState): ViewThunk {
+  return (dispatch) => {
+    dispatch(historyRestored(url));
+    if (url.selectedKey) dispatch(selectSubject(url.selectedKey));
+  };
+}
+
 export function moveSelection(delta: number): ViewThunk {
   return (dispatch, getState) => {
     const state = getState();
@@ -457,6 +506,26 @@ export function selectSubject(key: string): ViewThunk<boolean> {
     if (index === -1) return false;
     dispatch(rowSelected({ key, index }));
     return true;
+  };
+}
+
+/**
+ * Stores the row shown as selected. When that row is the collapsed workstream of the selected
+ * member (a URL or history entry restored before its inbox loaded), expands it to the member
+ * instead, so the URL keeps naming the member.
+ */
+export function settleSelection(): ViewThunk {
+  return (dispatch, getState) => {
+    const state = getState();
+    const entry = selectSelectedEntry(state);
+    if (!entry) return;
+    const { selectedKey, selectedIndex } = state.view;
+    const memberOfGroup =
+      selectedKey !== null && isGroup(entry) && entry.members.some((member) => member.key === selectedKey);
+    if (memberOfGroup && dispatch(selectSubject(selectedKey))) return;
+    const key = entryKey(entry);
+    const index = selectSelectedIndex(state);
+    if (key !== selectedKey || index !== selectedIndex) dispatch(rowSelected({ key, index }));
   };
 }
 
@@ -488,6 +557,40 @@ export function openSubject(key: string): ViewThunk<boolean> {
     if (section === null) return false;
     dispatch(sectionSelected(section));
     if (dispatch(selectSubject(key))) return true;
+    if (selectInbox(getState()) !== undefined) return false;
+    // The section's inbox is still loading; the selection resolves by key once it arrives.
+    dispatch(rowSelected({ key, index: 0 }));
+    return true;
+  };
+}
+
+/** Workstream `id` as either loaded inbox lists it, or null when neither has it. */
+export function findWorkstream(state: ViewRootState, id: string): InboxGroup | null {
+  for (const payload of [selectWithoutHidden(state).data, selectWithHidden(state).data]) {
+    for (const entry of payload?.rows ?? []) {
+      if (isGroup(entry) && entry.id === id) return entry;
+    }
+  }
+  return null;
+}
+
+/**
+ * Selects workstream `id`'s row, switching section and clearing the repo filter when needed.
+ * Returns false when no loaded inbox lists it.
+ */
+export function openWorkstream(id: string): ViewThunk<boolean> {
+  return (dispatch, getState) => {
+    const key = groupKey(id);
+    const select = () => {
+      const index = selectVisibleRows(getState()).findIndex((entry) => entryKey(entry) === key);
+      if (index !== -1) dispatch(rowSelected({ key, index }));
+      return index !== -1;
+    };
+    if (select()) return true;
+    const group = findWorkstream(getState(), id);
+    if (group === null) return false;
+    dispatch(sectionSelected(group.section));
+    if (select()) return true;
     if (selectInbox(getState()) !== undefined) return false;
     // The section's inbox is still loading; the selection resolves by key once it arrives.
     dispatch(rowSelected({ key, index: 0 }));

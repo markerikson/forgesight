@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { entryKey } from "../../core/index.ts";
 import { api } from "./api.ts";
 import { group, payload, row, storeWith } from "./__fixtures__/inbox.ts";
+import { takeHistoryPush } from "./history.ts";
 import {
+  clickRow,
+  restoreHistory,
+  showSection,
   filterRows,
   flattenEntries,
   MEMBER_CAP,
@@ -15,12 +19,14 @@ import {
   lingeringDropped,
   moveSelection,
   openSubject,
+  openWorkstream,
   repoCounts,
   repoSelected,
   resolveSelection,
   rowRead,
   rowSelected,
   sectionSelected,
+  settleSelection,
   selectGoneKeys,
   selectRepoCounts,
   selectSelectedRow,
@@ -364,6 +370,67 @@ describe("workstream groups", () => {
     const store = storeWith([group("s2", [members[0]!], { unlisted: [hidden] })]);
     expect(store.dispatch(openSubject("acme/app#30"))).toBe(true);
     expect(store.getState().view).toMatchObject({ section: "hidden", selectedKey: "acme/app#30" });
+  });
+
+  test("restoreHistory returns to the entry's section and expands the selected member's group", () => {
+    const store = storeWith(entries);
+    store.dispatch(repoSelected("acme/lib"));
+    store.dispatch(restoreHistory({ section: "updates", selectedKey: "acme/app#19" }));
+    expect(store.getState().view).toMatchObject({ section: "updates", repo: null });
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#19");
+  });
+
+  test("restoreHistory without parameters goes back to the default view", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(rowSelected({ key: "workstream:s1", index: 0 }));
+    store.dispatch(restoreHistory({}));
+    expect(store.getState().view).toMatchObject({ section: "waiting", repo: null, selectedKey: null });
+  });
+
+  test("settleSelection expands a collapsed group to the member the URL names", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    // As when history restores the member before the section's inbox has loaded.
+    store.dispatch(rowSelected({ key: "acme/app#19", index: 0 }));
+    expect(selectSelectedGroup(store.getState())?.id).toBe("s1");
+    store.dispatch(settleSelection());
+    expect(store.getState().view.selectedKey).toBe("acme/app#19");
+    expect(selectSelectedRow(store.getState())?.key).toBe("acme/app#19");
+  });
+
+  test("settleSelection stores the neighbor shown in place of a row that left", () => {
+    const store = storeWith(entries);
+    store.dispatch(sectionSelected("updates"));
+    store.dispatch(rowSelected({ key: "acme/app#99", index: 0 }));
+    store.dispatch(settleSelection());
+    expect(store.getState().view.selectedKey).toBe("workstream:s1");
+  });
+
+  test("openWorkstream switches section and clears the repo filter to select the group row", () => {
+    const store = storeWith(entries);
+    store.dispatch(repoSelected("acme/lib"));
+    expect(store.dispatch(openWorkstream("s1"))).toBe(true);
+    expect(store.getState().view).toMatchObject({ section: "updates", repo: null });
+    expect(selectSelectedGroup(store.getState())?.id).toBe("s1");
+    expect(store.dispatch(openWorkstream("missing"))).toBe(false);
+  });
+
+  test("openWorkstream selects the group by key while its section's inbox is still loading", () => {
+    const store = storeWith([group("s1", [row("acme/app#1", "updates")])], true);
+    store.dispatch(sectionSelected("hidden"));
+    expect(store.dispatch(openWorkstream("s1"))).toBe(true);
+    expect(store.getState().view).toMatchObject({ section: "updates", selectedKey: "workstream:s1" });
+  });
+
+  test("clicks and sidebar choices add history entries; j/k does not", () => {
+    const store = storeWith(entries);
+    const pushes: boolean[] = [];
+    store.subscribe(() => pushes.push(takeHistoryPush()));
+    store.dispatch(showSection("updates"));
+    store.dispatch(clickRow("workstream:s1", 0));
+    store.dispatch(moveSelection(1));
+    expect(pushes).toEqual([true, true, false]);
   });
 
   test("members count as listed for gone keys", () => {
