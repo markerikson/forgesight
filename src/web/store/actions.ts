@@ -95,10 +95,21 @@ export function doneKeys(
   return [...keys].filter((key) => !gone.has(key));
 }
 
-/** Marks the group's live shown members done, one per-subject done op for the batch. */
+/**
+ * Subject keys a group's "Done all" acts on: every member with a notification, listed or not, so
+ * the whole workstream leaves GitHub's inbox. Members with no notification and keys in `gone` are
+ * skipped.
+ */
+export function groupDoneKeys(group: InboxGroup, gone: ReadonlySet<string> = new Set()): SubjectKey[] {
+  const keys = new Set<SubjectKey>(group.members.map((row) => row.key));
+  for (const member of group.unlisted) if (member.why !== "noThread") keys.add(member.key);
+  return [...keys].filter((key) => !gone.has(key));
+}
+
+/** Marks every member with a notification done, one per-subject done op for the batch. */
 export function doneAllWorkstream(group: InboxGroup): ViewThunk {
   return (dispatch, getState) => {
-    const keys = doneKeys([group], selectGoneKeys(getState()));
+    const keys = groupDoneKeys(group, selectGoneKeys(getState()));
     if (keys.length === 0 || !confirmDoneAll(keys.length)) return;
     dispatch(markDone(keys));
   };
