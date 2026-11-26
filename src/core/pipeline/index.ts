@@ -7,6 +7,7 @@ import type {
   ThreadRecord,
   TimelineItemRecord,
 } from "../types.ts";
+import type { PushVerdict } from "../rebase/patch.ts";
 import type { StackContext } from "../workstreams.ts";
 import { classify, isMe } from "./classify.ts";
 import { normalize } from "./normalize.ts";
@@ -16,6 +17,7 @@ import { buildHeader, buildLinks, subjectBody } from "./row.ts";
 import { isAfter } from "./time.ts";
 import type { RankReason, Round, Section, SubjectView, ViewEvent } from "./types.ts";
 
+export { isRestack, restackText } from "./classify.ts";
 export { describe } from "./rank.ts";
 export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
 export { typenameLabel } from "./text.ts";
@@ -35,6 +37,8 @@ export interface DeriveInput {
   now: Date;
   /** The subject's place in its workstream, when it belongs to one. */
   stack?: StackContext | null;
+  /** Checked head force-pushes, keyed by the push's timeline node id. */
+  pushVerdicts?: ReadonlyMap<string, PushVerdict>;
 }
 
 const THREAD_WAITING: Record<string, RankReason> = {
@@ -111,7 +115,7 @@ function rankFromThreads(input: DeriveInput): Rank {
     newMeaningfulCount: 0,
     summaryLine:
       (newest && threadReasonLine(newest.reason)) || (willEnrich(input) ? "not loaded yet" : openedLine(input.subject)),
-    hiddenStats: { pushes: 0, merged: 0, closed: 0 },
+    hiddenStats: { pushes: 0, rebases: 0, merged: 0, closed: 0 },
     sortAt,
   };
 }
@@ -129,6 +133,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     subjectKind: subject.kind,
     mySubject: isMe(subject.author ?? undefined, me),
     dismissedAt: state.dismissedAt,
+    ...(input.pushVerdicts ? { pushVerdicts: input.pushVerdicts } : {}),
   });
   const allRounds = buildRounds(events);
   const shown = onlyNewestRoundIfUnvisited(subject, state, events, allRounds);

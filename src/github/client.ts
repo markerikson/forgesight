@@ -31,7 +31,7 @@ function threadRef(id: string): NotificationRef {
   return { forge: "github", instance: "github.com", id };
 }
 
-function encodeRepo(repo: string): string {
+function encodePath(repo: string): string {
   return repo
     .split("/")
     .map((part) => encodeURIComponent(part))
@@ -178,15 +178,15 @@ export function createGitHubClient(
 
     async getCommit(repo, sha) {
       const response = await run("rebase", `get commit ${repo}@${sha}`, () =>
-        gh.request<unknown>("GET", `/repos/${encodeRepo(repo)}/commits/${encodeURIComponent(sha)}`),
+        gh.request<unknown>("GET", `/repos/${encodePath(repo)}/commits/${encodeURIComponent(sha)}`),
       );
       return toCommitDetail(response.data);
     },
 
     async compare(repo, base, head) {
-      const range = `${encodeURIComponent(base)}...${encodeURIComponent(head)}`;
+      const range = `${encodePath(base)}...${encodePath(head)}`;
       const response = await run("rebase", `compare ${repo} ${base}...${head}`, () =>
-        gh.request<unknown>("GET", `/repos/${encodeRepo(repo)}/compare/${range}`),
+        gh.request<unknown>("GET", `/repos/${encodePath(repo)}/compare/${range}`),
       );
       return toCompare(response.data);
     },

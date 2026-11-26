@@ -1,5 +1,5 @@
 import type { ItemState, SubjectRecord, ThreadRecord } from "../types.ts";
-import { isHumanText, isMe } from "./classify.ts";
+import { isHumanText, isMe, isRestack, restackText } from "./classify.ts";
 import { firstLine, mentions, truncate, typenameLabel } from "./text.ts";
 import { isAfter, ms } from "./time.ts";
 import type { EventKind, HiddenStats, RankReason, Round, Section, ViewEvent } from "./types.ts";
@@ -86,7 +86,7 @@ export function describe(e: ViewEvent): string {
     case "commit":
       return truncate(`${act("pushed")}: ${e.data.headline ?? e.data.sha?.slice(0, 10) ?? "a commit"}`);
     case "forcePush":
-      return act("force-pushed");
+      return act(isRestack(e) ? restackText(e) : "force-pushed");
     case "baseForcePush":
       return act("force-pushed the base branch");
     case "baseChanged":
@@ -193,6 +193,7 @@ function hiddenStats(events: ViewEvent[], rounds: Round[]): HiddenStats {
     pushes: rounds
       .filter((r) => r.startedBy !== null && r.startedBy.isNew)
       .reduce((sum, r) => sum + r.pushCount, 0),
+    rebases: events.filter((e) => e.isNew && isRestack(e)).length,
     merged: events.some((e) => e.isNew && e.kind === "merged") ? 1 : 0,
     closed: events.some((e) => e.isNew && (e.kind === "closed" || e.kind === "closedByPr")) &&
       !events.some((e) => e.isNew && e.kind === "merged")

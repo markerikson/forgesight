@@ -22,6 +22,7 @@ import { maintenanceJob } from "./maintenance.ts";
 import { openPullsJob } from "./open-pulls.ts";
 import { outboxJob } from "./outbox.ts";
 import { createPoller } from "./poller.ts";
+import { rebaseDetectorJob } from "./rebase-detector.ts";
 import { consoleLogger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
 import { createWorkstreamSummaryJobs } from "./workstream-summaries.ts";
 
@@ -90,7 +91,7 @@ try {
 const summaryJobs = createWorkstreamSummaryJobs({ llm });
 // A tick runs the GitHub jobs in this order until one does work. Subjects opened in the web
 // app go first, then the poll; the outbox sends queued user writes right after it. PR texts
-// for summaries come before the enrich queue so a long backlog does not hold them back.
+// for summaries and push rebase checks come before the enrich queue so a long backlog does not hold them back.
 // Summaries call Anthropic, not GitHub, so they get their own turn every tick, followed by
 // the local derive and maintenance jobs. The API key is read once at startup, so setting it
 // needs a worker restart.
@@ -100,6 +101,7 @@ const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clo
   ...(error ? [] : [outboxJob]),
   poller.backfillJob,
   openPullsJob,
+  rebaseDetectorJob,
   summaryJobs.texts,
   enrichJob,
   ...(summaryJobs.summaries ? [summaryJobs.summaries] : []),

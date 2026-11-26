@@ -6,6 +6,7 @@ import { deriveSubjectView, PIPELINE_VERSION, toViewRecord } from "../core/pipel
 import type { SubjectViewRecord } from "../core/types.ts";
 import { DEFAULT_ITEM_STATE, getItemStates, snoozesEndedBetween } from "../store/item-state.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
+import { verdictsFor } from "../store/push-verdicts.ts";
 import { getSubject } from "../store/subjects.ts";
 import { threadsForSubject } from "../store/threads.ts";
 import { reviewThreadsFor, stickiesFor, timelineFor } from "../store/timeline.ts";
@@ -83,6 +84,7 @@ function deriveBatch(
         me: ctx.config.me,
         now: ctx.now,
         stack: stacks.get(key) ?? null,
+        pushVerdicts: verdictsFor(db, key),
       });
       views.push(
         toViewRecord(view, { pipelineVersion: PIPELINE_VERSION, configHash: ctx.hash, computedAt }),

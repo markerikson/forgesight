@@ -34,6 +34,25 @@ function compile(source: string, where: string, flags?: string): RegExp {
   }
 }
 
+/**
+ * `*` and `?` stay within one path segment, `**` spans segments. A glob without `/` matches the file name
+ * in any directory.
+ */
+export function globToRegExp(glob: string): RegExp {
+  let source = "";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob.charAt(i);
+    if (c === "*" && glob.charAt(i + 1) === "*") {
+      const slash = glob.charAt(i + 2) === "/";
+      source += slash ? "(?:.*/)?" : ".*";
+      i += slash ? 2 : 1;
+    } else if (c === "*") source += "[^/]*";
+    else if (c === "?") source += "[^/]";
+    else source += c.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  }
+  return new RegExp(`^${glob.includes("/") ? "" : "(?:.*/)?"}${source}$`);
+}
+
 /** Workstream patterns are case-insensitive. Each field replaces the inherited one. */
 function resolveWorkstreams(
   entry: UserRepoConfig["workstreams"],
@@ -83,6 +102,7 @@ function resolveRepo(entry: UserRepoConfig, base: Partial<RepoConfig>, key: stri
     branchRules: branchRules ?? base.branchRules ?? [],
     view: required(entry.view ?? base.view, `repos["${key}"].view`),
     trunks: required(entry.trunks ?? base.trunks, `repos["${key}"].trunks`),
+    rebaseIgnore: entry.rebaseIgnore?.map(globToRegExp) ?? base.rebaseIgnore ?? [],
     workstreams: resolveWorkstreams(entry.workstreams, base.workstreams, key),
   };
 }

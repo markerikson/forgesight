@@ -31,6 +31,7 @@ describe("migrations", () => {
       "meta",
       "outbox",
       "pr_texts",
+      "push_verdicts",
       "review_threads",
       "state_ops",
       "sticky_versions",

@@ -1,6 +1,7 @@
 // View types produced by the derive pipeline. Everything here is plain JSON so it can be
 // stored in `subject_views` and sent to the web client unchanged.
 import type { ContentLevel } from "../config.ts";
+import type { PushVerdictKind } from "../rebase/patch.ts";
 import type { SubjectKey, SubjectKind, SubjectState } from "../types.ts";
 import type { StackContext } from "../workstreams.ts";
 
@@ -74,6 +75,10 @@ export interface EventData {
   /** Force-pushes. */
   beforeSha?: string;
   afterSha?: string;
+  /** Head force-pushes: what the push did to the PR's diff, once checked. */
+  verdict?: Exclude<PushVerdictKind, "pending">;
+  /** Head force-pushes: the branch the push was rebased onto, when known by name. */
+  onto?: string;
   /** Review requests, assignments, mentions: the user or team the event is about. */
   target?: string;
   /** Labels. */
@@ -144,7 +149,10 @@ export interface Round {
    */
   startLabel: string | null;
   startedAt: string;
-  /** Pushes (force-pushes and commit batches) in this round: 0 for the first round, more than 1 when push-only rounds were merged. */
+  /**
+   * Pushes (force-pushes and commit batches) in this round: 0 for the first round, more than 1 when push-only
+   * rounds were merged. Rebase-only force-pushes do not open rounds and are not counted here.
+   */
   pushCount: number;
   /** Commits in the pushes that opened the round, oldest first; empty for force-pushes. */
   commits: ViewEvent[];
@@ -201,9 +209,12 @@ export type RankReason =
   | "staleReviewRequest"
   | "nothingNew";
 
-/** Counts the inbox sums into per-repo lines like "backend: 38 PRs pushed, 12 merged". */
+/** Counts the inbox sums into the Hidden line, e.g. "Since you last looked: 12 pushes, 40 rebases, 3 merged". */
 export interface HiddenStats {
+  /** Pushes that changed the PR's diff, or are not checked yet. */
   pushes: number;
+  /** Force-pushes that only moved the branch onto a new base, or changed nothing. Absent in views derived before push verdicts. */
+  rebases?: number;
   merged: number;
   closed: number;
 }

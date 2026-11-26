@@ -1,0 +1,52 @@
+{
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInjjyOw": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAInkP6Ow": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoCkGXQ": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoD4lcg": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoH-3yQ": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoMvCLQ": {
+    "verdict": "changed",
+    "reason": "1 file differs (spike result)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoOtW7A": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIoQOMNQ": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodtEKg": {
+    "verdict": "rebase_only",
+    "reason": "patches equal (synthetic: restacked with the parent branch)",
+    "onto": null
+  },
+  "HRFPE_lADODVUEis8AAAABg2q5b88AAAAIodySIQ": {
+    "verdict": "noop",
+    "reason": "patches equal, same base (synthetic)",
+    "onto": null
+  }
+}

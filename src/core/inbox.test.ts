@@ -173,9 +173,11 @@ describe("buildInboxPayload", () => {
 
 describe("hiddenActivitySince", () => {
   const SINCE = "2026-11-10T00:00:00Z";
-  const stats = (pushes: number, merged = 0, closed = 0) => ({ hiddenStats: { pushes, merged, closed } });
+  const stats = (pushes: number, merged = 0, closed = 0, rebases?: number) => ({
+    hiddenStats: { pushes, merged, closed, ...(rebases === undefined ? {} : { rebases }) },
+  });
   const rows = [
-    row("acme/app#1", "hidden", { ...stats(3, 1), sortAt: "2026-11-11T00:00:00Z" }),
+    row("acme/app#1", "hidden", { ...stats(3, 1, 0, 4), sortAt: "2026-11-11T00:00:00Z" }),
     row("acme/app#2", "hidden", { ...stats(5), sortAt: "2026-11-09T00:00:00Z" }),
     row("acme/lib#3", "hidden", { ...stats(2, 0, 1), repo: "acme/lib", sortAt: "2026-11-12T00:00:00Z" }),
     row("acme/lib#4", "hidden", {
@@ -188,24 +190,30 @@ describe("hiddenActivitySince", () => {
   ];
 
   test("sums hidden rows with activity after the given time", () => {
-    expect(hiddenActivitySince(rows, SINCE, null)).toEqual({ items: 2, pushes: 5, merged: 1, closed: 1 });
+    expect(hiddenActivitySince(rows, SINCE, null)).toEqual({ items: 2, pushes: 5, rebases: 4, merged: 1, closed: 1 });
   });
 
   test("keeps to the selected repo", () => {
-    expect(hiddenActivitySince(rows, SINCE, "acme/app")).toEqual({ items: 1, pushes: 3, merged: 1, closed: 0 });
+    expect(hiddenActivitySince(rows, SINCE, "acme/app")).toEqual({
+      items: 1,
+      pushes: 3,
+      rebases: 4,
+      merged: 1,
+      closed: 0,
+    });
   });
 
   test("reads as one line", () => {
     expect(hiddenActivityLine(hiddenActivitySince(rows, SINCE, null))).toBe(
-      "Since you last looked: 5 pushes, 1 merged, 1 closed across 2 hidden items",
+      "Since you last looked: 5 pushes, 4 rebases, 1 merged, 1 closed across 2 hidden items",
     );
-    expect(hiddenActivityLine({ items: 1, pushes: 1, merged: 0, closed: 0 })).toBe(
-      "Since you last looked: 1 push across 1 hidden item",
+    expect(hiddenActivityLine({ items: 1, pushes: 1, rebases: 1, merged: 0, closed: 0 })).toBe(
+      "Since you last looked: 1 push, 1 rebase across 1 hidden item",
     );
-    expect(hiddenActivityLine({ items: 2, pushes: 0, merged: 0, closed: 0 })).toBe(
+    expect(hiddenActivityLine({ items: 2, pushes: 0, rebases: 0, merged: 0, closed: 0 })).toBe(
       "Since you last looked: activity on 2 hidden items",
     );
-    expect(hiddenActivityLine({ items: 0, pushes: 0, merged: 0, closed: 0 })).toBe(
+    expect(hiddenActivityLine({ items: 0, pushes: 0, rebases: 0, merged: 0, closed: 0 })).toBe(
       "Nothing new in Hidden since you last looked",
     );
   });
