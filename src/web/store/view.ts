@@ -25,6 +25,12 @@ export interface ViewState {
    * them, until the section or repo filter changes.
    */
   lingering: InboxRow[];
+  /**
+   * Workstreams opened in this list, as they looked when opened. One that leaves the list (its last
+   * listed member was read, or it was marked seen) stays listed, like read rows, so Back can return
+   * to it.
+   */
+  lingeringGroups: InboxGroup[];
   /** Undoable changes, newest first. */
   undo: UndoEntry[];
   toast: Toast | null;
@@ -83,6 +89,7 @@ export const initialViewState: ViewState = {
   helpOpen: false,
   roundIndex: 0,
   lingering: [],
+  lingeringGroups: [],
   undo: [],
   toast: null,
   toastSeq: 0,
@@ -109,6 +116,7 @@ export const viewSlice = createSlice({
       state.selectedIndex = 0;
       state.roundIndex = 0;
       state.lingering = [];
+      state.lingeringGroups = [];
       state.snoozeMenu = null;
     },
     repoSelected(state, action: PayloadAction<string | null>) {
@@ -117,15 +125,29 @@ export const viewSlice = createSlice({
       state.selectedIndex = 0;
       state.roundIndex = 0;
       state.lingering = [];
+      state.lingeringGroups = [];
       state.snoozeMenu = null;
     },
     /** `row` is the row as it looks once read. */
     rowRead(state, action: PayloadAction<InboxRow>) {
       state.lingering = [...state.lingering.filter((r) => r.key !== action.payload.key), action.payload];
     },
+    /** A change other than reading took these rows out, and any opened workstream holding them. */
     lingeringDropped(state, action: PayloadAction<string[]>) {
       const keys = new Set(action.payload);
       if (state.lingering.some((r) => keys.has(r.key))) state.lingering = state.lingering.filter((r) => !keys.has(r.key));
+      if (state.lingeringGroups.some((g) => g.memberKeys.some((key) => keys.has(key)))) {
+        state.lingeringGroups = state.lingeringGroups.filter((g) => !g.memberKeys.some((key) => keys.has(key)));
+      }
+    },
+    groupOpened(state, action: PayloadAction<InboxGroup>) {
+      state.lingeringGroups = [...state.lingeringGroups.filter((g) => g.id !== action.payload.id), action.payload];
+    },
+    lingeringGroupsDropped(state, action: PayloadAction<string[]>) {
+      const ids = new Set(action.payload);
+      if (state.lingeringGroups.some((g) => ids.has(g.id))) {
+        state.lingeringGroups = state.lingeringGroups.filter((g) => !ids.has(g.id));
+      }
     },
     undoPushed(state, action: PayloadAction<UndoEntry>) {
       state.undo = [action.payload, ...state.undo].slice(0, UNDO_LIMIT);
@@ -221,6 +243,7 @@ export const viewSlice = createSlice({
         state.repo = repo;
         state.selectedIndex = 0;
         state.lingering = [];
+        state.lingeringGroups = [];
       }
       if (selectedKey !== state.selectedKey) state.roundIndex = 0;
       state.selectedKey = selectedKey;
@@ -243,6 +266,8 @@ export const {
   historyRestored,
   rowRead,
   lingeringDropped,
+  groupOpened,
+  lingeringGroupsDropped,
   undoPushed,
   undoRemoved,
   toastShown,
@@ -344,14 +369,18 @@ export const selectInbox = (state: ViewRootState): InboxPayload | undefined =>
 
 const emptyRows: InboxEntry[] = [];
 
-/** The section's entries plus read rows the inbox no longer lists, each in its sort position. */
+/**
+ * The section's entries plus read rows the inbox no longer lists, each in its sort position, and
+ * opened workstreams of this section that reading their members took out of it.
+ */
 export function withLingering(
   live: readonly InboxEntry[],
   lingering: readonly InboxRow[],
   section: Section,
   repo: string | null,
+  groups: readonly InboxGroup[] = [],
 ): InboxEntry[] {
-  const visible = filterRows(live, section, repo);
+  const visible = withLingeringGroups(filterRows(live, section, repo), groups, section, repo);
   if (lingering.length === 0) return visible;
   const liveKeys = listedKeys(live);
   const extra = lingering.filter((row) => !liveKeys.has(row.key) && (repo === null || row.repo === repo));
@@ -374,8 +403,8 @@ export function withLingering(
       continue;
     }
     const order = (row: InboxRow) => entry.memberKeys.indexOf(row.key);
-    const members = [...entry.members, ...rows].sort((a, b) => order(a) - order(b));
     const keys = new Set(rows.map((row) => row.key));
+    const members = [...entry.members.filter((m) => !keys.has(m.key)), ...rows].sort((a, b) => order(a) - order(b));
     entries.push({
       ...entry,
       members,
@@ -386,12 +415,33 @@ export function withLingering(
   return loose.length === 0 ? entries : [...entries, ...loose].sort(compareRows);
 }
 
+/** Puts back opened groups the live list no longer has, without members it lists elsewhere. */
+function withLingeringGroups(
+  visible: InboxEntry[],
+  groups: readonly InboxGroup[],
+  section: Section,
+  repo: string | null,
+): InboxEntry[] {
+  if (groups.length === 0) return visible;
+  const shown = new Set(visible.map(entryKey));
+  const missing = groups.filter(
+    (group) => group.section === section && (repo === null || group.repo === repo) && !shown.has(entryKey(group)),
+  );
+  if (missing.length === 0) return visible;
+  const listed = listedKeys(visible);
+  const restored = missing.map((group): InboxGroup => {
+    const members = group.members.filter((m) => !listed.has(m.key));
+    return members.length === group.members.length ? group : Object.assign({}, group, { members });
+  });
+  return [...visible, ...restored].sort(compareRows);
+}
+
 const selectLiveRows = (state: ViewRootState) => selectInbox(state)?.rows ?? emptyRows;
 const selectLingering = (state: ViewRootState) => state.view.lingering;
 
 /** Top-level entries: rows and workstream groups, without expanded members. */
 export const selectTopEntries = createSelector(
-  [selectLiveRows, selectLingering, selectSection, selectRepo],
+  [selectLiveRows, selectLingering, selectSection, selectRepo, (state: ViewRootState) => state.view.lingeringGroups],
   withLingering,
 );
 
