@@ -106,7 +106,7 @@ describe("inboxHandler", () => {
     expect(status).toBe(200);
     expect(payload.rows.map(entryKey)).toEqual(["acme/app#1", "acme/app@t9"]);
     expect(payload.sidebar.sections.hidden).toBe(1);
-    expect(payload.countLines).toEqual(["app: 1 pushed"]);
+    expect(payload.closedByAuthor).toEqual([]);
   });
 
   test("includes hidden rows with includeHidden=1", async () => {
@@ -119,7 +119,6 @@ describe("inboxHandler", () => {
     putItemState(c.db, "acme/app#2", { ...DEFAULT_ITEM_STATE, doneAt: "2026-11-02T00:00:00.000Z" }, NOW.toISOString());
     const closed = (await get(inboxHandler, "/api/inbox", c)).body as InboxPayload;
     expect(closed.sidebar.sections.hidden).toBe(0);
-    expect(closed.countLines).toEqual([]);
     const open = (await get(inboxHandler, "/api/inbox?includeHidden=1", c)).body as InboxPayload;
     expect(open.rows.map(entryKey)).not.toContain("acme/app#2");
   });

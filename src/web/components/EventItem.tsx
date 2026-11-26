@@ -1,6 +1,7 @@
 import type { ViewEvent } from "../../core/index.ts";
 import { describeEvent, eventUrl, refText } from "../events.ts";
 import { relativeTime } from "../format.ts";
+import { Avatar } from "./Avatar.tsx";
 import { Markdown } from "./Markdown.tsx";
 import { SubjectLink } from "./SubjectLink.tsx";
 import styles from "./EventItem.module.css";
@@ -37,6 +38,7 @@ export function EventItem({ event, now, withBody }: Props) {
   return (
     <div className={`${styles.event} ${event.isNew ? styles.new : ""}`}>
       <div className={styles.line}>
+        {event.actor && <Avatar login={event.actor.login} isBot={event.actor.isBot} />}
         <span className={styles.actor}>
           {event.actor?.login ?? (event.kind === "baseChanged" ? "GitHub" : "someone")}
           {event.actor?.isBot && <span className={styles.bot}>bot</span>}

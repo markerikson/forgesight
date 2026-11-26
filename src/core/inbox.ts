@@ -157,11 +157,16 @@ export interface InboxPayload {
   rows: InboxEntry[];
   sidebar: { sections: SectionCounts; repos: RepoCounts[] };
   /**
-   * Per-repo summaries of hidden activity, e.g. "backend: 38 pushed, 12 merged", followed by
-   * one "backend: 3 closed by author" line per repo for PRs their authors closed unmerged.
+   * Hidden PRs their authors closed unmerged, per repo, busiest first. Members of a listed
+   * workstream are left out; the group shows its own count.
    */
-  countLines: string[];
+  closedByAuthor: ClosedByAuthorCount[];
   generatedAt: string;
+}
+
+export interface ClosedByAuthorCount {
+  repo: string;
+  count: number;
 }
 
 export interface SubjectDetail extends SubjectView {
@@ -448,19 +453,64 @@ function shortName(repo: string): string {
   return repo.slice(repo.indexOf("/") + 1);
 }
 
-const MAX_COUNT_LINES = 5;
+const MAX_CLOSED_LINES = 5;
 
-function countLine(repo: string, stats: { pushes: number; merged: number; closed: number }): string | null {
-  const parts = [
-    stats.pushes > 0 ? `${stats.pushes} pushed` : null,
-    stats.merged > 0 ? `${stats.merged} merged` : null,
-    stats.closed > 0 ? `${stats.closed} closed` : null,
-  ].filter((p) => p !== null);
-  return parts.length > 0 ? `${shortName(repo)}: ${parts.join(", ")}` : null;
+export interface HiddenActivity {
+  /** Hidden rows with activity after `since`. */
+  items: number;
+  pushes: number;
+  merged: number;
+  closed: number;
 }
 
-function capped(lines: string[]): string[] {
-  const kept = lines.slice(0, MAX_COUNT_LINES);
+/**
+ * Sums the hidden activity of hidden rows whose newest activity (`sortAt`) is after `since`,
+ * in one repo or all of them. Rows their authors closed unmerged are left to
+ * `closedByAuthorLines`. Each row's counts cover its activity since it was last dismissed,
+ * which can reach back before `since`.
+ */
+export function hiddenActivitySince(
+  entries: readonly InboxEntry[],
+  since: string,
+  repo: string | null,
+): HiddenActivity {
+  const out: HiddenActivity = { items: 0, pushes: 0, merged: 0, closed: 0 };
+  const seen = new Set<SubjectKey>();
+  const sinceMs = Date.parse(since);
+  for (const row of entries.flatMap((e) => (isGroup(e) ? e.members : [e]))) {
+    if (seen.has(row.key)) continue;
+    seen.add(row.key);
+    if (row.section !== "hidden" || row.reasons.includes("closedByAuthor")) continue;
+    if (repo !== null && row.repo !== repo) continue;
+    if (!(Date.parse(row.sortAt) > sinceMs)) continue;
+    out.items += 1;
+    out.pushes += row.hiddenStats.pushes;
+    out.merged += row.hiddenStats.merged;
+    out.closed += row.hiddenStats.closed;
+  }
+  return out;
+}
+
+/** e.g. "Since you last looked: 12 pushes, 3 merged across 5 hidden items". */
+export function hiddenActivityLine(activity: HiddenActivity): string {
+  if (activity.items === 0) return "Nothing new in Hidden since you last looked";
+  const parts = [
+    activity.pushes > 0 ? `${activity.pushes} ${activity.pushes === 1 ? "push" : "pushes"}` : null,
+    activity.merged > 0 ? `${activity.merged} merged` : null,
+    activity.closed > 0 ? `${activity.closed} closed` : null,
+  ].filter((p) => p !== null);
+  const items = `${activity.items} hidden ${activity.items === 1 ? "item" : "items"}`;
+  return parts.length > 0
+    ? `Since you last looked: ${parts.join(", ")} across ${items}`
+    : `Since you last looked: activity on ${items}`;
+}
+
+/** One "backend: 3 closed by author" line per repo, busiest first, capped with an "and N more repos" line. */
+export function closedByAuthorLines(counts: readonly ClosedByAuthorCount[], repo: string | null): string[] {
+  const lines = counts
+    .filter((c) => repo === null || c.repo === repo)
+    .map((c) => `${shortName(c.repo)}: ${c.count} closed by author`);
+  const kept = lines.slice(0, MAX_CLOSED_LINES);
   const rest = lines.length - kept.length;
   if (rest > 0) kept.push(`and ${rest} more ${rest === 1 ? "repo" : "repos"}`);
   return kept;
@@ -468,7 +518,7 @@ function capped(lines: string[]): string[] {
 
 /**
  * Builds the inbox response from every stored row. Hidden rows feed the section count
- * and the count lines, and are listed only when `includeHidden` is set.
+ * and the closed-by-author counts, and are listed only when `includeHidden` is set.
  */
 export function buildInboxPayload(
   allRows: readonly InboxRow[],
@@ -479,35 +529,19 @@ export function buildInboxPayload(
     .map((input) => buildGroup(input, allRows));
   const all = reflowEntries([...allRows, ...groups]);
   const listed = new Set(all.filter(isGroup).flatMap((g) => g.memberKeys));
-  const hidden = new Map<string, { pushes: number; merged: number; closed: number }>();
-  const closedByAuthor = new Map<string, number>();
+  const closed = new Map<string, number>();
   for (const row of allRows) {
-    if (row.section !== "hidden") continue;
-    if (row.reasons.includes("closedByAuthor")) {
-      if (listed.has(row.key)) continue;
-      closedByAuthor.set(row.repo, (closedByAuthor.get(row.repo) ?? 0) + 1);
-      continue;
-    }
-    const stats = hidden.get(row.repo) ?? { pushes: 0, merged: 0, closed: 0 };
-    stats.pushes += row.hiddenStats.pushes;
-    stats.merged += row.hiddenStats.merged;
-    stats.closed += row.hiddenStats.closed;
-    hidden.set(row.repo, stats);
+    if (row.section !== "hidden" || !row.reasons.includes("closedByAuthor") || listed.has(row.key)) continue;
+    closed.set(row.repo, (closed.get(row.repo) ?? 0) + 1);
   }
-  const total = (s: { pushes: number; merged: number; closed: number }) => s.pushes + s.merged + s.closed;
-  const allLines = [...hidden]
-    .sort(([ra, a], [rb, b]) => total(b) - total(a) || (ra < rb ? -1 : 1))
-    .map(([repo, stats]) => countLine(repo, stats))
-    .filter((line) => line !== null);
-  const closedLines = [...closedByAuthor]
+  const closedByAuthor = [...closed]
     .sort(([ra, a], [rb, b]) => b - a || (ra < rb ? -1 : 1))
-    .map(([repo, count]) => `${shortName(repo)}: ${count} closed by author`);
-  const countLines = [...capped(allLines), ...capped(closedLines)];
+    .map(([repo, count]) => ({ repo, count }));
   const rows = all.filter((row) => opts.includeHidden || row.section !== "hidden");
   return {
     rows,
     sidebar: { sections: sectionCounts(all), repos: repoCounts(all) },
-    countLines,
+    closedByAuthor,
     generatedAt: opts.now.toISOString(),
   };
 }

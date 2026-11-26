@@ -79,6 +79,9 @@ export function describe(e: ViewEvent): string {
     case "mentioned":
       return "you were mentioned";
     case "assigned":
+      if (e.actor && e.data.target && e.actor.login.toLowerCase() === e.data.target.toLowerCase()) {
+        return act(e.data.added === false ? "unassigned themselves" : "self-assigned");
+      }
       return act(`${e.data.added === false ? "unassigned" : "assigned"} ${e.data.target ?? "someone"}`);
     case "commit":
       return truncate(`${act("pushed")}: ${e.data.headline ?? e.data.sha?.slice(0, 10) ?? "a commit"}`);
@@ -91,7 +94,7 @@ export function describe(e: ViewEvent): string {
       return truncate(act(`changed the base to ${e.data.to ?? "another branch"}`));
     case "crossReference":
     case "connected":
-      return e.data.ref ? truncate(`referenced in ${e.data.ref.repo}#${e.data.ref.number}`) : act("referenced this");
+      return truncate(act(e.data.ref ? `referenced this in ${e.data.ref.repo}#${e.data.ref.number}` : "referenced this"));
     case "reference":
       return act("referenced this in a commit");
     case "markedDuplicate":
@@ -118,7 +121,8 @@ export function describe(e: ViewEvent): string {
 const WEAK_SUMMARY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>(["labeled", "unknown", "mentioned", "milestoned"]);
 
 /** Summary for a subject with no event worth describing. */
-function openedLine(subject: SubjectRecord): string {
+export function openedLine(subject: SubjectRecord): string {
+  if (subject.kind === "other") return "no details loaded";
   const noun = subject.kind === "pr" ? "PR" : "issue";
   return subject.author ? `${subject.author} opened this ${noun}` : `${noun} with no loaded activity`;
 }
@@ -266,8 +270,12 @@ export function rank(input: RankInput): Rank {
     }
   }
 
+  // A new label or milestone alone says little; a stronger new event, or the opening, says more.
+  // "you were mentioned" stays, since nothing else explains why a mention made it wait.
+  const summarized = last(shown.filter((e) => !WEAK_SUMMARY_KINDS.has(e.kind))) ??
+    (newest?.kind === "mentioned" ? newest : undefined);
   let summaryLine = "";
-  if (newest) summaryLine = describe(newest);
+  if (summarized) summaryLine = describe(summarized);
   else if (reasons.includes("reviewRequested") || reasons.includes("staleReviewRequest")) {
     summaryLine = lastRequest ? describe(lastRequest) : "review requested";
   } else {

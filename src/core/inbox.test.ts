@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { buildInboxPayload, buildSubjectDetail, entryKey, isDoneQuiet } from "./inbox.ts";
+import {
+  buildInboxPayload,
+  buildSubjectDetail,
+  closedByAuthorLines,
+  entryKey,
+  hiddenActivityLine,
+  hiddenActivitySince,
+  isDoneQuiet,
+} from "./inbox.ts";
 import type { InboxRow, Section, SubjectView } from "./pipeline/types.ts";
 import type { ThreadRecord } from "./types.ts";
 
@@ -145,34 +153,9 @@ describe("buildInboxPayload", () => {
     ]);
   });
 
-  test("summarizes hidden activity per repo, busiest first", () => {
-    const { countLines } = buildInboxPayload(rows, { includeHidden: false, now: NOW });
-    expect(countLines).toEqual(["app: 2 pushed, 1 merged", "lib: 1 closed"]);
-  });
-
-  test("skips hidden repos with nothing to count", () => {
-    const { countLines } = buildInboxPayload([row("acme/app#1", "hidden")], { includeHidden: false, now: NOW });
-    expect(countLines).toEqual([]);
-  });
-
-  test("shows the five busiest repos and counts the rest", () => {
-    const many = [1, 2, 3, 4, 5, 6, 7].map((n) =>
-      row(`acme/r${n}#1`, "hidden", { repo: `acme/r${n}`, hiddenStats: { pushes: n, merged: 0, closed: 0 } }),
-    );
-    const { countLines } = buildInboxPayload(many, { includeHidden: false, now: NOW });
-    expect(countLines).toEqual([
-      "r7: 7 pushed",
-      "r6: 6 pushed",
-      "r5: 5 pushed",
-      "r4: 4 pushed",
-      "r3: 3 pushed",
-      "and 2 more repos",
-    ]);
-  });
-
-  test("adds one closed-by-author line per repo after the hidden activity lines", () => {
+  test("counts hidden PRs closed by their authors per repo, busiest first", () => {
     const closed = { hiddenStats: { pushes: 0, merged: 0, closed: 1 }, reasons: ["closedByAuthor" as const] };
-    const { countLines } = buildInboxPayload(
+    const { closedByAuthor } = buildInboxPayload(
       [
         row("acme/app#1", "hidden", { hiddenStats: { pushes: 2, merged: 0, closed: 0 } }),
         row("acme/app#2", "hidden", closed),
@@ -181,16 +164,68 @@ describe("buildInboxPayload", () => {
       ],
       { includeHidden: false, now: NOW },
     );
-    expect(countLines).toEqual(["app: 2 pushed", "lib: 2 closed by author", "app: 1 closed by author"]);
+    expect(closedByAuthor).toEqual([
+      { repo: "acme/lib", count: 2 },
+      { repo: "acme/app", count: 1 },
+    ]);
+  });
+});
+
+describe("hiddenActivitySince", () => {
+  const SINCE = "2026-11-10T00:00:00Z";
+  const stats = (pushes: number, merged = 0, closed = 0) => ({ hiddenStats: { pushes, merged, closed } });
+  const rows = [
+    row("acme/app#1", "hidden", { ...stats(3, 1), sortAt: "2026-11-11T00:00:00Z" }),
+    row("acme/app#2", "hidden", { ...stats(5), sortAt: "2026-11-09T00:00:00Z" }),
+    row("acme/lib#3", "hidden", { ...stats(2, 0, 1), repo: "acme/lib", sortAt: "2026-11-12T00:00:00Z" }),
+    row("acme/lib#4", "hidden", {
+      ...stats(0, 0, 1),
+      repo: "acme/lib",
+      reasons: ["closedByAuthor"],
+      sortAt: "2026-11-12T00:00:00Z",
+    }),
+    row("acme/app#5", "waiting", { ...stats(7), sortAt: "2026-11-12T00:00:00Z" }),
+  ];
+
+  test("sums hidden rows with activity after the given time", () => {
+    expect(hiddenActivitySince(rows, SINCE, null)).toEqual({ items: 2, pushes: 5, merged: 1, closed: 1 });
   });
 
-  test("caps the closed-by-author lines", () => {
-    const rows = Array.from({ length: 7 }, (_, i) =>
-      row(`acme/r${i}#1`, "hidden", { repo: `acme/r${i}`, reasons: ["closedByAuthor" as const] }),
+  test("keeps to the selected repo", () => {
+    expect(hiddenActivitySince(rows, SINCE, "acme/app")).toEqual({ items: 1, pushes: 3, merged: 1, closed: 0 });
+  });
+
+  test("reads as one line", () => {
+    expect(hiddenActivityLine(hiddenActivitySince(rows, SINCE, null))).toBe(
+      "Since you last looked: 5 pushes, 1 merged, 1 closed across 2 hidden items",
     );
-    const { countLines } = buildInboxPayload(rows, { includeHidden: false, now: NOW });
-    expect(countLines).toHaveLength(6);
-    expect(countLines.at(-1)).toBe("and 2 more repos");
+    expect(hiddenActivityLine({ items: 1, pushes: 1, merged: 0, closed: 0 })).toBe(
+      "Since you last looked: 1 push across 1 hidden item",
+    );
+    expect(hiddenActivityLine({ items: 2, pushes: 0, merged: 0, closed: 0 })).toBe(
+      "Since you last looked: activity on 2 hidden items",
+    );
+    expect(hiddenActivityLine({ items: 0, pushes: 0, merged: 0, closed: 0 })).toBe(
+      "Nothing new in Hidden since you last looked",
+    );
+  });
+});
+
+describe("closedByAuthorLines", () => {
+  test("shows one line per repo, only for the selected repo when there is one", () => {
+    const counts = [
+      { repo: "acme/lib", count: 2 },
+      { repo: "acme/app", count: 1 },
+    ];
+    expect(closedByAuthorLines(counts, null)).toEqual(["lib: 2 closed by author", "app: 1 closed by author"]);
+    expect(closedByAuthorLines(counts, "acme/app")).toEqual(["app: 1 closed by author"]);
+  });
+
+  test("caps the lines", () => {
+    const counts = Array.from({ length: 7 }, (_, i) => ({ repo: `acme/r${i}`, count: 1 }));
+    const lines = closedByAuthorLines(counts, null);
+    expect(lines).toHaveLength(6);
+    expect(lines.at(-1)).toBe("and 2 more repos");
   });
 });
 

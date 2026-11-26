@@ -2,6 +2,7 @@ import { memo, type MouseEvent } from "react";
 import type { InboxRow } from "../../core/index.ts";
 import { isMuted } from "../store/actions.ts";
 import { relativeTime, repoShortName, rowByline } from "../format.ts";
+import { Avatar } from "./Avatar.tsx";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { GitHubIcon } from "./SubjectLink.tsx";
 import styles from "./ThreadRow.module.css";
@@ -83,9 +84,12 @@ export const ThreadRow = memo(function ThreadRow({
       </div>
       <div className={`${styles.line} ${styles.sub}`}>
         {row.author && (
-          <span className={styles.author} title={`Opened by ${row.author}`}>
-            {row.author}
-          </span>
+          <>
+            <Avatar login={row.author} />
+            <span className={styles.author} title={`Opened by ${row.author}`}>
+              {row.author}
+            </span>
+          </>
         )}
         <span className={styles.summary}>{byline.summary}</span>
         {row.enrichError && (

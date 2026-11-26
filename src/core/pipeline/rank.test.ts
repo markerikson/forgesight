@@ -131,8 +131,8 @@ describe("rank", () => {
   });
 
   test("subjects the worker never fetches do not claim to be loading", () => {
-    expect(derive({ enriched: false, kind: "other" }).summaryLine).toBe("");
-    expect(derive({ enriched: false, kind: "issue", enrichIssues: false }).summaryLine).toBe("");
+    expect(derive({ enriched: false, kind: "other" }).summaryLine).toBe("no details loaded");
+    expect(derive({ enriched: false, kind: "issue", enrichIssues: false }).summaryLine).toBe("bob opened this issue");
     expect(derive({ enriched: false, kind: "issue" }).summaryLine).toBe("not loaded yet");
   });
 
@@ -559,9 +559,9 @@ describe("rounds", () => {
     expect(view.hiddenStats.pushes).toBe(5);
   });
 
-  const crossRef = (at: string, number: number, willClose = false) =>
+  const crossRef = (at: string, number: number, willClose = false, actor = "alice") =>
     item("CrossReferencedEvent", at, {
-      actor: user("alice"),
+      actor: user(actor),
       willCloseTarget: willClose,
       source: { __typename: "PullRequest", number, title: `PR ${number}`, repository: { nameWithOwner: REPO } },
     });
@@ -577,7 +577,21 @@ describe("rounds", () => {
         crossRef("2026-11-21T00:03:00Z", 4),
       ],
     });
-    expect(groupSummaries(view)).toEqual(["1 rename", "3 references from other PRs"]);
+    expect(groupSummaries(view)).toEqual(["1 rename", "alice referenced this from 3 PRs"]);
+  });
+
+  test("a cross-reference run by several people names them", () => {
+    const run = (actors: string[]) =>
+      groupSummaries(derive({ items: actors.map((a, i) => crossRef(`2026-11-21T00:0${i}:00Z`, i + 2, false, a)) }));
+    expect(run(["alice", "bob", "alice"])).toEqual(["3 references from alice and bob"]);
+    expect(run(["alice", "bob", "carol"])).toEqual(["3 references from alice, bob and 1 other"]);
+    expect(run(["alice", "bob", "carol", "dave"])).toEqual(["4 references from alice, bob and 2 others"]);
+  });
+
+  test("the row summary of a cross-reference names who made it", () => {
+    expect(derive({ items: [crossRef("2026-11-21T00:01:00Z", 2)] }).summaryLine).toBe(
+      `alice referenced this in ${REPO}#2`,
+    );
   });
 
   test("a single cross-reference stays in the surrounding group", () => {
@@ -632,6 +646,42 @@ describe("summary line", () => {
     const labeled = item("LabeledEvent", "2026-11-19T01:00:00Z", { actor: user("bob"), label: { name: "bug" } });
     expect(derive({ kind: "issue", author: "carol", items: [labeled] }).summaryLine).toBe("carol opened this issue");
     expect(derive({ author: "carol" }).summaryLine).toBe("carol opened this PR");
+  });
+
+  // tc39/ecma426#294: a new issue whose only activity is someone else adding a label.
+  test("a new issue with only a new label says who opened it", () => {
+    const view = derive({
+      kind: "issue",
+      author: "legendecas",
+      raw: { createdAt: "2026-11-21T00:00:00Z" },
+      items: [item("LabeledEvent", "2026-11-21T03:00:00Z", { actor: user("nicolo-ribaudo"), label: { name: "Proposal: Scopes" } })],
+    });
+    expect(view.summaryLine).toBe("legendecas opened this issue");
+  });
+
+  // reduxjs/redux-toolkit#5644: a new issue with no timeline items at all.
+  test("a new issue with no timeline says who opened it", () => {
+    const view = derive({ kind: "issue", author: "emersion", raw: { createdAt: "2026-11-21T00:00:00Z" } });
+    expect(view.reasons).toContain("newIssue");
+    expect(view.summaryLine).toBe("emersion opened this issue");
+  });
+
+  test("a new label after a new comment keeps the comment as the summary", () => {
+    const view = derive({
+      items: [
+        comment("alice", "2026-11-21T00:00:00Z", "Looks good"),
+        item("LabeledEvent", "2026-11-21T01:00:00Z", { actor: user("bob"), label: { name: "bug" } }),
+      ],
+    });
+    expect(view.summaryLine).toBe("alice commented: Looks good");
+  });
+
+  test("a self-assignment reads as one", () => {
+    const view = derive({
+      kind: "issue",
+      items: [item("AssignedEvent", "2026-11-21T00:00:00Z", { actor: user("Domiii"), assignee: user("Domiii") })],
+    });
+    expect(view.summaryLine).toBe("Domiii self-assigned");
   });
 });
 

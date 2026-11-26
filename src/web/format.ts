@@ -26,18 +26,37 @@ export interface RowByline {
   actor: string | null;
 }
 
+function namesLogin(text: string, login: string): boolean {
+  const escaped = login.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(^|[^\\w-])@?${escaped}($|[^\\w-])`, "i").test(text);
+}
+
 /**
  * Names each person on a row's second line once. The summary starts with its actor's
- * login; when that is the author, who is already shown, the login is dropped.
+ * login; when that is the author, who is already shown, the login is dropped. The latest
+ * actor is added only when neither the author nor the summary already names them.
  */
 export function rowByline(author: string | null, summaryLine: string, latestActor: string | null): RowByline {
-  const startsWith = (login: string) => summaryLine.toLowerCase().startsWith(`${login.toLowerCase()} `);
-  const summary = author && startsWith(author) ? summaryLine.slice(author.length + 1) : summaryLine;
+  const startsWithAuthor = author !== null && summaryLine.toLowerCase().startsWith(`${author.toLowerCase()} `);
+  const summary = startsWithAuthor ? summaryLine.slice(author.length + 1) : summaryLine;
   const named =
     latestActor === null ||
     (author !== null && latestActor.toLowerCase() === author.toLowerCase()) ||
-    startsWith(latestActor);
+    namesLogin(summaryLine, latestActor);
   return { summary, actor: named ? null : latestActor };
+}
+
+/**
+ * Avatar image URLs to try in order. Bot logins are stored without their `[bot]` suffix;
+ * GitHub serves app avatars only under the suffixed name, while some bots are also
+ * backed by an org or user of the bare name. When it is unknown whether the login is a bot,
+ * the user image is tried first.
+ */
+export function avatarUrls(login: string, isBot: boolean | null): string[] {
+  const user = `https://github.com/${encodeURIComponent(login)}.png?size=40`;
+  const bot = `https://avatars.githubusercontent.com/${encodeURIComponent(`${login}[bot]`)}?s=40`;
+  if (isBot === null) return [user, bot];
+  return isBot ? [bot, user] : [user];
 }
 
 export type StateTone = "open" | "draft" | "merged" | "closed" | "unknown";
