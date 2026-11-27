@@ -221,6 +221,15 @@ export interface HiddenStats {
   closed: number;
 }
 
+/** New events since the last visit that the view does not show, counted by kind; explains why a subject is hidden. */
+export interface QuietActivity {
+  bots: number;
+  pushes: number;
+  rebases: number;
+  labels: number;
+  other: number;
+}
+
 export interface ViewLink {
   label: string;
   url: string;
@@ -244,6 +253,8 @@ export interface SubjectView {
   sortAt: string;
   snoozeUntil: string | null;
   unread: boolean;
+  /** Absent in views derived before it was added. */
+  quiet?: QuietActivity;
   /** Present only for members of a workstream. */
   stack?: StackContext;
   /** Review-bot findings on PRs I authored, reviewed or was asked to review. */
@@ -274,6 +285,8 @@ export interface InboxRow {
   snoozeUntil: string | null;
   unread: boolean;
   enrichError: string | null;
+  /** Absent in rows derived before it was added. */
+  quiet?: QuietActivity;
   /** One icon per review tool with outstanding or stale findings; open PRs only. */
   findings: FindingIcon[];
 }

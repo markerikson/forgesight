@@ -11,6 +11,7 @@ import { StatusBar } from "./components/StatusBar.tsx";
 import { ThreadList } from "./components/ThreadList.tsx";
 import { Toast } from "./components/Toast.tsx";
 import { useKeyboardNav } from "./hooks/useKeyboardNav.ts";
+import { useTabBadge } from "./hooks/useTabBadge.ts";
 import { useUrlState } from "./hooks/useUrlState.ts";
 import { startEvents } from "./store/events.ts";
 import { makeStore, setupListeners } from "./store/index.ts";
@@ -36,6 +37,7 @@ export function InboxApp({ initialStatus, initialInbox }: Props) {
 function Inbox() {
   useKeyboardNav();
   useUrlState();
+  useTabBadge();
   return (
     <div className={styles.app}>
       <Sidebar />

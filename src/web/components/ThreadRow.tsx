@@ -1,5 +1,5 @@
 import { memo, type MouseEvent } from "react";
-import type { InboxRow } from "../../core/index.ts";
+import { hiddenReason, type InboxRow } from "../../core/index.ts";
 import { isMuted } from "../store/actions.ts";
 import { relativeTime, repoShortName, rowByline } from "../format.ts";
 import { Avatar } from "./Avatar.tsx";
@@ -36,6 +36,7 @@ export const ThreadRow = memo(function ThreadRow({
 }: Props) {
   const muted = isMuted(row);
   const byline = rowByline(row.author, row.summaryLine, row.latestActor);
+  const hidden = hiddenReason(row);
   const act = (e: MouseEvent, fn: () => void) => {
     e.stopPropagation();
     fn();
@@ -93,6 +94,11 @@ export const ThreadRow = memo(function ThreadRow({
           </>
         )}
         <span className={styles.summary}>{byline.summary}</span>
+        {hidden && (
+          <span className={styles.hiddenWhy} title="Why this is hidden">
+            {hidden}
+          </span>
+        )}
         {row.enrichError && (
           <span className={styles.stale} title={row.enrichError}>
             stale
