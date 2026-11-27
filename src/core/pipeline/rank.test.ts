@@ -902,16 +902,41 @@ describe("discussions", () => {
     expect(replyEvent?.type === "event" && replyEvent.event.data.replyTo).toBe(first.nodeId);
   });
 
-  test("header reads category, answer and omitted counts from the subject", () => {
+  test("a mention in the discussion post waits, even in Announcements", () => {
     const view = derive({
       kind: "discussion",
+      raw: { ...category("Announcements"), body: "thoughts, @markerikson?", createdAt: "2026-11-21T00:00:00Z" },
+    });
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("mentioned");
+  });
+
+  test("a mention in a post I already saw does not wait again", () => {
+    const view = derive({
+      kind: "discussion",
+      raw: { body: "thoughts, @markerikson?", createdAt: "2026-11-01T00:00:00Z" },
+    });
+    expect(view.reasons).not.toContain("mentioned");
+  });
+
+  test("a new discussion without comments is labeled as a discussion", () => {
+    const view = derive({ kind: "discussion", raw: { createdAt: "2026-11-21T00:00:00Z" } });
+    expect(view.reasons).toEqual(["newDiscussion"]);
+  });
+
+  test("header compares fetched counts with the stored comments", () => {
+    const first = dcomment("alice", "2026-11-21T01:00:00Z", "question");
+    const reply = dcomment("carol", "2026-11-21T03:00:00Z", "answer to alice", first.nodeId);
+    const view = derive({
+      kind: "discussion",
+      items: [first, reply],
       raw: {
         ...category("Q&A"),
         answer: { id: "C1" },
         answerChosenBy: user("alice"),
         answerChosenAt: "2026-11-21T00:00:00Z",
-        omittedComments: 3,
-        omittedReplies: 1,
+        commentCount: 4,
+        replyCounts: { [first.nodeId]: 3 },
       },
     });
     expect(view.header.discussion).toEqual({
@@ -922,7 +947,7 @@ describe("discussions", () => {
       answeredBy: "alice",
       answeredAt: "2026-11-21T00:00:00Z",
       omittedComments: 3,
-      omittedReplies: 1,
+      omittedReplies: 2,
     });
     expect(view.header.url).toBe(`https://github.com/${REPO}/discussions/1`);
   });

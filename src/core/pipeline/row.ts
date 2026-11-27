@@ -62,8 +62,23 @@ function count(value: unknown): number {
   return typeof value === "number" ? value : 0;
 }
 
-function discussionInfo(raw: Raw | null): DiscussionInfo {
+/**
+ * Comments and replies GitHub counts but the stored timeline lacks. Each fetch takes only the newest
+ * ones, while stored items from earlier fetches stay, so the gap is measured against what is stored.
+ */
+function omitted(raw: Raw | null, events: ViewEvent[]): { comments: number; replies: number } {
+  const stored = events.filter((e) => e.data.typename === "DiscussionComment");
+  const comments = Math.max(0, count(raw?.commentCount) - stored.filter((e) => !e.data.replyTo).length);
+  let replies = 0;
+  for (const [id, total] of Object.entries(obj(raw?.replyCounts) ?? {})) {
+    replies += Math.max(0, count(total) - stored.filter((e) => e.data.replyTo === id).length);
+  }
+  return { comments, replies };
+}
+
+function discussionInfo(raw: Raw | null, events: ViewEvent[]): DiscussionInfo {
   const category = obj(raw?.category);
+  const missing = omitted(raw, events);
   return {
     category: str(category?.name),
     categoryEmoji: str(category?.emoji),
@@ -71,8 +86,8 @@ function discussionInfo(raw: Raw | null): DiscussionInfo {
     answerId: str(obj(raw?.answer)?.id),
     answeredBy: str(obj(raw?.answerChosenBy)?.login),
     answeredAt: str(raw?.answerChosenAt),
-    omittedComments: count(raw?.omittedComments),
-    omittedReplies: count(raw?.omittedReplies),
+    omittedComments: missing.comments,
+    omittedReplies: missing.replies,
   };
 }
 
@@ -114,7 +129,7 @@ export function buildHeader(
       .map((n) => str(n.name))
       .filter((n) => n !== null),
     enrichError: subject.enrichError,
-    ...(subject.kind === "discussion" && { discussion: discussionInfo(raw) }),
+    ...(subject.kind === "discussion" && { discussion: discussionInfo(raw, events) }),
   };
 }
 
@@ -183,9 +198,6 @@ export function toInboxRow(view: SubjectView): InboxRow {
     enrichError: h.enrichError,
     ...(view.quiet ? { quiet: view.quiet } : {}),
     findings: h.state === "OPEN" ? findingIcons(view.findings ?? []) : [],
-    ...(h.discussion && {
-      discussion: { category: h.discussion.category, answered: h.discussion.answerId !== null },
-    }),
   };
 }
 

@@ -126,6 +126,7 @@ export const REASON_LABELS: Record<RankReason, string> = {
   newActivity: "new activity",
   stateChange: "state changed",
   newIssue: "new issue",
+  newDiscussion: "new discussion",
   snoozed: "snoozed",
   muted: "muted",
   notEnriched: "not loaded yet",

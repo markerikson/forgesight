@@ -206,6 +206,17 @@ function isNewIssue(subject: SubjectRecord, dismissedAt: string | null, me: stri
   return dismissedAt === null || isAfter(createdAt, dismissedAt);
 }
 
+/**
+ * A discussion post has no timeline event, so a mention in it shows up only in the body. It counts
+ * when the post was written or edited after I last dismissed the discussion.
+ */
+function postMentionsMe(subject: SubjectRecord, dismissedAt: string | null, me: string | null): boolean {
+  const raw = obj(subject.raw);
+  if (me === null || typeof raw?.body !== "string" || !mentions(raw.body, me)) return false;
+  if (dismissedAt === null) return true;
+  return [raw.createdAt, raw.lastEditedAt].some((at) => typeof at === "string" && isAfter(at, dismissedAt));
+}
+
 function hiddenStats(events: ViewEvent[], rounds: Round[]): HiddenStats {
   return {
     pushes: rounds
@@ -269,6 +280,7 @@ export function rank(input: RankInput): Rank {
     add(staleRequest ? "staleReviewRequest" : "reviewRequested");
   }
   if (shown.some((e) => mentionsMe(e, me))) add("mentioned");
+  if (isDiscussion && postMentionsMe(subject, state.dismissedAt, me)) add("mentioned");
   if (!isPr && fresh.some((e) => e.kind === "assigned" && e.data.added !== false && isMe(e.data.target, me))) {
     add("assigned");
   }
@@ -307,7 +319,7 @@ export function rank(input: RankInput): Rank {
     } else if (shown.length > 0) {
       add(shown.some((e) => STATE_KINDS.has(e.kind)) ? "stateChange" : "newActivity");
     } else if (!isPr && isNewIssue(subject, state.dismissedAt, me) && events.every((e) => e.kind !== "comment")) {
-      add("newIssue");
+      add(isDiscussion ? "newDiscussion" : "newIssue");
     } else {
       section = "hidden";
       add("nothingNew");

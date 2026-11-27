@@ -69,7 +69,7 @@ function mapItem(typename: string, raw: Raw, repo: string): MappedItem {
         kind: "comment",
         actor: toActor(raw.author),
         body: str(raw.body) ?? "",
-        data: { url: str(raw.url), replyTo: str(obj(raw.replyTo)?.id), answer: raw.isAnswer === true ? true : undefined },
+        data: { url: str(raw.url), replyTo: str(obj(raw.replyTo)?.id) },
       };
     case "DiscussionAnswer":
       return { kind: "answered", actor, data: { target: str(raw.commentId) } };

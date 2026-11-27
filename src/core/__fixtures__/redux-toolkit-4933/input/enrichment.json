@@ -45,8 +45,10 @@
       },
       "upvoteCount": 1,
       "commentCount": 2,
-      "omittedComments": 0,
-      "omittedReplies": 0
+      "replyCounts": {
+        "DC_kwDOB2ACAs4AwqyJ": 3,
+        "DC_kwDOB2ACAs4A6Gd5": 8
+      }
     }
   },
   "timelineItems": [

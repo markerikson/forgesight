@@ -1,29 +1,33 @@
 import { type } from "arktype";
+import { type QueryShape, queryShape } from "../../core/enrich-plan.ts";
 import type { EnrichmentResult } from "../../core/types.ts";
 import { GitHubApiError } from "../errors.ts";
 
-/** Newest top-level comments fetched per discussion. Older ones are counted, not fetched. */
-export const DISCUSSION_COMMENTS = 50;
-/** Newest replies fetched per comment. */
-export const DISCUSSION_REPLIES = 20;
+/** Newest top-level comments and replies per comment fetched per discussion. Older ones are counted, not fetched. */
+const FULL_PAGE = { comments: 50, replies: 20 };
+/** Smaller page for the retry after a gateway error or timeout. */
+const REDUCED_PAGE = { comments: 20, replies: 5 };
 
 const COMMENT_FIELDS = "id createdAt lastEditedAt author { login __typename } body url isMinimized isAnswer";
 
-export const DISCUSSION_CORE = `fragment DiscussionCore on Discussion {
+export function discussionCore(shape: QueryShape): string {
+  const page = shape.timelinePage < queryShape("full", false).timelinePage ? REDUCED_PAGE : FULL_PAGE;
+  return `fragment DiscussionCore on Discussion {
   id number title body url createdAt updatedAt lastEditedAt closed closedAt stateReason locked
   isAnswered answerChosenAt answerChosenBy { login __typename } answer { id }
   category { name emoji isAnswerable }
   author { login __typename }
   labels(first: 20) { nodes { name } }
   upvoteCount
-  comments(last: ${DISCUSSION_COMMENTS}) {
+  comments(last: ${page.comments}) {
     totalCount
     nodes {
       ${COMMENT_FIELDS}
-      replies(last: ${DISCUSSION_REPLIES}) { totalCount nodes { ${COMMENT_FIELDS} replyTo { id } } }
+      replies(last: ${page.replies}) { totalCount nodes { ${COMMENT_FIELDS} replyTo { id } } }
     }
   }
 }`;
+}
 
 const author = type({ login: "string" }).or("null");
 
@@ -67,8 +71,8 @@ export interface ParsedDiscussion {
 /**
  * Maps a discussion into the timeline item model. Comments and replies become `DiscussionComment` items
  * (replies keep `replyTo`); the chosen answer and the close become synthetic `DiscussionAnswer` and
- * `DiscussionClosed` items, since discussions have no timeline. The subject raw keeps comment and reply
- * counts so the view can say when older comments were not fetched.
+ * `DiscussionClosed` items, since discussions have no timeline. The subject raw keeps the total comment
+ * count and each comment's reply count, so the view can compare them with the stored items.
  */
 export function parseDiscussionAlias(raw: unknown): ParsedDiscussion {
   const d = check(discussionAlias, raw, "discussion");
@@ -79,19 +83,16 @@ export function parseDiscussionAlias(raw: unknown): ParsedDiscussion {
     seen.add(item.nodeId);
     items.push(item);
   };
-  let fetchedComments = 0;
-  let missingReplies = 0;
+  const replyCounts: Record<string, number> = {};
   for (const node of d.comments.nodes) {
     if (node === null) continue;
     const c = check(comment, node, "discussion comment");
-    fetchedComments++;
     const { replies: _replies, ...rest } = node as Record<string, unknown>;
     push({ nodeId: c.id, typename: "DiscussionComment", createdAt: c.createdAt, raw: { __typename: "DiscussionComment", ...rest } });
-    let fetchedReplies = 0;
+    replyCounts[c.id] = c.replies.totalCount;
     for (const r of c.replies.nodes) {
       if (r === null) continue;
       const parsed = check(reply, r, "discussion reply");
-      fetchedReplies++;
       push({
         nodeId: parsed.id,
         typename: "DiscussionComment",
@@ -99,7 +100,6 @@ export function parseDiscussionAlias(raw: unknown): ParsedDiscussion {
         raw: { __typename: "DiscussionComment", ...(r as Record<string, unknown>), replyTo: { id: c.id } },
       });
     }
-    missingReplies += Math.max(0, c.replies.totalCount - fetchedReplies);
   }
   if (d.answer && d.answerChosenAt) {
     push({
@@ -129,12 +129,7 @@ export function parseDiscussionAlias(raw: unknown): ParsedDiscussion {
       headSha: null,
       baseSha: null,
       updatedAt: d.updatedAt,
-      raw: {
-        ...rest,
-        commentCount: d.comments.totalCount,
-        omittedComments: Math.max(0, d.comments.totalCount - fetchedComments),
-        omittedReplies: missingReplies,
-      },
+      raw: { ...rest, commentCount: d.comments.totalCount, replyCounts },
     },
   };
 }

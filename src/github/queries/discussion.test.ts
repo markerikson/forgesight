@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { GitHubApiError } from "../errors.ts";
-import { parseDiscussionAlias } from "./discussion.ts";
+import { queryShape } from "../../core/enrich-plan.ts";
+import { discussionCore, parseDiscussionAlias } from "./discussion.ts";
 
 const author = (login: string) => ({ login, __typename: "User" });
 
@@ -51,7 +52,7 @@ describe("parseDiscussionAlias", () => {
     expect(items[1]?.raw).toMatchObject({ replyTo: { id: "C1" } });
     expect(items[0]?.raw).not.toHaveProperty("replies");
     expect(subject).toMatchObject({ nodeId: "D1", state: "OPEN", author: "alice", updatedAt: "2026-11-21T00:00:00Z" });
-    expect(subject.raw).toMatchObject({ commentCount: 3, omittedComments: 1, omittedReplies: 3, title: "How do I?" });
+    expect(subject.raw).toMatchObject({ commentCount: 3, replyCounts: { C1: 4, C2: 0 }, title: "How do I?" });
     expect(subject.raw).not.toHaveProperty("comments");
   });
 
@@ -72,6 +73,13 @@ describe("parseDiscussionAlias", () => {
     expect(answer?.raw).toMatchObject({ commentId: "C1", actor: { login: "alice" } });
     const closed = items.find((i) => i.typename === "DiscussionClosed");
     expect(closed).toMatchObject({ nodeId: "D1:closed:2026-11-21T00:00:00Z", createdAt: "2026-11-21T00:00:00Z" });
+  });
+
+  test("the reduced query shape fetches fewer comments and replies", () => {
+    expect(discussionCore(queryShape("full", false))).toContain("comments(last: 50)");
+    const reduced = discussionCore(queryShape("full", true));
+    expect(reduced).toContain("comments(last: 20)");
+    expect(reduced).toContain("replies(last: 5)");
   });
 
   test("rejects an unexpected shape", () => {

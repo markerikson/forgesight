@@ -3,7 +3,7 @@ import { isStickyCandidate, type QueryShape, type StickyMarker } from "../../cor
 import type { EnrichmentResult, SubjectKey } from "../../core/types.ts";
 import { GitHubApiError } from "../errors.ts";
 import type { GqlErrorEntry } from "../types.ts";
-import { DISCUSSION_CORE, parseDiscussionAlias } from "./discussion.ts";
+import { discussionCore, parseDiscussionAlias } from "./discussion.ts";
 import { ISSUE_CORE, ISSUE_ITEMS, PR_ITEMS, prCore, STICKY_FIELDS } from "./fragments.ts";
 
 export interface BatchSubject {
@@ -64,7 +64,7 @@ export function buildSubjectBatchQuery(input: SubjectBatchInput): SubjectBatchQu
   if (prs.length) fragments.push(PR_ITEMS);
   if (issues.some((s) => !s.after)) fragments.push(ISSUE_CORE);
   if (issues.length) fragments.push(ISSUE_ITEMS);
-  if (input.subjects.some((s) => s.kind === "discussion")) fragments.push(DISCUSSION_CORE);
+  if (input.subjects.some((s) => s.kind === "discussion")) fragments.push(discussionCore(input.shape));
   const query = `query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {
   rateLimit { cost remaining resetAt }
   repository(owner: $owner, name: $name) {

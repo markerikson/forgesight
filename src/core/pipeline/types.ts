@@ -99,8 +99,6 @@ export interface EventData {
   edited?: boolean;
   /** Discussion replies: id of the top-level comment replied to. */
   replyTo?: string;
-  /** Discussion comments: this comment is the chosen answer. */
-  answer?: boolean;
 }
 
 export interface Event {
@@ -223,6 +221,7 @@ export type RankReason =
   | "newActivity"
   | "stateChange"
   | "newIssue"
+  | "newDiscussion"
   | "snoozed"
   | "muted"
   | "notEnriched"
@@ -311,8 +310,6 @@ export interface InboxRow {
   quiet?: QuietActivity;
   /** One icon per review tool with outstanding or stale findings; open PRs only. */
   findings: FindingIcon[];
-  /** Discussions only: category name and whether an answer was chosen. */
-  discussion?: { category: string | null; answered: boolean };
 }
 
 export type { Finding, FindingIcon };
