@@ -31,7 +31,7 @@ The web app reads the same database read-only and answers 503 until `db:migrate`
 
 ## Self-hosting
 
-`scripts/deploy.sh` builds on your machine and deploys over ssh to a Linux server, where pm2 runs two apps from `ecosystem.config.cjs`: `forgesight-worker` and `forgesight-web`. The server needs Bun, pm2 (with Node), and rsync. The web app has no login and listens on 127.0.0.1 only, so how you reach it (ssh tunnel, private network, reverse proxy with auth) is up to you. Add any hostname you use to `server.allowedHosts`.
+`scripts/deploy.sh` builds on your machine and deploys over ssh to a Linux server, where pm2 runs two apps from `ecosystem.config.cjs`: `forgesight-worker` and `forgesight-web`. The server needs Bun 1.4 or newer (older versions can't read `bun.lock`), pm2 (with Node), and rsync. The web app has no login and listens on 127.0.0.1 only, so how you reach it (ssh tunnel, private network, reverse proxy with auth) is up to you. Add any hostname you use to `server.allowedHosts`.
 
 On the server, code lives in `DEPLOY_DIR` (default `/opt/forgesight`), secrets in `$DEPLOY_DIR/.env` (Bun loads it from the working directory), and config in `~/.config/forgesight/config.jsonc` for the ssh user. Set `FORGESIGHT_DATA_DIR` in `.env`, for example to `$DEPLOY_DIR/data`. pm2 logs go to `$DEPLOY_DIR/data/logs/`.
 
@@ -55,7 +55,7 @@ bash scripts/deploy.sh --skip-checks --allow-dirty
 ### First deploy
 
 1. `cp .env.production.example .env.production` and fill in `GITHUB_TOKEN` and `ANTHROPIC_API_KEY`.
-2. Write the server config and point `DEPLOY_CONFIG_FILE` at it. Keeping `"outbox": { "dryRun": true }` at first is a safe way to watch the worker before it changes anything on GitHub.
+2. Write the server config and point `DEPLOY_CONFIG_FILE` at it. Keeping `"outbox": { "dryRun": true }` at first is a safe way to watch the worker before it changes anything on GitHub. Actions you take while in dry run are recorded locally and are not sent to GitHub when you turn it off.
 3. Stop any other worker polling the same GitHub account.
 4. `bun run deploy:full`. The worker creates the database on its first poll, and the web answers 503 until then. To keep existing history, copy a backup to `$FORGESIGHT_DATA_DIR/inbox.db` on the server before this step.
 5. Schedule a nightly backup on the server, for example in crontab:

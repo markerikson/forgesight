@@ -20,7 +20,7 @@
     "backup:pull": "bash scripts/backup-pull.sh"
   },
   "engines": {
-    "bun": ">=1.3.0"
+    "bun": ">=1.4.0"
   },
   "dependencies": {
     "@reduxjs/toolkit": "2.15.0",
