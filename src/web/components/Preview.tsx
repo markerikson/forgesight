@@ -185,7 +185,7 @@ function ActionBar({ row, url, subject }: { row: InboxRow; url: string | null; s
           {subject.fetching ? "Refreshing…" : "Refresh"}
         </button>
       )}
-      {subject && <CopyFindings subject={subject} />}
+      {subject?.header.state === "OPEN" && <CopyFindings subject={subject} />}
       {subject && subject.workstream === null && <AddToWorkstream header={subject.header} />}
       {url && (
         <a className={styles.button} href={url} target="_blank" rel="noopener noreferrer" title="Open on GitHub (o)">
@@ -247,7 +247,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
       </div>
       {subject.workstream && <StackBox workstream={subject.workstream} subjectKey={subject.key} />}
       {subject.body && <Description key={subject.key} body={subject.body} />}
-      {subject.findings && <FindingsPanel findings={subject.findings} />}
+      {subject.findings && <FindingsPanel findings={subject.findings} open={subject.header.state === "OPEN"} />}
       {subject.rounds.length === 0 && (
         <p className={styles.message}>{subject.fetching ? "Loading from GitHub…" : "No activity stored yet."}</p>
       )}

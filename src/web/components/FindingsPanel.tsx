@@ -76,8 +76,11 @@ export function CopyFindings({ subject }: { subject: SubjectDetail }) {
   );
 }
 
-/** Review-bot findings on the subject: outstanding first, then stale, with a count of the rest. */
-export function FindingsPanel({ findings }: { findings: readonly Finding[] }) {
+/**
+ * Review-bot findings on the subject: outstanding first, then stale, with a count of the rest.
+ * On a merged or closed PR the list is history: what the bots left open when it stopped changing.
+ */
+export function FindingsPanel({ findings, open }: { findings: readonly Finding[]; open: boolean }) {
   const listed = findings.filter((f) => f.status === "outstanding" || f.status === "stale");
   const fixed = findings.filter((f) => f.status === "fixed").length;
   const resolved = findings.filter((f) => f.status === "resolved").length;
@@ -89,16 +92,16 @@ export function FindingsPanel({ findings }: { findings: readonly Finding[] }) {
   return (
     <section className={styles.panel} aria-label="Review findings">
       <h3 className={styles.heading}>
-        Findings
+        {open ? "Findings" : "Findings at the last review"}
         {rest.length > 0 && <span className={styles.rest}>{rest.join(", ")}</span>}
       </h3>
       {listed.length > 0 && (
         <ul className={styles.list}>
           {listed.map((f) => (
-            <li key={`${f.tool}:${f.id}`} className={f.status === "stale" ? styles.stale : undefined}>
+            <li key={`${f.tool}:${f.id}`} className={f.status === "stale" || !open ? styles.stale : undefined}>
               <span className={`${styles.severity} ${tone(f) ?? ""}`}>{f.label}</span>
               <span className={styles.tool}>{TOOL_NAME[f.tool]}</span>
-              {f.isNew && f.status === "outstanding" && <span className={styles.isNew}>new</span>}
+              {open && f.isNew && f.status === "outstanding" && <span className={styles.isNew}>new</span>}
               <span className={styles.title}>{f.title}</span>
               {f.file && (
                 <span className={styles.where}>
