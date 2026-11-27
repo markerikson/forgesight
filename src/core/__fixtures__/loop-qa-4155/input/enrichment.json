@@ -1,0 +1,426 @@
+{
+  "subjectKey": "replayio/loop-qa#4155",
+  "subject": {
+    "nodeId": "PR_kwDOSw4eCs8AAAABERAXUw",
+    "state": "MERGED",
+    "author": "bhackett1024",
+    "headRef": "fix/qa-issue-4153",
+    "baseRef": "main",
+    "headSha": "8f540de8a5496d358d06525aff05f5d0ec6d1bd6",
+    "baseSha": "bfa54d40485cf884ea9760d45a27e52ab7e69b4c",
+    "updatedAt": "2026-09-20T19:03:17Z",
+    "raw": {
+      "id": "PR_kwDOSw4eCs8AAAABERAXUw",
+      "number": 4155,
+      "title": "perf: lazy-load the Playwright failure-analysis detail route out of the eager entry bundle",
+      "state": "MERGED",
+      "isDraft": false,
+      "author": {
+        "login": "bhackett1024",
+        "__typename": "User"
+      },
+      "body": "## Why\n\nReplay QA (bug-mu8z8bor-g25v, filed as #4153) measured the entry bundle `assets/index-BZPqRl0e.js` at 545KB on the wire / ~2.0MB decoded and found the Playwright failure-analysis detail page inlined in it. That page renders only at the deep `:projectId/playwright-tests/:analysisId` URL, so every first load of the app downloaded and parsed report UI — including the \"Test source and context\" section — that a normal session never opens, while the same build already ships 35 other pages as lazy chunks.\n\n## What changed\n\n`src/App.tsx` statically imported `PlaywrightFailureDetail` and mounted it directly on the `:projectId/playwright-tests/:analysisId` route, which pulled the page into the eager entry graph.\n\n- The page now loads through `lazyWithRetry(() => import('./pages/PlaywrightFailureDetail'))` — the same deferred-chunk mechanism the Admin pages use — so Vite emits it as its own chunk fetched on first visit to the route.\n- The route element is a new `PlaywrightAnalysisRoute` wrapper that mirrors `AdminRoute`'s lazy-route shape: `OptionalAuth` (keeps the public deep link working signed-out), `ChunkErrorBoundary` tagged `playwright-analysis-route`, and `Suspense fallback={null}`. A stale-deploy chunk 404 now degrades to the inline reload fallback instead of blanking the page.\n- No other module imports the page, so nothing else keeps it in the eager graph; the named `PlaywrightFailureReport` export and the page's behavior are unchanged.\n\n## Tradeoffs\n\nFirst navigation to an analysis deep link pays one extra chunk request; `lazyWithRetry`'s built-in retry and the boundary's inline fallback cover the failure modes. Alternative rejected: splitting only the heaviest report subcomponents into lazy chunks — it breaks the page's cohesion across files for less gain, and the whole page is already behind a rarely-visited URL.\n\n## Verification\n\nPer the speed directive (Brian, 2026-09-19), no local checks, builds, or tests were run; CI on the PR head is the validation gate. Evidence checked instead:\n\n- Live probe of https://qa.replay.io/assets/index-BZPqRl0e.js reproduces the bug's claims: the `playwright-failure-report` renderer and the `:projectId/playwright-tests/:analysisId` route wiring are inside the eager entry chunk.\n- Repo-wide grep: the static import and the route element in `src/App.tsx` were the only eager references to the page.\n- `PlaywrightFailureDetail.tsx` exports a default component; `lazyWithRetry` and `ChunkErrorBoundary` prop shapes match their existing Admin usage in the same file.\n\nThe `Replay QA` check on this PR is report-only by design and is not addressed by source changes; the affected journey re-runs after the fix deploys.\n\nFixes https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/bugs/bug-mu8z8bor-g25v\n\nFixes #4153\n\nHuman author: Brian Hackett (bhackett@replay.io)\n\n🔗 [Obvious Project](https://app.obvious.ai/p/replay-qa-bug-fix-pipeline-euz4Hevn) · 🧵 [Obvious Thread](https://app.obvious.ai/p/replay-qa-bug-fix-pipeline-euz4Hevn?thread=th_dSrTdxCR)\n",
+      "baseRefName": "main",
+      "headRefName": "fix/qa-issue-4153",
+      "baseRefOid": "bfa54d40485cf884ea9760d45a27e52ab7e69b4c",
+      "headRefOid": "8f540de8a5496d358d06525aff05f5d0ec6d1bd6",
+      "mergedAt": "2026-09-20T19:03:13Z",
+      "closedAt": "2026-09-20T19:03:13Z",
+      "updatedAt": "2026-09-20T19:03:17Z",
+      "reviewDecision": null,
+      "reviewRequests": {
+        "nodes": []
+      },
+      "latestReviews": {
+        "nodes": []
+      },
+      "closingIssuesReferences": {
+        "nodes": [
+          {
+            "number": 4153,
+            "title": "[QA] Playwright failure-analysis detail component (b6e/_6e) inlined in the eagerly-loaded entry bundle assets/index-BZPqRl0e.js — 545KB on the wire, ~2.0MB decoded, parsed on every page load",
+            "state": "CLOSED",
+            "repository": {
+              "nameWithOwner": "replayio/loop-qa"
+            }
+          }
+        ]
+      },
+      "commits": {
+        "nodes": [
+          {
+            "commit": {
+              "oid": "8f540de8a5496d358d06525aff05f5d0ec6d1bd6",
+              "statusCheckRollup": {
+                "state": "SUCCESS",
+                "contexts": {
+                  "nodes": [
+                    {
+                      "__typename": "CheckRun",
+                      "name": "deploy-preview",
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35531032917/job/106131528633"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "check",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35527791243/job/106122885819"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "deploy-preview",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35527791302/job/106122886097"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "playwright",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35527791266/job/106122885794"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "unit-tests",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35527791259/job/106122886018"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "cleanup-preview",
+                      "status": "COMPLETED",
+                      "conclusion": "SKIPPED",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35527791302/job/106122886732"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "cleanup-preview",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://github.com/replayio/loop-qa/actions/runs/35531032917/job/106131527802"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Replay QA",
+                      "status": "COMPLETED",
+                      "conclusion": "NEUTRAL",
+                      "detailsUrl": "https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/test-runs/github-pr-ver-mua4jjsg-20491d9q"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Socket Security: Project Report",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://socket.dev/dashboard/org/replayio/sbom/b87ab3b5-468d-4ab9-838a-6cf614bdef2f"
+                    },
+                    {
+                      "__typename": "CheckRun",
+                      "name": "Socket Security: Pull Request Alerts",
+                      "status": "COMPLETED",
+                      "conclusion": "SUCCESS",
+                      "detailsUrl": "https://socket.dev"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "PURC_lADOSw4eCs8AAAABERAXU9oAKGU3YWJhMDRmNDRlMTAwZjViZjY4YmFkY2U2ODYyODhmNWI1Y2E1NDI",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-09-19T23:38:28Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOSw4eCs8AAAABERAXU9oAKGU3YWJhMDRmNDRlMTAwZjViZjY4YmFkY2U2ODYyODhmNWI1Y2E1NDI",
+        "commit": {
+          "oid": "e7aba04f44e100f5bf68badce686288f5b5ca542",
+          "messageHeadline": "perf: lazy-load the Playwright failure-analysis detail route",
+          "authoredDate": "2026-09-19T23:38:28Z",
+          "committedDate": "2026-09-19T23:38:28Z",
+          "author": {
+            "user": {
+              "login": "ObviousApp"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "IC_kwDOSw4eCs8AAAABVn94Ww",
+      "typename": "IssueComment",
+      "createdAt": "2026-09-19T23:39:03Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOSw4eCs8AAAABVn94Ww",
+        "createdAt": "2026-09-19T23:39:03Z",
+        "updatedAt": "2026-09-20T18:35:53Z",
+        "lastEditedAt": "2026-09-20T18:35:53Z",
+        "author": {
+          "login": "replay-qa",
+          "__typename": "Bot"
+        },
+        "body": "<!-- replay-qa-bot -->\n## Replay QA\n\n✅ QA run **passed** for `8f540de8a549` (fix/qa-issue-4153) — no new bugs found.\n\n| Bugs found | Journeys added | Journeys updated | Journeys removed |\n| ---: | ---: | ---: | ---: |\n| 0 | 0 | 0 | 0 |\n\n[Full report in Replay QA →](https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/test-runs/github-pr-ver-mua4jjsg-20491d9q)\n\n### Linked bug retests\n\n| Bug | Result | Recording |\n| --- | --- | --- |\n| [Playwright failure-analysis detail component (b6e/_6e) inlined in the eagerly-loaded entry bundle assets/index-BZPqRl0e.js — 545KB on the wire, ~2.0MB decoded, parsed on every page load](https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/bugs/bug-mu8z8bor-g25v) | Original reproduction journey passed on this PR | [Replay](https://app.replay.io/recording/ff8de8fa-027d-4e04-80d0-87a1faa7bed1) |\n\n<!-- replay-qa-test-run-summary -->\n#### Findings summary\n\n**No new bugs were found in the testing that completed.**\n\n#### Coverage summary\n\n**QA authenticated successfully and explored several project overview and test-run pages, but was unable to reach or exercise the lazy-loaded Playwright failure-analysis detail route that is the subject of PR #4155.**\n\nAfter completing Auth0 sign-in (the one reusable journey authored covers this flow), QA navigated to the projects list and opened multiple \"bug-playground\" projects. None of the available projects exposed a Playwright Tests tab or contained Playwright suite data, so no Playwright analysis detail URL (`/projects/:id/playwright/…`) was ever reached. QA inspected Test Runs lists for qualifying entries and found none. As a result, the changed route wrapper, its lazy-loaded chunk, and its chunk-error-boundary fallback were never triggered or observed. Nine distinct pages were reached across 771 seconds and 19 attempted actions (2 of which failed); no reusable journeys beyond the sign-in flow were authored. The run concluded naturally after QA determined it had exhausted available navigation options on the test environment.\n\nSecondary observations made during the session — covering project overview pages, the bug-breakdown table, and static responses from `bug-playground-e8bt8k.netlify.app` — produced several filed findings around asset over-fetching, bundle size, and missing security headers on that target origin, but these are unrelated to the PR's change. Because no source maps are shipped with this build, any stack traces or console errors encountered during the session point into minified bundles, which significantly reduces the diagnostic value of those signals for both QA and developers; enabling source maps in the Netlify preview build would make future error analysis substantially more actionable.\n\n### Screenshot\n\n_Final app state after testing the changes_\n\n![Final app state after testing the changes](https://gxd99ovu4c.ufs.sh/f/7CiuUd6bGjflZ5La3JW7ma2GtbXlrD14kgxoJYBNVMA6dIqc)",
+        "url": "https://github.com/replayio/loop-qa/pull/4155#issuecomment-5746161755"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOSw4eCs8AAAABVoBBgQ",
+      "typename": "IssueComment",
+      "createdAt": "2026-09-19T23:49:33Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOSw4eCs8AAAABVoBBgQ",
+        "createdAt": "2026-09-19T23:49:33Z",
+        "updatedAt": "2026-09-20T18:10:17Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "github-actions",
+          "__typename": "Bot"
+        },
+        "body": "🔎 **Loop QA preview** (all-k8s backend): https://pr-4155--loop-qa-j63k5x.netlify.app",
+        "url": "https://github.com/replayio/loop-qa/pull/4155#issuecomment-5746213249"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOSw4eCs8AAAAC6HOooA",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-09-20T00:07:57Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOSw4eCs8AAAAC6HOooA",
+        "createdAt": "2026-09-20T00:07:57Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "Issue",
+          "number": 4024,
+          "title": "[QA] 1963KB eager main bundle ships the recharts charting library and the experimental, opt-in Insights dashboard that most sessions never render — qa.replay.io/assets/index-luWYVsrO.js",
+          "state": "CLOSED",
+          "repository": {
+            "nameWithOwner": "replayio/loop-qa"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOSw4eCs8AAAABERAXU9oAKDBhMThmYmQ4NjFhZTZjOWJhYjY2N2FmMWFmNDBjYTY2MDUyZWY1M2I",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-09-20T01:20:31Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOSw4eCs8AAAABERAXU9oAKDBhMThmYmQ4NjFhZTZjOWJhYjY2N2FmMWFmNDBjYTY2MDUyZWY1M2I",
+        "commit": {
+          "oid": "0a18fbd861ae6c9bab667af1af40ca66052ef53b",
+          "messageHeadline": "Merge remote-tracking branch 'origin/main' into HEAD",
+          "authoredDate": "2026-09-20T01:20:31Z",
+          "committedDate": "2026-09-20T01:20:31Z",
+          "author": {
+            "user": {
+              "login": "bhackett1024"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOSw4eCs8AAAAC6PbZ_g",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-09-20T03:56:03Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOSw4eCs8AAAAC6PbZ_g",
+        "createdAt": "2026-09-20T03:56:03Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 4201,
+          "title": "Keep journey retests on previews and retain artifact failure diagnostics",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "replayio/loop-qa"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOSw4eCs8AAAAC6nXcbw",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-09-20T14:39:58Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOSw4eCs8AAAAC6nXcbw",
+        "createdAt": "2026-09-20T14:39:58Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 4269,
+          "title": "perf(app): defer the experimental Insights page out of the eager entry bundle",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "replayio/loop-qa"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOSw4eCs8AAAABERAXU9oAKGY1NjI1N2FhOTdmNzA4ZDE2ZDNhNTllN2NjOTJjZjM5MjNkNjU5NmY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-09-20T15:34:42Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOSw4eCs8AAAABERAXU9oAKGY1NjI1N2FhOTdmNzA4ZDE2ZDNhNTllN2NjOTJjZjM5MjNkNjU5NmY",
+        "commit": {
+          "oid": "f56257aa97f708d16d3a59e7cc92cf3923d6596f",
+          "messageHeadline": "Merge remote-tracking branch 'origin/main' into HEAD",
+          "authoredDate": "2026-09-20T15:34:42Z",
+          "committedDate": "2026-09-20T15:34:42Z",
+          "author": {
+            "user": {
+              "login": "bhackett1024"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "PURC_lADOSw4eCs8AAAABERAXU9oAKDhmNTQwZGU4YTU0OTZkMzU4ZDA2NTI1YWZmMDVmNWQwZWM2ZDFiZDY",
+      "typename": "PullRequestCommit",
+      "createdAt": "2026-09-20T18:02:48Z",
+      "raw": {
+        "__typename": "PullRequestCommit",
+        "id": "PURC_lADOSw4eCs8AAAABERAXU9oAKDhmNTQwZGU4YTU0OTZkMzU4ZDA2NTI1YWZmMDVmNWQwZWM2ZDFiZDY",
+        "commit": {
+          "oid": "8f540de8a5496d358d06525aff05f5d0ec6d1bd6",
+          "messageHeadline": "Merge main to rerun QA with deployed diagnostics",
+          "authoredDate": "2026-09-20T18:02:48Z",
+          "committedDate": "2026-09-20T18:02:48Z",
+          "author": {
+            "user": {
+              "login": "bhackett1024"
+            }
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "ME_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLLJA",
+      "typename": "MergedEvent",
+      "createdAt": "2026-09-20T19:03:13Z",
+      "raw": {
+        "__typename": "MergedEvent",
+        "id": "ME_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLLJA",
+        "createdAt": "2026-09-20T19:03:13Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "commit": {
+          "oid": "07081ee6d7cbbaf3f40fa77940fd38de26e2afdf"
+        }
+      }
+    },
+    {
+      "nodeId": "CE_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLLUA",
+      "typename": "ClosedEvent",
+      "createdAt": "2026-09-20T19:03:13Z",
+      "raw": {
+        "__typename": "ClosedEvent",
+        "id": "CE_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLLUA",
+        "createdAt": "2026-09-20T19:03:13Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "stateReason": "COMPLETED",
+        "closer": null
+      }
+    },
+    {
+      "nodeId": "HRDE_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLRGQ",
+      "typename": "HeadRefDeletedEvent",
+      "createdAt": "2026-11-27T05:04:01.699Z",
+      "raw": {
+        "__typename": "HeadRefDeletedEvent",
+        "id": "HRDE_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLRGQ"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOSw4eCs8AAAAC6zG8oA",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-09-20T19:04:47Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOSw4eCs8AAAAC6zG8oA",
+        "createdAt": "2026-09-20T19:04:47Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 4318,
+          "title": "Scope source-map warnings to each test run",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "replayio/loop-qa"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "REFE_lADOSw4eCs8AAAABSK9IyM8AAAAHYXcAhA",
+      "typename": "ReferencedEvent",
+      "createdAt": "2026-09-23T18:31:56Z",
+      "raw": {
+        "__typename": "ReferencedEvent",
+        "id": "REFE_lADOSw4eCs8AAAABSK9IyM8AAAAHYXcAhA",
+        "createdAt": "2026-09-23T18:31:56Z",
+        "actor": {
+          "login": "bhackett1024",
+          "__typename": "User"
+        },
+        "isCrossRepository": false,
+        "commit": {
+          "oid": "2565f9c45a657641e90d02029fa6640fb82e60ab",
+          "messageHeadline": "perf: defer the experimental Insights page out of the eager entry bun…"
+        }
+      }
+    }
+  ],
+  "stickies": [
+    {
+      "commentNodeId": "IC_kwDOSw4eCs8AAAABVn94Ww",
+      "author": "replay-qa",
+      "lastEditedAt": "2026-09-20T18:35:53Z",
+      "body": "<!-- replay-qa-bot -->\n## Replay QA\n\n✅ QA run **passed** for `8f540de8a549` (fix/qa-issue-4153) — no new bugs found.\n\n| Bugs found | Journeys added | Journeys updated | Journeys removed |\n| ---: | ---: | ---: | ---: |\n| 0 | 0 | 0 | 0 |\n\n[Full report in Replay QA →](https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/test-runs/github-pr-ver-mua4jjsg-20491d9q)\n\n### Linked bug retests\n\n| Bug | Result | Recording |\n| --- | --- | --- |\n| [Playwright failure-analysis detail component (b6e/_6e) inlined in the eagerly-loaded entry bundle assets/index-BZPqRl0e.js — 545KB on the wire, ~2.0MB decoded, parsed on every page load](https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/bugs/bug-mu8z8bor-g25v) | Original reproduction journey passed on this PR | [Replay](https://app.replay.io/recording/ff8de8fa-027d-4e04-80d0-87a1faa7bed1) |\n\n<!-- replay-qa-test-run-summary -->\n#### Findings summary\n\n**No new bugs were found in the testing that completed.**\n\n#### Coverage summary\n\n**QA authenticated successfully and explored several project overview and test-run pages, but was unable to reach or exercise the lazy-loaded Playwright failure-analysis detail route that is the subject of PR #4155.**\n\nAfter completing Auth0 sign-in (the one reusable journey authored covers this flow), QA navigated to the projects list and opened multiple \"bug-playground\" projects. None of the available projects exposed a Playwright Tests tab or contained Playwright suite data, so no Playwright analysis detail URL (`/projects/:id/playwright/…`) was ever reached. QA inspected Test Runs lists for qualifying entries and found none. As a result, the changed route wrapper, its lazy-loaded chunk, and its chunk-error-boundary fallback were never triggered or observed. Nine distinct pages were reached across 771 seconds and 19 attempted actions (2 of which failed); no reusable journeys beyond the sign-in flow were authored. The run concluded naturally after QA determined it had exhausted available navigation options on the test environment.\n\nSecondary observations made during the session — covering project overview pages, the bug-breakdown table, and static responses from `bug-playground-e8bt8k.netlify.app` — produced several filed findings around asset over-fetching, bundle size, and missing security headers on that target origin, but these are unrelated to the PR's change. Because no source maps are shipped with this build, any stack traces or console errors encountered during the session point into minified bundles, which significantly reduces the diagnostic value of those signals for both QA and developers; enabling source maps in the Netlify preview build would make future error analysis substantially more actionable.\n\n### Screenshot\n\n_Final app state after testing the changes_\n\n![Final app state after testing the changes](https://gxd99ovu4c.ufs.sh/f/7CiuUd6bGjflZ5La3JW7ma2GtbXlrD14kgxoJYBNVMA6dIqc)"
+    }
+  ],
+  "timelineSyncedUntil": "2026-11-27T05:04:01.699Z",
+  "reviewThreads": []
+}

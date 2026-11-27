@@ -83,6 +83,7 @@ function planBatch(ctx: JobContext, now: Date, tiers: readonly EnrichTier[]): Ba
   const pick = pickEnrichBatch(dirtyQueue(db, minPriority), now, {
     canSpend: (workClass) => ctx.governor.canSpend("graphql", workClass),
     batchSize: (repo) => stateFor(repo).size,
+    mode: (repo) => repoConfig(config, repo).mode,
     tiers,
   });
   if (!pick) return null;

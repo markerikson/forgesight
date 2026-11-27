@@ -10,6 +10,7 @@ const repoEntry = type({
   "view?": "'overview' | 'triage'",
   "trunks?": "string[]",
   "rebaseIgnore?": "string[]",
+  "subscribedIssueComments?": "'updates' | 'hidden'",
   "workstreams?": {
     "+": "reject",
     "forkMinSize?": "number.integer >= 2",

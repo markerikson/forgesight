@@ -3,6 +3,7 @@ import {
   type GroupSummary,
   groupTotals,
   type InboxGroup,
+  isNewIssuesGroup,
   isNewWorkstream,
   type SubjectWorkstream,
 } from "../../core/inbox.ts";
@@ -206,7 +207,8 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
   const totals = totalsText(group, now);
   const [mergeAnchor, setMergeAnchor] = useState<{ top: number; left: number } | null>(null);
   // Removing the last member would leave nothing to split off.
-  const removable = group.memberKeys.length > 1;
+  const stored = !isNewIssuesGroup(group);
+  const removable = stored && group.memberKeys.length > 1;
   const rename = () => {
     const name = window.prompt("Workstream name (empty resets to the generated name)", group.name);
     if (name !== null && name.trim() !== group.name) dispatch(renameWorkstream(group, name));
@@ -225,6 +227,8 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
           >
             Done all ({doneCount})
           </button>
+          {stored && (
+          <>
           <button
             type="button"
             title="Snooze (s)"
@@ -259,6 +263,8 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
           >
             Merge into…
           </button>
+          </>
+          )}
         </div>
         {mergeAnchor && (
           <WorkstreamPicker
@@ -275,7 +281,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
           <div className={previewStyles.meta}>
             <span>{group.repo}</span>
             <span>
-              {group.members.length + group.moreCount} pull requests and issues
+              {group.members.length + group.moreCount} {stored ? "pull requests and issues" : "new issues"}
               {group.moreCount > 0 && ` (${group.moreCount} not listed)`}
             </span>
             {isNewWorkstream(group) && <span className={styles.newBadge}>new workstream</span>}
@@ -331,7 +337,7 @@ export function WorkstreamPane({ group }: { group: InboxGroup }) {
             )}
           </ol>
         )}
-        <RootDescription group={group} />
+        {stored && <RootDescription group={group} />}
       </div>
     </section>
   );

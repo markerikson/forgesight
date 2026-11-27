@@ -1,6 +1,6 @@
 import type { WorkClass } from "./budget.ts";
 import type { Config, RepoMode } from "./config.ts";
-import type { SubjectKind, SubjectOrigin } from "./types.ts";
+import type { SubjectKind, SubjectOrigin, SubjectState } from "./types.ts";
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -86,19 +86,33 @@ export function timelineSince(input: {
 /** Subjects whose newest notification is older than this enrich as `backfill` work. */
 export const RECENT_ENRICH_DAYS = 14;
 
-/**
- * Budget class for enriching one subject: `enrich` for stack members and subjects with a
- * notification updated in the last RECENT_ENRICH_DAYS, otherwise `backfill`.
- */
-export function enrichWorkClass(input: {
+/** Issues in normal and full repos use this longer window instead of RECENT_ENRICH_DAYS. */
+export const RECENT_ISSUE_ENRICH_DAYS = 30;
+
+export interface EnrichWorkClassInput {
   origin: SubjectOrigin;
   threadUpdatedAt: string | null;
   now: Date;
-}): Extract<WorkClass, "enrich" | "backfill"> {
+  kind?: SubjectKind;
+  /** Stored state, null when never fetched. */
+  state?: SubjectState | null;
+  mode?: RepoMode;
+}
+
+/**
+ * Budget class for enriching one subject: `enrich` for stack members and subjects with a
+ * notification updated in the last RECENT_ENRICH_DAYS, otherwise `backfill`. Issues in
+ * normal and full repos are `enrich` while open or within RECENT_ISSUE_ENRICH_DAYS, since an
+ * issue fetch costs about one point.
+ */
+export function enrichWorkClass(input: EnrichWorkClassInput): Extract<WorkClass, "enrich" | "backfill"> {
   if (input.origin === "stack") return "enrich";
+  const issueRepo = input.kind === "issue" && (input.mode === "normal" || input.mode === "full");
+  if (issueRepo && input.state === "OPEN") return "enrich";
   if (!input.threadUpdatedAt) return "backfill";
+  const days = issueRepo ? RECENT_ISSUE_ENRICH_DAYS : RECENT_ENRICH_DAYS;
   const age = input.now.getTime() - Date.parse(input.threadUpdatedAt);
-  return age < RECENT_ENRICH_DAYS * DAY_MS ? "enrich" : "backfill";
+  return age < days * DAY_MS ? "enrich" : "backfill";
 }
 
 /** Values of `subjects.priority`, the enrichment queue priority. Higher goes first. */
@@ -148,6 +162,9 @@ export const ENRICH_TIERS: readonly EnrichTier[] = ["urgent", "active", "backlog
 export interface QueuedSubject {
   subjectKey: string;
   repo: string;
+  kind: SubjectKind;
+  /** Stored state, null when never fetched. */
+  state: SubjectState | null;
   origin: SubjectOrigin;
   priority: number;
   dirtyAt: string;
@@ -156,14 +173,13 @@ export interface QueuedSubject {
 }
 
 /**
- * `urgent` for subjects opened or refreshed in the UI, `active` for subjects with recent
- * notification activity or in a stack, `backlog` for the rest.
+ * `urgent` for subjects opened or refreshed in the UI, `active` for subjects that
+ * `enrichWorkClass` counts as `enrich` work, `backlog` for the rest.
  */
-export function enrichTier(subject: QueuedSubject, now: Date): EnrichTier {
+export function enrichTier(subject: QueuedSubject, now: Date, mode: RepoMode): EnrichTier {
   if (subject.priority >= ENRICH_PRIORITY.urgent) return "urgent";
-  return enrichWorkClass({ origin: subject.origin, threadUpdatedAt: subject.threadUpdatedAt, now }) === "enrich"
-    ? "active"
-    : "backlog";
+  const { origin, threadUpdatedAt, kind, state } = subject;
+  return enrichWorkClass({ origin, threadUpdatedAt, now, kind, state, mode }) === "enrich" ? "active" : "backlog";
 }
 
 /** Budget class for a tier. Urgent work uses the `enrich` class, so it still respects the soft cap. */
@@ -181,6 +197,7 @@ export interface EnrichBatchPick {
 export interface PickEnrichOptions {
   canSpend: (workClass: WorkClass) => boolean;
   batchSize: (repo: string) => number;
+  mode: (repo: string) => RepoMode;
   /** Tiers to consider. Defaults to all of them. */
   tiers?: readonly EnrichTier[];
 }
@@ -198,7 +215,7 @@ export function pickEnrichBatch(
 ): EnrichBatchPick | null {
   const tiers = opts.tiers ?? ENRICH_TIERS;
   const ranked = queue
-    .map((subject) => ({ subject, tier: enrichTier(subject, now) }))
+    .map((subject) => ({ subject, tier: enrichTier(subject, now, opts.mode(subject.repo)) }))
     .filter((entry) => tiers.includes(entry.tier))
     .sort(
       (a, b) =>

@@ -44,6 +44,8 @@ export function markDirty(db: Database, keys: string[], now: string, priority = 
 interface QueueRow {
   subject_key: string;
   repo: string;
+  kind: SubjectKind;
+  state: SubjectState | null;
   origin: SubjectOrigin;
   priority: number;
   dirty_at: string;
@@ -57,7 +59,7 @@ interface QueueRow {
 export function dirtyQueue(db: Database, minPriority = 0): QueuedSubject[] {
   return db
     .query<QueueRow, [number]>(
-      `SELECT s.subject_key, s.repo, s.origin, s.priority, s.dirty_at,
+      `SELECT s.subject_key, s.repo, s.kind, s.state, s.origin, s.priority, s.dirty_at,
               (SELECT MAX(t.updated_at) FROM threads t WHERE t.subject_key = s.subject_key) AS thread_updated_at
        FROM subjects s WHERE s.dirty_at IS NOT NULL AND s.priority >= ?`,
     )
@@ -65,6 +67,8 @@ export function dirtyQueue(db: Database, minPriority = 0): QueuedSubject[] {
     .map((r) => ({
       subjectKey: r.subject_key,
       repo: r.repo,
+      kind: r.kind,
+      state: r.state,
       origin: r.origin,
       priority: r.priority,
       dirtyAt: r.dirty_at,

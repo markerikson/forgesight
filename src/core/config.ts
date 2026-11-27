@@ -26,6 +26,11 @@ export interface RepoConfig {
    */
   rebaseIgnore: RegExp[];
   workstreams: WorkstreamConfig;
+  /**
+   * Where human comments go on issues I only subscribe to (not mine, not assigned, never took part):
+   * `updates` for repos I maintain, `hidden` elsewhere.
+   */
+  subscribedIssueComments: "updates" | "hidden";
 }
 
 export interface RuleMatch {

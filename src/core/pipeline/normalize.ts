@@ -114,7 +114,8 @@ function mapItem(typename: string, raw: Raw, repo: string): MappedItem {
       if (closer?.__typename === "PullRequest") {
         return { kind: "closedByPr", actor, data: { ref: subjectRef(closer, repo) } };
       }
-      return { kind: "closed", actor, data: {} };
+      const stateReason = str(raw.stateReason);
+      return { kind: "closed", actor, data: stateReason ? { stateReason } : {} };
     }
     case "ReopenedEvent":
       return { kind: "reopened", actor };

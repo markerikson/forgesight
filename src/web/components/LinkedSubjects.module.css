@@ -1,0 +1,47 @@
+.box {
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.heading {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.relation {
+  flex: none;
+  min-width: 6em;
+  color: var(--fg-mute);
+}
+
+.title {
+  color: var(--fg);
+}
+
+.chips {
+  display: inline-flex;
+  flex: none;
+  gap: 8px;
+}
+
+.chip {
+  white-space: nowrap;
+}

@@ -1,0 +1,105 @@
+{
+  "subjectKey": "reduxjs/redux-toolkit#5650",
+  "subject": {
+    "nodeId": "I_kwDOB2ACAs8AAAABibP4Xg",
+    "state": "CLOSED",
+    "author": "jpestrifork",
+    "headRef": null,
+    "baseRef": null,
+    "headSha": null,
+    "baseSha": null,
+    "updatedAt": "2026-11-26T04:51:13Z",
+    "raw": {
+      "id": "I_kwDOB2ACAs8AAAABibP4Xg",
+      "number": 5650,
+      "title": "2.14: `WritableNonArrayDraft` is not exported, so declaration emit fails for exported slices (TS4023/TS4058)",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "author": {
+        "login": "jpestrifork",
+        "__typename": "User"
+      },
+      "body": "### What happens\n\nSince 2.14.0 (the RTK-owned draft types from #5560, requested in #5516), `dist/index.d.ts` declares its own draft types. `WritableDraft` and `Draft` are in the export list, but\n`WritableNonArrayDraft` (documented `@public`) is not, although `WritableDraft` resolves to it for every non-array\nobject. A package built with `declaration: true` that exports an inferred slice, or its `actions`, can no longer emit\nits `.d.ts`:\n\n```\nsrc/slice.ts(8,17): error TS4058: Return type of exported function has or is using name 'WritableNonArrayDraft' from external module \".../node_modules/@reduxjs/toolkit/dist/index\" but cannot be named.\nsrc/slice.ts(23,14): error TS4023: Exported variable 'itemActions' has or is using name 'WritableNonArrayDraft' from external module \".../node_modules/@reduxjs/toolkit/dist/index\" but cannot be named.\n```\n\nWith a larger slice TypeScript also reports TS7056 (\"The inferred type of this node exceeds the maximum length the\ncompiler will serialize\").\n\n### Reproduction\n\n`@reduxjs/toolkit` 2.14.0 or 2.15.0, TypeScript 6.0.3 (5.9.3 behaves the same).\n\n`tsconfig.json`:\n\n```json\n{ \"compilerOptions\": { \"target\": \"ES2020\", \"module\": \"ESNext\", \"moduleResolution\": \"Bundler\", \"strict\": true,\n  \"declaration\": true, \"emitDeclarationOnly\": true, \"outDir\": \"dist\", \"rootDir\": \"src\", \"skipLibCheck\": true },\n  \"include\": [\"src\"] }\n```\n\n`src/slice.ts`:\n\n```ts\nimport { createSlice, type PayloadAction } from \"@reduxjs/toolkit\";\n\ninterface Item { id: string; children?: Item[] }\ninterface State { item?: Item; tags: string[] }\n\nconst initialState: State = { tags: [] };\n\nexport function createItemSlice() {\n  return createSlice({\n    name: \"items\",\n    initialState,\n    reducers: {\n      setItem(state, action: PayloadAction<Item>) {\n        state.item = action.payload;\n      },\n      addTag(state, action: PayloadAction<string>) {\n        state.tags.push(action.payload);\n      },\n    },\n  });\n}\n\nexport const itemActions = createItemSlice().actions;\n```\n\n`tsc -p tsconfig.json`: no errors with 2.13.0; TS4058 and TS4023 with 2.14.0 and 2.15.0.\n\n### Expected\n\n`WritableNonArrayDraft` in the export list, like `WritableDraft` and `Draft`, so emitted declarations can name it.\n",
+      "createdAt": "2026-11-25T13:10:22Z",
+      "updatedAt": "2026-11-26T04:51:13Z",
+      "closedAt": "2026-11-26T04:51:13Z",
+      "assignees": {
+        "nodes": []
+      },
+      "labels": {
+        "nodes": []
+      },
+      "issueType": null,
+      "parent": null,
+      "subIssuesSummary": {
+        "total": 0,
+        "completed": 0
+      },
+      "closedByPullRequestsReferences": {
+        "nodes": [
+          {
+            "number": 5651,
+            "title": "fix(types): export WritableNonArrayDraft",
+            "state": "MERGED",
+            "repository": {
+              "nameWithOwner": "reduxjs/redux-toolkit"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "CRE_kwDOB2ACAs8AAAAF0IQ2Jw",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-25T17:20:57Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOB2ACAs8AAAAF0IQ2Jw",
+        "createdAt": "2026-11-25T17:20:57Z",
+        "actor": {
+          "login": "draarivpatel-ui",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 5651,
+          "title": "fix(types): export WritableNonArrayDraft",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CE_lADOB2ACAs8AAAABibP4Xs8AAAAIsQzBQA",
+      "typename": "ClosedEvent",
+      "createdAt": "2026-11-26T04:51:14Z",
+      "raw": {
+        "__typename": "ClosedEvent",
+        "id": "CE_lADOB2ACAs8AAAABibP4Xs8AAAAIsQzBQA",
+        "createdAt": "2026-11-26T04:51:14Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "stateReason": "COMPLETED",
+        "closer": {
+          "__typename": "PullRequest",
+          "number": 5651,
+          "title": "fix(types): export WritableNonArrayDraft",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-27T05:03:58.714Z"
+}

@@ -1,0 +1,40 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "closedByOthers"
+  ],
+  "summaryLine": "bhackett1024 merged",
+  "newMeaningfulCount": 2,
+  "hiddenStats": {
+    "pushes": 4,
+    "rebases": 0,
+    "merged": 1,
+    "closed": 0
+  },
+  "sortAt": "2026-09-20T19:03:13Z",
+  "links": [],
+  "linked": [
+    "closes issue replayio/loop-qa#4153 CLOSED"
+  ],
+  "rounds": [
+    {
+      "start": "pushed 1 commit",
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "closed bhackett1024 (new) CE_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLLUA",
+        "merged bhackett1024 (new) ME_lADOSw4eCs8AAAABSK9IyM8AAAAHVPLLJA",
+        "[1 cross-reference, 1 commit reference] (new)"
+      ]
+    },
+    {
+      "start": "3 pushes",
+      "isNew": false,
+      "hidden": 1,
+      "entries": [
+        "[1 bot comment]",
+        "[bhackett1024 referenced this from 3 PRs and issues]"
+      ]
+    }
+  ]
+}

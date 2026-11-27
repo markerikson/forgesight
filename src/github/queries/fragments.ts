@@ -4,9 +4,11 @@ import type { QueryShape } from "../../core/enrich-plan.ts";
 // SubjectBatch time out on large repos.
 
 const ACTOR = "actor { login __typename }";
+/** Fields of a linked PR or issue, as `subjectRef` in normalize reads them. */
+const LINKED = "number title state repository { nameWithOwner }";
 const SOURCE = `source { __typename
-  ... on PullRequest { number title state repository { nameWithOwner } }
-  ... on Issue { number title state repository { nameWithOwner } } }`;
+  ... on PullRequest { ${LINKED} }
+  ... on Issue { ${LINKED} } }`;
 
 /** Item fields shared by PR and issue timelines. Every item has `__typename`; nodes have `id`. */
 const COMMON_ITEMS = `
@@ -17,7 +19,7 @@ const COMMON_ITEMS = `
   ... on ReferencedEvent { createdAt ${ACTOR} isCrossRepository commit { oid messageHeadline } }
   ... on ConnectedEvent { createdAt ${ACTOR} isCrossRepository ${SOURCE} }
   ... on DisconnectedEvent { createdAt ${ACTOR} isCrossRepository ${SOURCE} }
-  ... on ClosedEvent { createdAt ${ACTOR} stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }
+  ... on ClosedEvent { createdAt ${ACTOR} stateReason closer { __typename ... on PullRequest { ${LINKED} } ... on Commit { oid } } }
   ... on ReopenedEvent { createdAt ${ACTOR} }
   ... on AssignedEvent { createdAt ${ACTOR} assignee { ... on Actor { login } } }
   ... on UnassignedEvent { createdAt ${ACTOR} assignee { ... on Actor { login } } }
@@ -77,7 +79,7 @@ export function prCore(shape: QueryShape): string {
   baseRefName headRefName baseRefOid headRefOid mergedAt closedAt updatedAt reviewDecision
   reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } } }
   latestReviews(first: 20) { nodes { id state author { login } submittedAt } }
-  closingIssuesReferences(first: 5) { nodes { number } }
+  closingIssuesReferences(first: 5) { nodes { ${LINKED} } }
   ${CHECKS[shape.checks]}
   ${threads}
 }`;
@@ -90,6 +92,7 @@ export const ISSUE_CORE = `fragment IssueCore on Issue {
   issueType { name }
   parent { number title }
   subIssuesSummary { total completed }
+  closedByPullRequestsReferences(first: 5, includeClosedPrs: true) { nodes { ${LINKED} } }
 }`;
 
 export const STICKY_FIELDS = "... on IssueComment { id body lastEditedAt updatedAt author { login __typename } }";

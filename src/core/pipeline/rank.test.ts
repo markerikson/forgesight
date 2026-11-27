@@ -64,6 +64,9 @@ interface Opts {
   pushVerdicts?: Map<string, PushVerdict>;
   stickies?: StickyCommentVersion[];
   headSha?: string;
+  headRef?: string;
+  subscribedIssueComments?: "updates" | "hidden";
+  branchRules?: { pattern: string; link: "issue" }[];
 }
 
 function derive(opts: Opts) {
@@ -76,7 +79,7 @@ function derive(opts: Opts) {
     origin: "thread",
     state: opts.state ?? "OPEN",
     author: opts.author ?? "bob",
-    headRef: null,
+    headRef: opts.headRef ?? null,
     baseRef: null,
     headSha: opts.headSha ?? null,
     baseSha: null,
@@ -122,7 +125,13 @@ function derive(opts: Opts) {
     },
     config: resolveConfig({
       me: ME,
-      repos: { [REPO]: { mode: opts.mode ?? "full" } },
+      repos: {
+        [REPO]: {
+          mode: opts.mode ?? "full",
+          ...(opts.subscribedIssueComments ? { subscribedIssueComments: opts.subscribedIssueComments } : {}),
+          ...(opts.branchRules ? { branchRules: opts.branchRules } : {}),
+        },
+      },
       ...(opts.bots ? { bots: opts.bots } : {}),
       ...(opts.enrichIssues === undefined ? {} : { polling: { enrichIssues: opts.enrichIssues } }),
     }),
@@ -360,6 +369,88 @@ describe("rank", () => {
     const labeled = item("LabeledEvent", "2026-11-21T00:00:00Z", { actor: user("bob"), label: { name: "bug" } });
     const view = derive({ kind: "issue", raw: { createdAt: "2026-11-01T00:00:00Z" }, items: [labeled] });
     expect(view.section).toBe("hidden");
+  });
+
+  describe("issues I only get notifications for", () => {
+    const OLD_ISSUE = { kind: "issue" as const, raw: { createdAt: "2026-11-01T00:00:00Z" } };
+    const talk = () => [comment("alice", "2026-11-21T00:00:00Z", "same here")];
+    const pr = (number: number, state: string) => ({
+      __typename: "PullRequest",
+      number,
+      title: "Fix it",
+      state,
+      repository: { nameWithOwner: REPO },
+    });
+    const close = (raw: Record<string, unknown>) =>
+      item("ClosedEvent", "2026-11-21T01:00:00Z", { actor: user("bob"), stateReason: "COMPLETED", closer: null, ...raw });
+
+    test("new human comments are hidden unless the repo sends them to updates", () => {
+      const hidden = derive({ ...OLD_ISSUE, items: talk() });
+      expect(hidden.section).toBe("hidden");
+      expect(hidden.reasons).toEqual(["subscribedOnly"]);
+      const shown = derive({ ...OLD_ISSUE, items: talk(), subscribedIssueComments: "updates" });
+      expect(shown.section).toBe("updates");
+      expect(shown.reasons).toEqual(["newActivity"]);
+    });
+
+    test("comments still show once I took part, and on a new issue", () => {
+      expect(derive({ ...OLD_ISSUE, reason: "comment", items: talk() }).reasons).toEqual(["newActivity"]);
+      const earlier = comment(ME, "2026-11-10T00:00:00Z", "looking");
+      expect(derive({ ...OLD_ISSUE, items: [earlier, ...talk()] }).section).toBe("updates");
+      const fresh = derive({ kind: "issue", raw: { createdAt: "2026-11-21T00:00:00Z" }, items: talk() });
+      expect(fresh.section).toBe("updates");
+      expect(fresh.reasons).toEqual(["newIssue"]);
+    });
+
+    test("a close by others with no human comment and no fixing PR is hidden", () => {
+      const view = derive({ ...OLD_ISSUE, state: "CLOSED", items: [close({})] });
+      expect(view.section).toBe("hidden");
+      expect(view.reasons).toEqual(["closedByOthers"]);
+    });
+
+    test("a close by a merged PR is an update that names the PR", () => {
+      const byEvent = derive({ ...OLD_ISSUE, state: "CLOSED", items: [close({ closer: pr(5, "MERGED") })] });
+      expect(byEvent.section).toBe("updates");
+      expect(byEvent.summaryLine).toBe("fixed by #5");
+      expect(byEvent.linked).toEqual([
+        { kind: "pr", repo: REPO, number: 5, relation: "closedBy", title: "Fix it", state: "MERGED" },
+      ]);
+      const byReference = derive({
+        ...OLD_ISSUE,
+        state: "CLOSED",
+        raw: { ...OLD_ISSUE.raw, closedByPullRequestsReferences: { nodes: [pr(6, "MERGED")] } },
+        items: [close({})],
+      });
+      expect(byReference.section).toBe("updates");
+      expect(byReference.summaryLine).toBe("fixed by #6");
+    });
+
+    test("an issue with an open fixing PR and nothing new names the PR", () => {
+      const view = derive({
+        ...OLD_ISSUE,
+        raw: { ...OLD_ISSUE.raw, closedByPullRequestsReferences: { nodes: [pr(7, "OPEN")] } },
+      });
+      expect(view.section).toBe("hidden");
+      expect(view.summaryLine).toBe("linked to #7 (open)");
+    });
+
+    test("a close as not planned is hidden even with comments, unless I took part", () => {
+      const items = [...talk(), close({ stateReason: "NOT_PLANNED" })];
+      const view = derive({ ...OLD_ISSUE, state: "CLOSED", items, subscribedIssueComments: "updates" });
+      expect(view.section).toBe("hidden");
+      expect(view.reasons).toEqual(["closedByOthers"]);
+      const involved = derive({ ...OLD_ISSUE, state: "CLOSED", items, reason: "comment" });
+      expect(involved.section).toBe("updates");
+      expect(involved.summaryLine).toBe("bob closed as not planned");
+    });
+  });
+
+  test("a PR links the issue its branch name points at", () => {
+    const view = derive({
+      headRef: "fix/qa-issue-4153",
+      branchRules: [{ pattern: "^fix/qa-issue-(\\d+)$", link: "issue" }],
+    });
+    expect(view.linked).toEqual([{ kind: "issue", repo: REPO, number: 4153, relation: "branchRule" }]);
   });
 
   test("assignment to me shows on issues but not on PRs", () => {

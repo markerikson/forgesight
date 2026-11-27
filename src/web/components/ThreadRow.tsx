@@ -1,9 +1,10 @@
 import { memo, type MouseEvent } from "react";
-import { hiddenReason, type InboxRow } from "../../core/index.ts";
+import { hiddenReason, linkName, type InboxRow } from "../../core/index.ts";
 import { isMuted } from "../store/actions.ts";
 import { relativeTime, repoShortName, rowByline } from "../format.ts";
 import { Avatar } from "./Avatar.tsx";
 import { CiDot, DraftBadge, FindingBadges, ReviewBadge, StateIcon } from "./Badges.tsx";
+import { LinkedChips } from "./LinkedSubjects.tsx";
 import { GitHubIcon } from "./SubjectLink.tsx";
 import styles from "./ThreadRow.module.css";
 
@@ -37,6 +38,7 @@ export const ThreadRow = memo(function ThreadRow({
   const muted = isMuted(row);
   const byline = rowByline(row.author, row.summaryLine, row.latestActor);
   const hidden = hiddenReason(row);
+  const chips = (row.linked ?? []).filter((link) => !byline.summary.includes(linkName(link, row.repo)));
   const act = (e: MouseEvent, fn: () => void) => {
     e.stopPropagation();
     fn();
@@ -94,6 +96,7 @@ export const ThreadRow = memo(function ThreadRow({
           </>
         )}
         <span className={styles.summary}>{byline.summary}</span>
+        {chips.length > 0 && <LinkedChips linked={chips} repo={row.repo} />}
         {hidden && (
           <span className={styles.hiddenWhy} title="Why this is hidden">
             {hidden}

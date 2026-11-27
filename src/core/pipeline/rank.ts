@@ -1,9 +1,10 @@
 import type { Finding } from "../findings/types.ts";
 import type { ItemState, SubjectRecord, ThreadRecord } from "../types.ts";
 import { isHumanText, isMe, isRestack, restackText } from "./classify.ts";
-import { firstLine, mentions, truncate, typenameLabel } from "./text.ts";
+import { CLOSING_RELATIONS, linkName } from "../links.ts";
+import { closeText, firstLine, mentions, truncate, typenameLabel } from "./text.ts";
 import { isAfter, ms } from "./time.ts";
-import type { EventKind, HiddenStats, RankReason, Round, Section, ViewEvent } from "./types.ts";
+import type { EventKind, HiddenStats, LinkedSubject, RankReason, Round, Section, ViewEvent } from "./types.ts";
 
 export interface RankInput {
   subject: SubjectRecord;
@@ -18,6 +19,10 @@ export interface RankInput {
   reviewRequestMaxAgeDays: number;
   /** Review-bot findings, set only for PRs in findings scope. */
   findings?: readonly Finding[];
+  /** Linked PRs and issues, strongest first, from `linksFor`. */
+  linked?: readonly LinkedSubject[];
+  /** Where new human comments go on an issue I only get notifications for. Defaults to hidden. */
+  subscribedIssueComments?: "updates" | "hidden";
 }
 
 export interface Rank {
@@ -49,8 +54,8 @@ const REVIEW_VERBS: Record<string, string> = {
   DISMISSED: "reviewed",
 };
 
-/** One-line description of an event for the inbox row. */
-export function describe(e: ViewEvent): string {
+/** One-line description of an event for the inbox row. `repo` is the subject's, to shorten same-repo references. */
+export function describe(e: ViewEvent, repo?: string): string {
   const act = (verb: string) => (e.actor ? `${e.actor.login} ${verb}` : verb);
   const text = e.body ? firstLine(e.body) : "";
   const withText = (verb: string) => truncate(text ? `${act(verb)}: ${text}` : act(verb));
@@ -64,9 +69,9 @@ export function describe(e: ViewEvent): string {
     case "merged":
       return act("merged");
     case "closed":
-      return act("closed");
+      return act(closeText(e.data.stateReason));
     case "closedByPr":
-      return e.data.ref ? `closed by #${e.data.ref.number}` : act("closed");
+      return e.data.ref ? `fixed by ${linkName(e.data.ref, repo ?? e.data.ref.repo)}` : act("closed");
     case "reopened":
       return act("reopened");
     case "readyForReview":
@@ -248,6 +253,30 @@ function isAnnouncement(subject: SubjectRecord): boolean {
   return typeof name === "string" && name.toLowerCase() === "announcements";
 }
 
+const TOOK_PART_THREAD_REASONS = new Set([...PARTICIPATING_REASONS, "comment", "state_change", "manual"]);
+
+/** I wrote, commented, changed state, was assigned, or subscribed by hand. */
+function tookPartIn(subject: SubjectRecord, threads: ThreadRecord[], events: ViewEvent[], me: string | null): boolean {
+  if (threads.some((t) => TOOK_PART_THREAD_REASONS.has(t.reason))) return true;
+  if (subject.kind === "issue" && assignedToMe(subject, me)) return true;
+  return events.some((e) => BODY_KINDS.has(e.kind) && isMe(e.actor?.login, me));
+}
+
+/** The PR that fixes an issue: a merged closing PR first, else an open one. */
+function closingPr(linked: readonly LinkedSubject[] | undefined): LinkedSubject | undefined {
+  const closing = (linked ?? []).filter((l) => l.kind === "pr" && CLOSING_RELATIONS.has(l.relation));
+  return closing.find((l) => l.state === "MERGED") ?? closing.find((l) => l.state !== "CLOSED");
+}
+
+/** An issue closed as not planned or as a duplicate, by someone other than me. */
+function closedUnplanned(subject: SubjectRecord, events: ViewEvent[], me: string | null): boolean {
+  if (subject.state !== "CLOSED") return false;
+  const close = last(events.filter((e) => e.kind === "closed" || e.kind === "closedByPr"));
+  if (close && isMe(close.actor?.login, me)) return false;
+  const reason = close ? close.data.stateReason : obj(subject.raw)?.stateReason;
+  return reason === "NOT_PLANNED" || reason === "DUPLICATE";
+}
+
 /**
  * Picks the inbox section. Waiting: an open review request for me, a new mention of me, or
  * new human comments on something I authored, reviewed, was assigned or am participating in,
@@ -256,13 +285,17 @@ function isAnnouncement(subject: SubjectRecord): boolean {
  * Once something I authored is closed, only a new mention or review request makes it waiting.
  * Updates: anything else new and shown. Hidden: nothing new and shown, a PR someone else
  * merged or closed with no new human comment, or a PR its author closed unmerged that I never
- * reviewed or commented on (counted per repo instead). Keep-unread, snooze and mute are
- * applied by `applyOverrides`.
+ * reviewed or commented on (counted per repo instead). For issues someone else opened, Hidden
+ * also takes a close with no new human comment and no linked fixing PR, a close as not planned
+ * or duplicate when I took no part, and new human comments on an issue I only get notifications
+ * for, unless the repo sends those to Updates. Keep-unread, snooze and mute are applied by
+ * `applyOverrides`.
  */
 export function rank(input: RankInput): Rank {
   const { subject, threads, events, rounds, state, me, now } = input;
   const isPr = subject.kind === "pr";
   const isDiscussion = subject.kind === "discussion";
+  const isIssue = subject.kind === "issue";
   const fresh = events.filter((e) => e.isNew);
   const shown = fresh.filter((e) => e.level === "show");
   const human = shown.filter(isHumanText);
@@ -306,17 +339,31 @@ export function rank(input: RankInput): Rank {
   let section: Section = waits ? "waiting" : "updates";
 
   const closedByOthers = closed && !mine;
+  const fixedBy = isIssue ? closingPr(input.linked) : undefined;
+  const tookPart = mine || tookPartIn(subject, threads, events, me);
+  const stateChanged = shown.some((e) => STATE_KINDS.has(e.kind));
   if (section === "updates") {
     if (isClosedByAuthor(subject, events, me)) {
       section = "hidden";
       add("closedByAuthor");
-    } else if (isPr && closedByOthers && human.length === 0) {
+    } else if (closedByOthers && human.length === 0 && (isPr || (isIssue && fixedBy === undefined && shown.length > 0))) {
       section = "hidden";
       add("closedByOthers");
     } else if (isDiscussion && isAnnouncement(subject)) {
       section = "hidden";
       add("announcement");
-    } else if (shown.length > 0) {
+    } else if (isIssue && closedByOthers && !tookPart && closedUnplanned(subject, events, me)) {
+      section = "hidden";
+      add("closedByOthers");
+    } else if (
+      isIssue && !tookPart && human.length > 0 && !stateChanged && input.subscribedIssueComments !== "updates"
+    ) {
+      if (isNewIssue(subject, state.dismissedAt, me)) {
+        add("newIssue");
+      } else {
+        section = "hidden";
+        add("subscribedOnly");
+      }    } else if (shown.length > 0) {
       add(shown.some((e) => STATE_KINDS.has(e.kind)) ? "stateChange" : "newActivity");
     } else if (!isPr && isNewIssue(subject, state.dismissedAt, me) && events.every((e) => e.kind !== "comment")) {
       add(isDiscussion ? "newDiscussion" : "newIssue");
@@ -330,15 +377,25 @@ export function rank(input: RankInput): Rank {
   // "you were mentioned" stays, since nothing else explains why a mention made it wait.
   const summarized = last(shown.filter((e) => !WEAK_SUMMARY_KINDS.has(e.kind))) ??
     (newest?.kind === "mentioned" ? newest : undefined);
+  // An issue closed by a merge reads "fixed by #N" rather than "closed".
+  const fixedLine = fixedBy
+    ? fixedBy.state === "MERGED"
+      ? `fixed by ${linkName(fixedBy, subject.repo)}`
+      : `linked to ${linkName(fixedBy, subject.repo)} (open)`
+    : undefined;
+  const closeIsFix = summarized?.kind === "closed" && fixedBy?.state === "MERGED" &&
+    summarized.data.stateReason !== "NOT_PLANNED";
   let summaryLine = "";
-  if (summarized) summaryLine = describe(summarized);
+  if (summarized) summaryLine = closeIsFix && fixedLine ? fixedLine : describe(summarized, subject.repo);
   else if (newFindings.length > 0) summaryLine = findingsLine(newFindings);
   else if (reasons.includes("reviewRequested") || reasons.includes("staleReviewRequest")) {
-    summaryLine = lastRequest ? describe(lastRequest) : "review requested";
+    summaryLine = lastRequest ? describe(lastRequest, subject.repo) : "review requested";
+  } else if (fixedLine) {
+    summaryLine = fixedLine;
   } else {
     const dated = events.filter((e) => e.undated !== true && !WEAK_SUMMARY_KINDS.has(e.kind));
     const fallback = last(dated.filter((e) => e.level !== "hidden")) ?? last(dated);
-    summaryLine = fallback ? describe(fallback) : openedLine(subject);
+    summaryLine = fallback ? describe(fallback, subject.repo) : openedLine(subject);
   }
 
   const sortAt =

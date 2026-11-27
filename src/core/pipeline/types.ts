@@ -95,6 +95,8 @@ export interface EventData {
   /** Cross-references, connections, closers, duplicates. */
   ref?: SubjectRef;
   willClose?: boolean;
+  /** Issue closes: `COMPLETED`, `NOT_PLANNED`, `DUPLICATE`. */
+  stateReason?: string;
   /** Sticky comments: the body was edited after it was posted. */
   edited?: boolean;
   /** Discussion replies: id of the top-level comment replied to. */
@@ -230,6 +232,7 @@ export type RankReason =
   | "keptUnread"
   | "staleReviewRequest"
   | "announcement"
+  | "subscribedOnly"
   | "nothingNew";
 
 /** Counts the inbox sums into the Hidden line, e.g. "Since you last looked: 12 pushes, 40 rebases, 3 merged". */
@@ -256,6 +259,24 @@ export interface ViewLink {
   url: string;
 }
 
+/**
+ * How a linked PR or issue relates to the subject. `closes`: the subject PR closes it.
+ * `closedBy`: it closes (or closed) the subject issue. `branchRule`: the subject PR's head
+ * branch names it through a repo branch rule.
+ */
+export type LinkRelation = "closes" | "closedBy" | "branchRule" | "duplicate" | "connected";
+
+/** A PR or issue linked to the subject, from data the subject's fetch already returned. */
+export interface LinkedSubject {
+  kind: "pr" | "issue";
+  repo: string;
+  number: number;
+  relation: LinkRelation;
+  title?: string;
+  /** GitHub state: OPEN, CLOSED or MERGED. */
+  state?: string;
+}
+
 export interface SubjectView {
   key: SubjectKey;
   header: SubjectHeader;
@@ -265,6 +286,8 @@ export interface SubjectView {
   /** The PR or issue description as Markdown. Null when empty, not a PR or issue, or not fetched yet. */
   body: string | null;
   links: ViewLink[];
+  /** Absent in views derived before linked subjects existed. */
+  linked?: LinkedSubject[];
   section: Section;
   reasons: RankReason[];
   score: number;
@@ -310,6 +333,8 @@ export interface InboxRow {
   quiet?: QuietActivity;
   /** One icon per review tool with outstanding or stale findings; open PRs only. */
   findings: FindingIcon[];
+  /** PRs that close this issue, or issues this PR closes. Absent when there are none. */
+  linked?: LinkedSubject[];
 }
 
 export type { Finding, FindingIcon };

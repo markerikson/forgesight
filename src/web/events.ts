@@ -1,4 +1,4 @@
-import { isRestack, restackText, typenameLabel, type Event, type SubjectRef } from "../core/index.ts";
+import { closeText, isRestack, restackText, typenameLabel, type Event, type SubjectRef } from "../core/index.ts";
 
 function shortSha(sha: string | undefined): string {
   return sha ? sha.slice(0, 7) : "";
@@ -44,7 +44,7 @@ export function describeEvent(event: Event): string {
     case "merged":
       return d.sha ? `merged ${shortSha(d.sha)}` : "merged";
     case "closed":
-      return "closed";
+      return closeText(d.stateReason);
     case "reopened":
       return "reopened";
     case "readyForReview":

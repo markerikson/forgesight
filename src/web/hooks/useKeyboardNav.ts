@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { Section, SubjectView } from "../../core/index.ts";
+import { isNewIssuesGroup } from "../../core/inbox.ts";
 import { api } from "../store/api.ts";
 import {
   chooseSnooze,
@@ -242,10 +243,10 @@ export function useKeyboardNav(): void {
             store.dispatch(doneAllWorkstream(group));
             return;
           case "mute":
-            store.dispatch(toggleWorkstreamMute(group));
+            if (!isNewIssuesGroup(group)) store.dispatch(toggleWorkstreamMute(group));
             return;
           case "snooze":
-            store.dispatch(openWorkstreamSnooze(group, null));
+            if (!isNewIssuesGroup(group)) store.dispatch(openWorkstreamSnooze(group, null));
             return;
           case "unsubscribe":
           case "toggleUnread":

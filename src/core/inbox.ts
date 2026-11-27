@@ -60,6 +60,16 @@ export interface InboxGroup {
   snoozeUntil: string | null;
   /** The first member's description when it has no inbox row; otherwise the preview loads it. */
   rootBody: RootBody | null;
+  /**
+   * A repo's new issues, grouped by the inbox when two or more are listed. Not a stored
+   * workstream, so it has no rename, priority, snooze, merge or seen state.
+   */
+  newIssues?: true;
+}
+
+/** True for a group of a repo's new issues rather than a stored workstream. */
+export function isNewIssuesGroup(group: InboxGroup): boolean {
+  return group.newIssues === true;
 }
 
 /** A stored PR description: GitHub's plain-text rendering, cut to a fixed length. */
@@ -287,6 +297,7 @@ export function isDoneQuiet(row: Pick<InboxRow, "section" | "sortAt">, doneAt: s
 
 function absorbs(group: InboxGroup, row: InboxRow): boolean {
   if (row.section !== "waiting" && row.section !== "updates") return false;
+  if (isNewIssuesGroup(group)) return isListedNewIssue(row);
   return group.priority === "normal" || !keepsSection(row);
 }
 
@@ -296,6 +307,7 @@ function absorbs(group: InboxGroup, row: InboxRow): boolean {
  * Updates to be seen, and a group listed elsewhere shows its Hidden members as unlisted.
  */
 function gathersHidden(group: InboxGroup): boolean {
+  if (isNewIssuesGroup(group)) return false;
   if (group.priority === "muted") return true;
   return group.members.length === 0 && !group.isNew;
 }
@@ -349,12 +361,17 @@ export function reflowEntries(entries: readonly InboxEntry[]): InboxEntry[] {
     else out.push(row);
   }
   for (const group of groups) {
+    if (isNewIssuesGroup(group) && group.members.length < 2) {
+      out.push(...group.members);
+      continue;
+    }
     if (group.members.length === 0 && !group.isNew && group.priority !== "muted") continue;
-    group.unlisted = unlistedMembers(group, loose);
+    const newIssues = isNewIssuesGroup(group);
+    group.unlisted = newIssues ? [] : unlistedMembers(group, loose);
     if (group.members.length === 0 && group.unlisted.length === 0) continue;
     const order = new Map(group.memberKeys.map((key, i) => [key, i]));
     group.members.sort((a, b) => (order.get(a.key) ?? 0) - (order.get(b.key) ?? 0));
-    group.moreCount = group.memberKeys.length - group.members.length;
+    group.moreCount = newIssues ? 0 : group.memberKeys.length - group.members.length;
     if (group.members.length > 0) {
       group.sortAt = group.members.reduce((max, m) => (m.sortAt > max ? m.sortAt : max), "");
     }
@@ -559,6 +576,47 @@ export function closedByAuthorLines(counts: readonly ClosedByAuthorCount[], repo
   return kept;
 }
 
+function isListedNewIssue(row: InboxRow): boolean {
+  return row.kind === "issue" && row.section === "updates" && row.reasons.includes("newIssue");
+}
+
+/** One empty group per repo with two or more new issues that no workstream lists. */
+export function newIssuesGroups(allRows: readonly InboxRow[], workstreams: readonly InboxGroup[]): InboxGroup[] {
+  const taken = new Set(workstreams.flatMap((g) => g.memberKeys));
+  const byRepo = new Map<string, InboxRow[]>();
+  for (const row of allRows) {
+    if (!isListedNewIssue(row) || taken.has(row.key)) continue;
+    byRepo.set(row.repo, [...(byRepo.get(row.repo) ?? []), row]);
+  }
+  return [...byRepo]
+    .filter(([, rows]) => rows.length >= 2)
+    .map(([repo, rows]) => {
+      const memberKeys = [...rows].sort((a, b) => (a.sortAt < b.sortAt ? 1 : -1)).map((r) => r.key);
+      return {
+        kind: "workstream",
+        id: `new-issues:${repo}`,
+        repo,
+        name: "New issues",
+        summary: null,
+        priority: "normal",
+        isNew: false,
+        firstBuild: true,
+        section: "updates",
+        sortAt: "",
+        members: [],
+        memberKeys,
+        moreCount: memberKeys.length,
+        unlisted: [],
+        closedByAuthor: 0,
+        closed: false,
+        snoozed: false,
+        snoozeUntil: null,
+        rootBody: null,
+        newIssues: true,
+      };
+    });
+}
+
 /**
  * Builds the inbox response from every stored row. Hidden rows feed the section count
  * and the closed-by-author counts, and are listed only when `includeHidden` is set.
@@ -570,7 +628,7 @@ export function buildInboxPayload(
   const groups = (opts.workstreams ?? [])
     .filter((input) => input.workstream.members.length >= 2)
     .map((input) => buildGroup(input, allRows));
-  const all = reflowEntries([...allRows, ...groups]);
+  const all = reflowEntries([...allRows, ...groups, ...newIssuesGroups(allRows, groups)]);
   const listed = new Set(all.filter(isGroup).flatMap((g) => g.memberKeys));
   const closed = new Map<string, number>();
   for (const row of allRows) {

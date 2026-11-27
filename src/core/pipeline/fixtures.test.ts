@@ -24,6 +24,11 @@ interface FixtureCase {
   kind: "pr" | "issue" | "discussion";
   mode: RepoMode;
   recordedAt: string;
+  /** Extra repo config for the case, on top of `mode`. */
+  repoConfig?: {
+    branchRules?: { pattern: string; link: "issue" }[];
+    subscribedIssueComments?: "updates" | "hidden";
+  };
 }
 
 async function readJson<T>(path: string): Promise<T> {
@@ -86,7 +91,7 @@ export async function loadFixture(name: string): Promise<DeriveInput> {
     readAt: null,
     muted: false,
   };
-  const config = resolveConfig({ me: ME, repos: { [repo]: { mode: meta.mode } } });
+  const config = resolveConfig({ me: ME, repos: { [repo]: { ...meta.repoConfig, mode: meta.mode } } });
   const verdictsPath = join(dir, "verdicts.json");
   const verdicts = (await Bun.file(verdictsPath).exists())
     ? await readJson<Record<string, PushVerdict>>(verdictsPath)
@@ -117,6 +122,9 @@ function trim(view: SubjectView) {
     hiddenStats: view.hiddenStats,
     sortAt: view.sortAt,
     links: view.links,
+    ...(view.linked && view.linked.length > 0
+      ? { linked: view.linked.map((l) => `${l.relation} ${l.kind} ${l.repo}#${l.number} ${l.state ?? "-"}`) }
+      : {}),
     ...(view.findings
       ? {
           findings: view.findings.map(
