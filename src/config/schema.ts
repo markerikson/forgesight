@@ -91,6 +91,7 @@ export const userConfigSchema = type({
   "outbox?": {
     "+": "reject",
     "dryRun?": "boolean",
+    "autoDone?": "'log' | 'send'",
   },
   "server?": {
     "+": "reject",

@@ -212,6 +212,56 @@ export function applyStateOps(db: Database, keys: SubjectKey[], op: StateOp, now
   })();
 }
 
+/** Newest `done` outbox row per thread of `key`, by creation time, whatever its outcome. */
+export function lastDoneQueuedAt(db: Database, key: SubjectKey): Map<string, string> {
+  const rows = db
+    .query<{ thread_id: string; at: string }, [string]>(
+      `SELECT thread_id, MAX(created_at) AS at FROM outbox
+       WHERE subject_key = ? AND op = 'done' GROUP BY thread_id`,
+    )
+    .all(key);
+  return new Map(rows.map((r) => [r.thread_id, r.at]));
+}
+
+export interface AutoDoneEntry {
+  subjectKey: SubjectKey;
+  threadIds: string[];
+}
+
+/**
+ * Queues `done` writes for threads GitHub brought back on subjects that stay Done, under one
+ * `autoDone` op. The op changes no item state and records no previous states, so it never
+ * blocks undoing a user op. The rows are due at once: there is no user action to undo.
+ * With `logOnly` the rows are stored already completed with the note `log_only`, so they are
+ * never sent but still count as handled for that activity.
+ */
+export function queueAutoDone(
+  db: Database,
+  entries: readonly AutoDoneEntry[],
+  now: string,
+  logOnly: boolean,
+): ApplyResult | null {
+  const rows = entries.flatMap((e) => e.threadIds.map((threadId) => ({ key: e.subjectKey, threadId })));
+  if (rows.length === 0) return null;
+  return db.transaction(() => {
+    const opId = Number(
+      db
+        .query("INSERT INTO state_ops (created_at, op_json, prev_json) VALUES (?, ?, '{}')")
+        .run(now, toJson({ kind: "autoDone" })).lastInsertRowid,
+    );
+    const insertOutbox = db.query(
+      `INSERT INTO outbox (state_op_id, op, thread_id, subject_key, created_at, run_after, completed_at, last_error)
+       VALUES (?, 'done', ?, ?, ?, ?, ?, ?)`,
+    );
+    const completedAt = logOnly ? now : null;
+    const note = logOnly ? "log_only" : null;
+    const outboxIds = rows.map((r) =>
+      Number(insertOutbox.run(opId, r.threadId, r.key, now, now, completedAt, note).lastInsertRowid),
+    );
+    return { opId, outboxIds };
+  })();
+}
+
 /**
  * Reverts an op in one transaction: drops its unsent outbox rows and restores the item
  * states it replaced. Refuses when a newer live op touched any of its keys. A newer

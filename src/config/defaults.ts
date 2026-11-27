@@ -110,7 +110,7 @@ export const defaultConfig = {
   },
   budget: { graphqlPerHour: 1000, restPerHour: 1500 },
   rebase: { enabled: true, method: "api" },
-  outbox: { dryRun: false },
+  outbox: { dryRun: false, autoDone: "log" },
   server: { port: 4630, allowedHosts: ["localhost", "127.0.0.1"] },
   llm: {
     dailyCapUsd: 2,
