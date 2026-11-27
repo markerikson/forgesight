@@ -826,3 +826,134 @@ describe("review-bot findings", () => {
     expect(view.reasons).not.toContain("newFindings");
   });
 });
+
+describe("discussions", () => {
+  const dcomment = (login: string, at: string, body: string, replyTo?: string) =>
+    item("DiscussionComment", at, {
+      author: user(login),
+      body,
+      url: `https://x/${seq}`,
+      ...(replyTo ? { replyTo: { id: replyTo } } : {}),
+    });
+  const answer = (login: string, at: string, commentId: string) =>
+    item("DiscussionAnswer", at, { actor: user(login), commentId });
+  const category = (name: string) => ({ category: { name, emoji: ":bulb:", isAnswerable: name === "Q&A" } });
+
+  test("subscribed human comments are updates", () => {
+    const view = derive({ kind: "discussion", items: [dcomment("alice", "2026-11-21T01:00:00Z", "an idea")] });
+    expect(view.section).toBe("updates");
+    expect(view.reasons).toContain("newActivity");
+    expect(view.summaryLine).toBe("alice commented: an idea");
+  });
+
+  test("activity in Announcements stays hidden", () => {
+    const view = derive({
+      kind: "discussion",
+      raw: category("Announcements"),
+      items: [dcomment("alice", "2026-11-21T01:00:00Z", "thanks!")],
+    });
+    expect(view.section).toBe("hidden");
+    expect(view.reasons).toContain("announcement");
+  });
+
+  test("a mention in Announcements still waits", () => {
+    const view = derive({
+      kind: "discussion",
+      raw: category("Announcements"),
+      items: [dcomment("alice", "2026-11-21T01:00:00Z", "cc @markerikson")],
+    });
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("mentioned");
+  });
+
+  test("new comments wait once I have commented", () => {
+    const view = derive({
+      kind: "discussion",
+      items: [
+        dcomment(ME, "2026-11-19T01:00:00Z", "my take"),
+        dcomment("alice", "2026-11-21T01:00:00Z", "a reply to that"),
+      ],
+    });
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("participating");
+  });
+
+  test("an answer someone else marks on my discussion waits", () => {
+    const first = dcomment("alice", "2026-11-19T01:00:00Z", "try this");
+    const view = derive({
+      kind: "discussion",
+      author: ME,
+      raw: category("Q&A"),
+      items: [first, answer("maintainer", "2026-11-21T01:00:00Z", first.nodeId)],
+    });
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("onMine");
+    expect(view.header.discussion?.answerable).toBe(true);
+  });
+
+  test("replies follow their parent comment in the round", () => {
+    const first = dcomment("alice", "2026-11-21T01:00:00Z", "question");
+    const second = dcomment("bob", "2026-11-21T02:00:00Z", "other thread");
+    const reply = dcomment("carol", "2026-11-21T03:00:00Z", "answer to alice", first.nodeId);
+    const view = derive({ kind: "discussion", items: [first, second, reply] });
+    const ids = view.rounds.flatMap((r) => r.entries.flatMap((e) => (e.type === "event" ? [e.event.id] : [])));
+    expect(ids).toEqual([first.nodeId, reply.nodeId, second.nodeId]);
+    const replyEvent = view.rounds[0]?.entries.find((e) => e.type === "event" && e.event.id === reply.nodeId);
+    expect(replyEvent?.type === "event" && replyEvent.event.data.replyTo).toBe(first.nodeId);
+  });
+
+  test("a mention in the discussion post waits, even in Announcements", () => {
+    const view = derive({
+      kind: "discussion",
+      raw: { ...category("Announcements"), body: "thoughts, @markerikson?", createdAt: "2026-11-21T00:00:00Z" },
+    });
+    expect(view.section).toBe("waiting");
+    expect(view.reasons).toContain("mentioned");
+  });
+
+  test("a mention in a post I already saw does not wait again", () => {
+    const view = derive({
+      kind: "discussion",
+      raw: { body: "thoughts, @markerikson?", createdAt: "2026-11-01T00:00:00Z" },
+    });
+    expect(view.reasons).not.toContain("mentioned");
+  });
+
+  test("a new discussion without comments is labeled as a discussion", () => {
+    const view = derive({ kind: "discussion", raw: { createdAt: "2026-11-21T00:00:00Z" } });
+    expect(view.reasons).toEqual(["newDiscussion"]);
+  });
+
+  test("header compares fetched counts with the stored comments", () => {
+    const first = dcomment("alice", "2026-11-21T01:00:00Z", "question");
+    const reply = dcomment("carol", "2026-11-21T03:00:00Z", "answer to alice", first.nodeId);
+    const view = derive({
+      kind: "discussion",
+      items: [first, reply],
+      raw: {
+        ...category("Q&A"),
+        answer: { id: "C1" },
+        answerChosenBy: user("alice"),
+        answerChosenAt: "2026-11-21T00:00:00Z",
+        commentCount: 4,
+        replyCounts: { [first.nodeId]: 3 },
+      },
+    });
+    expect(view.header.discussion).toEqual({
+      category: "Q&A",
+      categoryEmoji: ":bulb:",
+      answerable: true,
+      answerId: "C1",
+      answeredBy: "alice",
+      answeredAt: "2026-11-21T00:00:00Z",
+      omittedComments: 3,
+      omittedReplies: 2,
+    });
+    expect(view.header.url).toBe(`https://github.com/${REPO}/discussions/1`);
+  });
+
+  test("an unenriched discussion says so in the opened line", () => {
+    const view = derive({ kind: "discussion" });
+    expect(view.summaryLine).toBe("bob opened this discussion");
+  });
+});

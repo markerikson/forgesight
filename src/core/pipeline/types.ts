@@ -48,6 +48,7 @@ export type EventKind =
   | "transferred"
   | "subIssue"
   | "milestoned"
+  | "answered"
   | "unknown";
 
 /** A PR or issue another event points at. */
@@ -96,6 +97,8 @@ export interface EventData {
   willClose?: boolean;
   /** Sticky comments: the body was edited after it was posted. */
   edited?: boolean;
+  /** Discussion replies: id of the top-level comment replied to. */
+  replyTo?: string;
 }
 
 export interface Event {
@@ -188,6 +191,22 @@ export interface SubjectHeader {
   labels: string[];
   /** Last enrichment error, shown as a stale-data badge. */
   enrichError: string | null;
+  /** Discussions only. */
+  discussion?: DiscussionInfo;
+}
+
+export interface DiscussionInfo {
+  category: string | null;
+  categoryEmoji: string | null;
+  /** The category takes answers (Q&A). */
+  answerable: boolean;
+  /** Node id of the chosen answer comment. */
+  answerId: string | null;
+  answeredBy: string | null;
+  answeredAt: string | null;
+  /** Older top-level comments and replies that were not fetched. */
+  omittedComments: number;
+  omittedReplies: number;
 }
 
 export type RankReason =
@@ -202,6 +221,7 @@ export type RankReason =
   | "newActivity"
   | "stateChange"
   | "newIssue"
+  | "newDiscussion"
   | "snoozed"
   | "muted"
   | "notEnriched"
@@ -209,6 +229,7 @@ export type RankReason =
   | "closedByAuthor"
   | "keptUnread"
   | "staleReviewRequest"
+  | "announcement"
   | "nothingNew";
 
 /** Counts the inbox sums into the Hidden line, e.g. "Since you last looked: 12 pushes, 40 rebases, 3 merged". */

@@ -26,7 +26,7 @@ import { recordEnrichError, recordNotFound, saveEnrichment } from "../store/subj
 
 export interface EnrichSubject {
   subjectKey: string;
-  kind: "pr" | "issue";
+  kind: "pr" | "issue" | "discussion";
   number: number;
   since: string | null;
 }

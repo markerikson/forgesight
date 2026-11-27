@@ -11,6 +11,8 @@ interface Props {
   now: number | null;
   /** Show the markdown body; collapsed-group items render as one line. */
   withBody: boolean;
+  /** The comment is a discussion's chosen answer. */
+  answer?: boolean;
 }
 
 /** The event description, with any referenced PR or issue as a link into the app. */
@@ -32,16 +34,18 @@ function EventText({ event }: { event: ViewEvent }) {
   );
 }
 
-export function EventItem({ event, now, withBody }: Props) {
+export function EventItem({ event, now, withBody, answer = false }: Props) {
   const url = eventUrl(event);
   const body = withBody ? (event.body ?? event.data.firstComment?.body) : undefined;
+  const classes = [styles.event, event.isNew && styles.new, event.data.replyTo && styles.reply, answer && styles.answer];
   return (
-    <div className={`${styles.event} ${event.isNew ? styles.new : ""}`}>
+    <div className={classes.filter(Boolean).join(" ")}>
       <div className={styles.line}>
         {event.actor && <Avatar login={event.actor.login} isBot={event.actor.isBot} />}
         <span className={styles.actor}>
           {event.actor?.login ?? (event.kind === "baseChanged" ? "GitHub" : "someone")}
           {event.actor?.isBot && <span className={styles.bot}>bot</span>}
+          {answer && <span className={styles.answerTag}>answer</span>}
         </span>
         <span className={styles.what}>
           <EventText event={event} />

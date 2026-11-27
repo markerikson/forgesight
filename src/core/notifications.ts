@@ -15,7 +15,8 @@ export const SINCE_OVERLAP_MS = 2 * MINUTE_MS;
 /** Reasons that put a subject at the front of the enrichment queue. */
 const DIRECT_REASONS = new Set(["review_requested", "mention", "team_mention", "author", "comment"]);
 
-const NUMBERED_SUBJECT = /\/repos\/[^/]+\/[^/]+\/(pulls|issues)\/(\d+)$/;
+const NUMBERED_SUBJECT = /\/repos\/[^/]+\/[^/]+\/(pulls|issues|discussions)\/(\d+)$/;
+const KIND_BY_PATH: Record<string, SubjectKind> = { pulls: "pr", issues: "issue", discussions: "discussion" };
 
 /** The thread fields this module reads; structurally matches the client's `NotificationThread`. */
 export interface ThreadInput {
@@ -43,7 +44,7 @@ export function subjectForThread(thread: ThreadInput): ThreadSubject {
     subjectKey: subjectKeyFor(thread),
     repo: thread.repo,
     number: match ? Number(match[2]) : null,
-    kind: match ? (match[1] === "pulls" ? "pr" : "issue") : "other",
+    kind: match ? (KIND_BY_PATH[match[1] ?? ""] ?? "other") : "other",
   };
 }
 

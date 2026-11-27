@@ -11,6 +11,7 @@ import type { PushVerdict } from "../rebase/patch.ts";
 import type { StackContext } from "../workstreams.ts";
 import { deriveFindings } from "../findings/status.ts";
 import { classify, isMe, isRestack } from "./classify.ts";
+import { threadOrder } from "./discussion.ts";
 import { quietActivity } from "./hidden.ts";
 import { normalize } from "./normalize.ts";
 import { applyOverrides, findingsInScope, openedLine, type Rank, rank } from "./rank.ts";
@@ -151,7 +152,7 @@ export function subjectEvents(input: SubjectEventsInput): ViewEvent[] {
 export function deriveSubjectView(input: DeriveInput): SubjectView {
   const { subject, threads, state, config, me, now } = input;
   const events = subjectEvents({ ...input, dismissedAt: state.dismissedAt });
-  const allRounds = buildRounds(events);
+  const allRounds = buildRounds(subject.kind === "discussion" ? threadOrder(events) : events);
   const shown = onlyNewestRoundIfUnvisited(subject, state, events, allRounds);
   const rounds = shown.rounds;
   const enriched = subject.timelineSyncedUntil !== null || events.length > 0;

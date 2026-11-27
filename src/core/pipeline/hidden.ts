@@ -52,5 +52,6 @@ export function hiddenReason(row: HiddenReasonInput): string | null {
   if (reasons.includes("closedByOthers")) {
     return row.merged ? "merged, no new comments" : "closed, no new comments";
   }
+  if (reasons.includes("announcement")) return "announcement you only follow";
   return quietLine(row.quiet);
 }

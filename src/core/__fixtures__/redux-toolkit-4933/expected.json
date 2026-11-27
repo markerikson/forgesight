@@ -1,0 +1,40 @@
+{
+  "section": "waiting",
+  "reasons": [
+    "participating"
+  ],
+  "summaryLine": "closed",
+  "newMeaningfulCount": 13,
+  "hiddenStats": {
+    "pushes": 0,
+    "rebases": 0,
+    "merged": 0,
+    "closed": 1
+  },
+  "sortAt": "2025-12-16T15:35:04Z",
+  "links": [],
+  "rounds": [
+    {
+      "start": null,
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "comment markerikson DC_kwDOB2ACAs4AwqyJ",
+        "comment TimeDropsSB (new) DC_kwDOB2ACAs4Awtee",
+        "comment markerikson DC_kwDOB2ACAs4Awte0",
+        "comment TimeDropsSB (new) DC_kwDOB2ACAs4Awth-",
+        "comment bam (new) DC_kwDOB2ACAs4A6Gd5",
+        "comment TimeDropsSB (new) DC_kwDOB2ACAs4A6KDB",
+        "comment bam (new) DC_kwDOB2ACAs4A6KLD",
+        "comment EskiMojo14 (new) DC_kwDOB2ACAs4A6KTN",
+        "comment TimeDropsSB (new) DC_kwDOB2ACAs4A6O3x",
+        "comment bam (new) DC_kwDOB2ACAs4A6O7a",
+        "comment TimeDropsSB (new) DC_kwDOB2ACAs4A6PI4",
+        "comment bam (new) DC_kwDOB2ACAs4A6PvP",
+        "comment TimeDropsSB (new) DC_kwDOB2ACAs4A6QL0",
+        "answered TimeDropsSB (new) DC_kwDOB2ACAs4AwqyJ:answer",
+        "closed - (new) D_kwDOB2ACAs4AfMQa:closed:2025-12-16T15:35:04Z"
+      ]
+    }
+  ]
+}

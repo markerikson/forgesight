@@ -64,6 +64,17 @@ function mapItem(typename: string, raw: Raw, repo: string): MappedItem {
         body: str(raw.body) ?? "",
         data: { ...(str(raw.url) ? { url: str(raw.url) } : {}) },
       };
+    case "DiscussionComment":
+      return {
+        kind: "comment",
+        actor: toActor(raw.author),
+        body: str(raw.body) ?? "",
+        data: { url: str(raw.url), replyTo: str(obj(raw.replyTo)?.id) },
+      };
+    case "DiscussionAnswer":
+      return { kind: "answered", actor, data: { target: str(raw.commentId) } };
+    case "DiscussionClosed":
+      return { kind: "closed", actor: null, data: {} };
     case "PullRequestReview": {
       const comments = (obj(raw.comments)?.nodes as unknown[] | undefined) ?? [];
       const first = obj(comments[0]);

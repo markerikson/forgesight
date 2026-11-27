@@ -21,7 +21,7 @@ const UPDATE = process.env.UPDATE_FIXTURES === "1";
 
 interface FixtureCase {
   subjectKey: string;
-  kind: "pr" | "issue";
+  kind: "pr" | "issue" | "discussion";
   mode: RepoMode;
   recordedAt: string;
 }

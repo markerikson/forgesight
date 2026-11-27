@@ -10,13 +10,15 @@ interface Props {
   index: number;
   focused: boolean;
   now: number | null;
+  /** Comment id of a discussion's chosen answer. */
+  answerId?: string | null;
 }
 
 export function roundDomId(subjectKey: string, index: number): string {
   return `round-${subjectKey.replace(/[^A-Za-z0-9_-]/g, "_")}-${index}`;
 }
 
-export function RoundView({ subjectKey, round, index, focused, now }: Props) {
+export function RoundView({ subjectKey, round, index, focused, now, answerId = null }: Props) {
   const label = round.startLabel ?? (round.startedBy ? "New round" : "Earlier");
   return (
     <section
@@ -37,7 +39,13 @@ export function RoundView({ subjectKey, round, index, focused, now }: Props) {
       <div className={styles.entries}>
         {round.entries.map((entry) =>
           entry.type === "event" ? (
-            <EventItem key={entry.event.id} event={entry.event} now={now} withBody={entry.event.level === "show"} />
+            <EventItem
+              key={entry.event.id}
+              event={entry.event}
+              now={now}
+              withBody={entry.event.level === "show"}
+              answer={answerId !== null && entry.event.id === answerId}
+            />
           ) : (
             <CollapsedGroup
               key={entry.group.items[0]?.id ?? entry.group.summary}

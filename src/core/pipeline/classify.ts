@@ -19,6 +19,7 @@ const DEFAULT_LEVEL: Record<EventKind, ContentLevel> = {
   markedDuplicate: "show",
   connected: "show",
   reviewDismissed: "show",
+  answered: "show",
   reviewRequested: "collapsed",
   commit: "collapsed",
   forcePush: "collapsed",

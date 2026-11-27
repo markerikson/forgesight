@@ -70,6 +70,10 @@ describe("hiddenReason", () => {
     expect(hiddenReason(hidden({ reasons: ["closedByOthers"], merged: false }))).toBe("closed, no new comments");
   });
 
+  test("a followed announcement discussion", () => {
+    expect(hiddenReason(hidden({ reasons: ["announcement"] }))).toBe("announcement you only follow");
+  });
+
   test("names the only kinds of quiet activity", () => {
     expect(hiddenReason(hidden({ quiet: { ...NONE, bots: 3 } }))).toBe("only bot activity");
     expect(hiddenReason(hidden({ quiet: { ...NONE, labels: 1 } }))).toBe("only label changes");
