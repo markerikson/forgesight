@@ -133,6 +133,47 @@ describe("deriveFindings: CodeRabbit", () => {
   });
 });
 
+describe("deriveFindings: DiffLoupe inline threads", () => {
+  function dlThread(fp: string, at: string, opts: { outdated?: boolean } = {}): ReviewThreadRecord {
+    const body = `#### Inline ${fp}\n\nDetails.\n\n<!-- ai-review kind=inline file=src/z.ts line=3 fp=${fp} sev=should-fix -->`;
+    return {
+      nodeId: `PRRT_${fp}`,
+      subjectKey: "o/r#1",
+      isResolved: false,
+      isOutdated: opts.outdated ?? false,
+      path: "src/z.ts",
+      line: 3,
+      raw: { comments: { nodes: [{ author: { login: "github-actions" }, body, createdAt: at, url: `https://example.test/${fp}` }] } },
+      fetchedAt: "2026-11-25T00:00:00Z",
+    };
+  }
+  const run1 = sticky("2026-11-20T00:01:00Z", B, []);
+
+  test("posted by the latest run on the current head: outstanding", () => {
+    const out = deriveFindings(input({ headSha: B, stickies: [run1], reviewThreads: [dlThread("i1", "2026-11-20T00:00:00Z")] }));
+    expect(out.map((f) => [f.id, f.status])).toEqual([["i1", "outstanding"]]);
+  });
+
+  test("a later run that no longer carries it: fixed", () => {
+    const run2 = sticky("2026-11-21T00:00:00Z", A, []);
+    const out = deriveFindings(input({ stickies: [run1, run2], reviewThreads: [dlThread("i1", "2026-11-20T00:00:00Z")] }));
+    expect(out[0]?.status).toBe("fixed");
+  });
+
+  test("a real push after its run: stale", () => {
+    const out = deriveFindings(input({ headSha: C, stickies: [run1], reviewThreads: [dlThread("i1", "2026-11-20T00:00:00Z")] }));
+    expect(out[0]).toMatchObject({ status: "stale", note: null });
+  });
+
+  test("without any stored run, the thread state decides", () => {
+    const out = deriveFindings(input({ reviewThreads: [dlThread("i1", "2026-11-20T00:00:00Z"), dlThread("i2", "2026-11-20T00:00:00Z", { outdated: true })] }));
+    expect(out.map((f) => [f.id, f.status])).toEqual([
+      ["i1", "outstanding"],
+      ["i2", "stale"],
+    ]);
+  });
+});
+
 describe("findingIcons and copy", () => {
   const findings = deriveFindings(
     input({

@@ -49,5 +49,16 @@ export function keepNewFlags(base: SubjectDetail, fresh: SubjectDetail, me: stri
       entries.some((e) => (e.type === "event" ? e.event.isNew : e.group.isNew));
     return { ...r, startedBy, commits, entries, isNew };
   };
-  return { ...fresh, rounds: fresh.rounds.map(round), lastVisitAt: base.lastVisitAt };
+  return { ...fresh, rounds: fresh.rounds.map(round), lastVisitAt: base.lastVisitAt, ...keepNewFindings(base, fresh) };
+}
+
+/** Findings keep their `base` "new" marker; ones `base` did not have arrived while reading. */
+function keepNewFindings(base: SubjectDetail, fresh: SubjectDetail): Pick<SubjectDetail, "findings"> {
+  if (!fresh.findings) return {};
+  const known = new Map((base.findings ?? []).map((f) => [`${f.tool}:${f.id}`, f.isNew]));
+  const findings = fresh.findings.map((f) => {
+    const isNew = known.get(`${f.tool}:${f.id}`) ?? true;
+    return isNew === f.isNew ? f : { ...f, isNew };
+  });
+  return { findings };
 }

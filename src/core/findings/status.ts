@@ -66,10 +66,29 @@ interface Built {
   note: string | null;
 }
 
-function fromStickies(input: DeriveFindingsInput): Built[] {
+interface RunSummary {
+  runs: TimedRun[];
+  latest: TimedRun;
+  /** The PR's changes are still the ones the latest run reviewed. */
+  current: boolean;
+  staleNote: string | null;
+}
+
+function summarizeRuns(input: DeriveFindingsInput): RunSummary | null {
   const runs = diffLoupeRuns(input.stickies);
   const latest = runs.at(-1);
-  if (!latest) return [];
+  if (!latest) return null;
+  return {
+    runs,
+    latest,
+    current: sameChanges(latest.headSha, input.headSha, input.pushes),
+    staleNote: latest.stoppedAt ? `reviews stopped at ${short(latest.stoppedAt)}` : null,
+  };
+}
+
+function fromStickies(summary: RunSummary | null): Built[] {
+  if (!summary) return [];
+  const { runs, latest, current, staleNote } = summary;
   const firstSeen = new Map<string, string>();
   const lastReport = new Map<string, FindingReport>();
   for (const run of runs) {
@@ -78,8 +97,6 @@ function fromStickies(input: DeriveFindingsInput): Built[] {
       if (!run.stoppedAt || !lastReport.has(f.id)) lastReport.set(f.id, f);
     }
   }
-  const current = sameChanges(latest.headSha, input.headSha, input.pushes);
-  const staleNote = latest.stoppedAt ? `reviews stopped at ${short(latest.stoppedAt)}` : null;
   const inLatest = new Set(latest.findings.map((f) => f.id));
   const out: Built[] = [];
   for (const f of latest.findings) {
@@ -108,7 +125,22 @@ function threadStatus(t: ReviewThreadRecord, addressedIn: string | null): Findin
   return t.isOutdated ? "stale" : "outstanding";
 }
 
-function fromThreads(input: DeriveFindingsInput): Built[] {
+/**
+ * DiffLoupe posts a finding either inline or in the sticky summary, never both, so an inline
+ * finding is absent from the run that posted it. It counts as fixed only once a later run
+ * no longer carries it, and goes stale with its run when the PR's changes move on.
+ */
+function inlineStatus(t: ReviewThreadRecord, id: string, createdAt: string, summary: RunSummary | null): Built["status"] {
+  const own = threadStatus(t, null);
+  if (own !== "outstanding" || !summary) return own;
+  const { runs, latest, current } = summary;
+  const postedIn = runs.findIndex((r) => r.at >= createdAt);
+  const laterRun = postedIn !== -1 && postedIn < runs.length - 1;
+  if (laterRun && !latest.findings.some((f) => f.id === id)) return "fixed";
+  return current ? "outstanding" : "stale";
+}
+
+function fromThreads(input: DeriveFindingsInput, summary: RunSummary | null): Built[] {
   const out: Built[] = [];
   for (const t of input.reviewThreads) {
     const first = firstComment(t.raw);
@@ -130,11 +162,12 @@ function fromThreads(input: DeriveFindingsInput): Built[] {
     }
     const inline = parseDiffLoupeInline(body, url);
     if (inline) {
+      const status = inlineStatus(t, inline.id, createdAt, summary);
       out.push({
         report: { ...inline, file: inline.file ?? t.path, line: inline.line ?? t.line },
-        status: threadStatus(t, null),
+        status,
         firstSeenAt: createdAt,
-        note: null,
+        note: status === "stale" && !t.isOutdated ? (summary?.staleNote ?? null) : null,
       });
     }
   }
@@ -157,10 +190,11 @@ function compareFindings(a: Finding, b: Finding): number {
 
 /** Every DiffLoupe and CodeRabbit finding on a PR, with its current status. */
 export function deriveFindings(input: DeriveFindingsInput): Finding[] {
-  const summary = fromStickies(input);
-  const ids = new Set(summary.map((b) => `${b.report.tool}:${b.report.id}`));
-  const threads = fromThreads(input).filter((b) => !ids.has(`${b.report.tool}:${b.report.id}`));
-  return [...summary, ...threads]
+  const runs = summarizeRuns(input);
+  const sticky = fromStickies(runs);
+  const ids = new Set(sticky.map((b) => `${b.report.tool}:${b.report.id}`));
+  const threads = fromThreads(input, runs).filter((b) => !ids.has(`${b.report.tool}:${b.report.id}`));
+  return [...sticky, ...threads]
     .map(
       (b): Finding =>
         Object.assign({}, b.report, {
