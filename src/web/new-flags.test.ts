@@ -55,6 +55,8 @@ test("findings keep their markers, and ones that arrived while reading are new",
     ["f2", false],
     ["f3", true],
   ]);
+  const unlisted = withFindings(detail("acme/app#1", base.rounds, null), [finding("f1", false)]);
+  expect(keepNewFlags(base, unlisted, null).findings?.map((f) => f.isNew)).toEqual([false]);
 });
 
 test("leaves another subject untouched", () => {

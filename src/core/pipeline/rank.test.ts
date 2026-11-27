@@ -794,6 +794,7 @@ describe("review-bot findings", () => {
     expect(view.reasons).toContain("newFindings");
     expect(view.section).toBe("waiting");
     expect(view.summaryLine).toBe("DiffLoupe found: Leaks a handle");
+    expect(view.sortAt).toBe("2026-11-21T02:00:00Z");
   });
 
   test("findings seen before I dismissed the PR do not raise it again", () => {

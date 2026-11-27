@@ -317,6 +317,7 @@ export function rank(input: RankInput): Rank {
 
   const sortAt =
     newest?.at ??
+    newFindings.map((f) => f.firstSeenAt).sort().at(-1) ??
     lastRequest?.at ??
     last(fresh)?.at ??
     last(events.filter((e) => e.undated !== true))?.at ??

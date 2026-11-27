@@ -134,8 +134,9 @@ describe("deriveFindings: CodeRabbit", () => {
 });
 
 describe("deriveFindings: DiffLoupe inline threads", () => {
-  function dlThread(fp: string, at: string, opts: { outdated?: boolean } = {}): ReviewThreadRecord {
+  function dlThread(fp: string, at: string, opts: { outdated?: boolean; commit?: string } = {}): ReviewThreadRecord {
     const body = `#### Inline ${fp}\n\nDetails.\n\n<!-- ai-review kind=inline file=src/z.ts line=3 fp=${fp} sev=should-fix -->`;
+    const comment = { author: { login: "github-actions" }, body, createdAt: at, url: `https://example.test/${fp}` };
     return {
       nodeId: `PRRT_${fp}`,
       subjectKey: "o/r#1",
@@ -143,7 +144,7 @@ describe("deriveFindings: DiffLoupe inline threads", () => {
       isOutdated: opts.outdated ?? false,
       path: "src/z.ts",
       line: 3,
-      raw: { comments: { nodes: [{ author: { login: "github-actions" }, body, createdAt: at, url: `https://example.test/${fp}` }] } },
+      raw: { comments: { nodes: [opts.commit ? { ...comment, originalCommit: { oid: opts.commit } } : comment] } },
       fetchedAt: "2026-11-25T00:00:00Z",
     };
   }
@@ -158,6 +159,19 @@ describe("deriveFindings: DiffLoupe inline threads", () => {
     const run2 = sticky("2026-11-21T00:00:00Z", A, []);
     const out = deriveFindings(input({ stickies: [run1, run2], reviewThreads: [dlThread("i1", "2026-11-20T00:00:00Z")] }));
     expect(out[0]?.status).toBe("fixed");
+  });
+
+  test("posted on an older commit than the only stored run: fixed", () => {
+    const run2 = sticky("2026-11-21T00:00:00Z", A, []);
+    const thread = dlThread("i1", "2026-11-20T00:00:00Z", { commit: B });
+    expect(deriveFindings(input({ stickies: [run2], reviewThreads: [thread] }))[0]?.status).toBe("fixed");
+  });
+
+  test("posted on the latest run's commit: outstanding whatever the timestamps", () => {
+    const run2 = sticky("2026-11-21T00:00:00Z", A, []);
+    const thread = dlThread("i1", "2026-11-22T00:00:00Z", { commit: A });
+    const out = deriveFindings(input({ stickies: [run1, run2], reviewThreads: [thread] }));
+    expect(out[0]?.status).toBe("outstanding");
   });
 
   test("a real push after its run: stale", () => {

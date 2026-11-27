@@ -128,15 +128,26 @@ function threadStatus(t: ReviewThreadRecord, addressedIn: string | null): Findin
 /**
  * DiffLoupe posts a finding either inline or in the sticky summary, never both, so an inline
  * finding is absent from the run that posted it. It counts as fixed only once a later run
- * no longer carries it, and goes stale with its run when the PR's changes move on.
+ * no longer carries it, and goes stale with its run when the PR's changes move on. The commit
+ * the comment was posted on names its run; threads stored without it fall back to timestamps.
  */
-function inlineStatus(t: ReviewThreadRecord, id: string, createdAt: string, summary: RunSummary | null): Built["status"] {
+function inlineStatus(
+  t: ReviewThreadRecord,
+  id: string,
+  posted: { at: string; commit: string | null },
+  summary: RunSummary | null,
+): Built["status"] {
   const own = threadStatus(t, null);
   if (own !== "outstanding" || !summary) return own;
   const { runs, latest, current } = summary;
-  const postedIn = runs.findIndex((r) => r.at >= createdAt);
-  const laterRun = postedIn !== -1 && postedIn < runs.length - 1;
-  if (laterRun && !latest.findings.some((f) => f.id === id)) return "fixed";
+  const carried = latest.findings.some((f) => f.id === id);
+  let laterRun: boolean;
+  if (posted.commit) laterRun = posted.commit !== latest.headSha;
+  else {
+    const postedIn = runs.findIndex((r) => r.at >= posted.at);
+    laterRun = postedIn !== -1 && postedIn < runs.length - 1;
+  }
+  if (laterRun && !carried) return "fixed";
   return current ? "outstanding" : "stale";
 }
 
@@ -162,7 +173,8 @@ function fromThreads(input: DeriveFindingsInput, summary: RunSummary | null): Bu
     }
     const inline = parseDiffLoupeInline(body, url);
     if (inline) {
-      const status = inlineStatus(t, inline.id, createdAt, summary);
+      const commit = str(obj(first.originalCommit).oid);
+      const status = inlineStatus(t, inline.id, { at: createdAt, commit }, summary);
       out.push({
         report: { ...inline, file: inline.file ?? t.path, line: inline.line ?? t.line },
         status,

@@ -52,10 +52,13 @@ export function keepNewFlags(base: SubjectDetail, fresh: SubjectDetail, me: stri
   return { ...fresh, rounds: fresh.rounds.map(round), lastVisitAt: base.lastVisitAt, ...keepNewFindings(base, fresh) };
 }
 
-/** Findings keep their `base` "new" marker; ones `base` did not have arrived while reading. */
+/**
+ * Findings keep their `base` "new" marker; ones `base` did not have arrived while reading.
+ * Without a `base` list there is nothing to compare, so the server's markers stand.
+ */
 function keepNewFindings(base: SubjectDetail, fresh: SubjectDetail): Pick<SubjectDetail, "findings"> {
-  if (!fresh.findings) return {};
-  const known = new Map((base.findings ?? []).map((f) => [`${f.tool}:${f.id}`, f.isNew]));
+  if (!fresh.findings || !base.findings) return {};
+  const known = new Map(base.findings.map((f) => [`${f.tool}:${f.id}`, f.isNew]));
   const findings = fresh.findings.map((f) => {
     const isNew = known.get(`${f.tool}:${f.id}`) ?? true;
     return isNew === f.isNew ? f : { ...f, isNew };
