@@ -1,10 +1,10 @@
 import type { SubjectKey } from "./types.ts";
 
-const NUMBERED_SUBJECT = /\/repos\/[^/]+\/[^/]+\/(?:pulls|issues)\/(\d+)$/;
+const NUMBERED_SUBJECT = /\/repos\/[^/]+\/[^/]+\/(?:pulls|issues|discussions)\/(\d+)$/;
 
 /**
- * `owner/repo#N` for a pull request or issue, `owner/repo@<thread id>` for any other
- * subject (releases, discussions, check suites, ...).
+ * `owner/repo#N` for a pull request, issue or discussion (they share one number space per
+ * repo), `owner/repo@<thread id>` for any other subject (releases, check suites, ...).
  */
 export function subjectKeyFor(thread: {
   id: string;

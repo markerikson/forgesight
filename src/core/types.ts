@@ -1,10 +1,10 @@
 // Shared domain types. Timestamps are ISO 8601 UTC strings, as GitHub returns them.
 export type Login = string;
 
-/** `owner/repo#N` for PRs and issues, `owner/repo@threadId` for other notification subjects. */
+/** `owner/repo#N` for PRs, issues and discussions, `owner/repo@threadId` for other notification subjects. */
 export type SubjectKey = string;
 
-export type SubjectKind = "pr" | "issue" | "other";
+export type SubjectKind = "pr" | "issue" | "discussion" | "other";
 export type SubjectOrigin = "thread" | "stack" | "open-list";
 export type SubjectState = "OPEN" | "CLOSED" | "MERGED";
 

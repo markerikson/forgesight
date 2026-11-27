@@ -23,8 +23,10 @@ export function describeEvent(event: Event): string {
   const d = event.data;
   const target = d.target ?? "someone";
   switch (event.kind) {
-    case "comment":
-      return d.edited ? "commented (edited)" : "commented";
+    case "comment": {
+      const verb = d.replyTo ? "replied" : "commented";
+      return d.edited ? `${verb} (edited)` : verb;
+    }
     case "review": {
       const verb = REVIEW_VERBS[d.reviewState ?? ""] ?? "reviewed";
       const count = d.commentCount ?? 0;
@@ -90,6 +92,8 @@ export function describeEvent(event: Event): string {
     case "milestoned":
       if (d.added === false) return d.milestone ? `removed this from milestone ${d.milestone}` : "removed the milestone";
       return d.milestone ? `added this to milestone ${d.milestone}` : "set the milestone";
+    case "answered":
+      return "marked an answer";
     case "unknown":
       return typenameLabel(d.typename);
   }

@@ -104,6 +104,19 @@ describe("buildSubjectBatchQuery", () => {
     expect(query).not.toContain("fragment IssueItems");
   });
 
+  test("discussion alias uses the discussion fragment only", () => {
+    const { query } = buildSubjectBatchQuery({
+      repo: "octo/repo",
+      subjects: [{ subjectKey: "octo/repo#7", kind: "discussion", number: 7, since: null }],
+      stickyIds: [],
+      shape: queryShape("normal", false),
+    });
+    expect(query).toContain("s0: discussion(number: 7) { ...DiscussionCore }");
+    expect(query).toContain("fragment DiscussionCore on Discussion");
+    expect(query).not.toContain("fragment IssueCore");
+    expect(query).not.toContain("fragment PrCore");
+  });
+
   test("page-only alias has no core fields and passes the cursor", () => {
     const { query } = buildSubjectBatchQuery({
       repo: "octo/repo",

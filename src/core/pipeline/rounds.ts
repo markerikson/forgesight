@@ -35,6 +35,7 @@ const NOUNS: Record<EventKind, string> = {
   transferred: "transfer",
   subIssue: "sub-issue change",
   milestoned: "milestone change",
+  answered: "answer",
   unknown: "other event",
 };
 

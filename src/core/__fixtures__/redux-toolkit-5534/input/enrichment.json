@@ -1,0 +1,199 @@
+{
+  "subjectKey": "reduxjs/redux-toolkit#5534",
+  "subject": {
+    "nodeId": "D_kwDOB2ACAs4AquRv",
+    "state": "OPEN",
+    "author": "markerikson",
+    "headRef": null,
+    "baseRef": null,
+    "headSha": null,
+    "baseSha": null,
+    "updatedAt": "2026-11-11T11:14:57Z",
+    "raw": {
+      "id": "D_kwDOB2ACAs4AquRv",
+      "number": 5534,
+      "title": "RTK Query usage feedback for 2.x planning",
+      "body": "We're starting on the RTK Query work in the [2.x and 3.0 roadmap](https://github.com/reduxjs/redux-toolkit/issues/5483). Several of the upcoming 2.x releases change how RTKQ tracks requests and writes to the cache. Before we lock in those behaviors, we'd like to know how you actually use them today.\r\n\r\nReal code examples help the most, even short snippets. \"We do X because Y\" is more useful to us than \"X would be nice\".\r\n\r\n### Reading the cache directly\r\n\r\n- Do you read `state.api.queries` or `state.api.mutations` directly, instead of through the endpoint selectors? What for?\r\n- Do you iterate over the cache entries, or look them up by cache key?\r\n\r\nIn 3.0 the query cache moves to `queries[endpointName][cacheKey]` (#5503), so we want to know what that breaks and what selectors or utilities would replace your current code.\r\n\r\n### `initiate()` promises and request timing\r\n\r\n- Do you `await dispatch(api.endpoints.x.initiate(arg))` and use the value it resolves to? What happens if that request was deduped against one already in flight?\r\n- Do you use `forceRefetch`, `subscribe: false`, or manual `unsubscribe()` calls? What for?\r\n\r\nIn 2.15 the `initiate()` promise always resolves with the result of its own request (#5506). That's a behavior change, so we want to know who depends on the current behavior.\r\n\r\n### Invalidation while a request is pending\r\n\r\n- If a mutation invalidates a tag while a query with that tag is still fetching, what do you expect to happen? Should the in-flight result be thrown away, should the query refetch after it finishes, or something else?\r\n- If you write to the cache with `updateQueryData` or `upsertQueryData` while a fetch for that entry is in flight, which result do you expect to win?\r\n- Have you written workarounds for either of these cases?\r\n\r\nThese answers feed directly into the invalidation work (#5510, #5511) and into which of these behaviors becomes the default.\r\n\r\n### SSR, hydration and persistence\r\n\r\n- Do you use `extractRehydrationInfo`? With which setup (Next.js pages or app router, redux-persist, something custom)?\r\n- Do you persist the RTKQ slice to storage? Do you persist all of it, or only some endpoints?\r\n- Do you need to hydrate entries that are still pending on the server, such as streamed SSR results?\r\n\r\nWe plan to add `dehydrate` / `hydrate` utilities in 2.17 (#5515), and they will be the supported way to carry cache data across the 3.0 upgrade.\r\n\r\nAnswers on any subset of these are welcome. Feedback on the 3.0 API changes goes in [the 3.0 breaking changes discussion].",
+      "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534",
+      "createdAt": "2026-11-01T11:26:51Z",
+      "updatedAt": "2026-11-11T11:14:57Z",
+      "lastEditedAt": null,
+      "closed": false,
+      "closedAt": null,
+      "stateReason": null,
+      "locked": false,
+      "isAnswered": null,
+      "answerChosenAt": null,
+      "answerChosenBy": null,
+      "answer": null,
+      "category": {
+        "name": "Ideas",
+        "emoji": ":bulb:",
+        "isAnswerable": false
+      },
+      "author": {
+        "login": "markerikson",
+        "__typename": "User"
+      },
+      "labels": {
+        "nodes": []
+      },
+      "upvoteCount": 2,
+      "commentCount": 2,
+      "omittedComments": 0,
+      "omittedReplies": 0
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKEL5",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-05T09:54:14Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKEL5",
+        "createdAt": "2026-11-05T09:54:14Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "popuguytheparrot",
+          "__typename": "User"
+        },
+        "body": "needs features like subs on cache key, like in tanstack-query.\r\nneeds suspense query like in tanstack-query.\r\n\r\nneeds fix generated hooks export, now if use... hook from api exported as {use...} in IDE jump to source not follow to api creator, stops only on export. Now i using hooks like api.endpoints.post...useQuery(). Click to post... jump in ide to field in api creator.\r\n\r\nalso with initiate, on tanstack-router i dispatch some data like .initiate() with unsub or manual call. We use codegen from openapi like contract and fetch layer.\r\n\r\nneeds improve rtk query codegen like kubb.dev for tanstack-query.\r\nneeds zod schemas, msw support, and other features from kubb.\r\n",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19415801",
+        "isMinimized": false,
+        "isAnswer": false
+      }
+    },
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKENE",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-05T09:59:33Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKENE",
+        "createdAt": "2026-11-05T09:59:33Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "EskiMojo14",
+          "__typename": "User"
+        },
+        "body": "the jump to source issue is a typescript limitation, it only supports that for homomorphic mapped types - we need key remapping (to turn getFoo into useGetFooQuery) so the link is broken",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19415876",
+        "isMinimized": false,
+        "isAnswer": false,
+        "replyTo": {
+          "id": "DC_kwDOB2ACAs4BKEL5"
+        }
+      }
+    },
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKFUu",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-05T14:48:19Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKFUu",
+        "createdAt": "2026-11-05T14:48:19Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "body": "@popuguytheparrot can you clarify what you mean by \"subs on cache key\"?\r\n\r\nSuspense support is planned, probably around 2.17ish:\r\n\r\n- https://github.com/reduxjs/redux-toolkit/issues/5490",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19420462",
+        "isMinimized": false,
+        "isAnswer": false,
+        "replyTo": {
+          "id": "DC_kwDOB2ACAs4BKEL5"
+        }
+      }
+    },
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKJU1",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-06T09:40:32Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKJU1",
+        "createdAt": "2026-11-06T09:40:32Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "popuguytheparrot",
+          "__typename": "User"
+        },
+        "body": "RTK Query lacks a public API for subscribing to cache changes by query key, similar to TanStack Query's `QueryCache.subscribe()` and `QueryObserver`.\r\n\r\nIt also lacks an equivalent to `MutationCache.subscribe()` for observing mutation events.\r\n\r\nWhile these behaviors can be approximated using `store.subscribe()`, selectors, and listener middleware, they require additional boilerplate and don't provide the same event-driven API.",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19436853",
+        "isMinimized": false,
+        "isAnswer": false,
+        "replyTo": {
+          "id": "DC_kwDOB2ACAs4BKEL5"
+        }
+      }
+    },
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKKLj",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-06T12:46:44Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKKLj",
+        "createdAt": "2026-11-06T12:46:44Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "body": "@popuguytheparrot gotcha. what's your use case for subscribing to those?  When do you initiate them, what do you use them for?  Can you show some examples?",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19440355",
+        "isMinimized": false,
+        "isAnswer": false,
+        "replyTo": {
+          "id": "DC_kwDOB2ACAs4BKEL5"
+        }
+      }
+    },
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKiog",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-11T11:14:57Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKiog",
+        "createdAt": "2026-11-11T11:14:57Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "popuguytheparrot",
+          "__typename": "User"
+        },
+        "body": "Two cases from our app (simplified, names changed). Both are about reacting to a cache entry outside React. Right now we do it with matchers and selectors.\r\n\r\n**1. Keeping one entry readable at all times**\r\n\r\nWe load app config once at startup with `initiate(undefined, { subscribe: false })`, and router `beforeLoad` waits for it. No component owns that entry. Without a subscriber, RTK Query drops it (on window focus, for example), but route guards and selectors still need to read the config synchronously. So we copy it into a separate slice: `matchFulfilled` writes the data there, and `resetApiState.match` clears it.\r\n\r\nWith TanStack I'd keep a `QueryObserver` on that key outside React. That keeps the entry alive and tells us when it changes, and we wouldn't need a second copy of server data.\r\n\r\n**2. UI state derived from several entries of one endpoint**\r\n\r\n`getOperationListing` is called from different screens with different args (organization, status filter, search). A banner should show when the latest \"processing\" list for the current organization has a payment under review, no matter which screen fetched it.\r\n\r\nToday the selector goes through `selectCachedArgsForQuery`, filters the args by organization and status, picks the entry with the latest `startedTimeStamp`, and checks its data. It works, but it loops over all cached args of that endpoint on every store update, and it relies on the arg shape and timestamps. In TanStack I'd use `queryCache.findAll({ queryKey, predicate })` together with `queryCache.subscribe()`.\r\n\r\n**Where we call `initiate()`**\r\n\r\nMostly outside React:\r\n- in router `beforeLoad`, where we await it\r\n- in auth and session thunks\r\n- on pull-to-refresh, where we call several endpoints with `{ forceRefetch: true, subscribe: false }` and wait for all of them\r\n\r\nGlobal reactions like \"a request failed with session expired → reset the API state and redirect\" work fine with listener middleware, so we don't need subscriptions there.\r\n\r\n**What would help us**\r\n\r\n- Subscribing to a single entry outside React, something like `api.util.subscribeToQuery(endpointName, arg, listener)` that returns `unsubscribe`, keeps the entry alive and calls the listener when status or data change.\r\n- A memoized way to select or subscribe to all entries of an endpoint whose arg matches a predicate. With the 3.0 `queries[endpointName][cacheKey]` layout this looks easy to expose.",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19540512",
+        "isMinimized": false,
+        "isAnswer": false,
+        "replyTo": {
+          "id": "DC_kwDOB2ACAs4BKEL5"
+        }
+      }
+    },
+    {
+      "nodeId": "DC_kwDOB2ACAs4BKJnU",
+      "typename": "DiscussionComment",
+      "createdAt": "2026-11-06T10:39:15Z",
+      "raw": {
+        "__typename": "DiscussionComment",
+        "id": "DC_kwDOB2ACAs4BKJnU",
+        "createdAt": "2026-11-06T10:39:15Z",
+        "lastEditedAt": "2026-11-15T13:28:07Z",
+        "author": {
+          "login": "wirdehall",
+          "__typename": "User"
+        },
+        "body": "**Reading the cache directly**\r\n\r\n    \r\n\r\n> Do you read `state.api.queries` or `state.api.mutations` directly, instead of through the endpoint selectors? What for?\r\n\r\nIn a very specific edge-case do we use `state.api.queries`. In the 3 endpoints for updateing our cart items we have the built-in side-effect that it will automatically call our analytics api and update the cart items there as well. So on `onQueryStarted` we get the item from the cache and once the `queryFulfilled` promise is fullfilled we dispatch the analytics action with the change. Here's an example:\r\n\r\n```ts\r\nasync onQueryStarted(args, api) {\r\n  const { dispatch, queryFulfilled } = api;\r\n  const state = api.getState();\r\n  const orderItem = (state.cartApi.queries['getCart(undefined)']?.data as CartTypes.Order).items.filter((orderItem) => orderItem.id === args.orderItemId)[0];\r\n  await queryFulfilled.then(async ({ data: updatedCart })=>{\r\n    await dispatch(cartApi.util.upsertQueryData('getCart', undefined, updatedCart));\r\n    if(updatedCart !== null) { // We don't need to await this, it can happen eventually, it's not critical for moving forward.\r\n      if(args.amount > orderItem.amount) {\r\n        dispatch(AnalyticsActions.addToCart({ supplierTireId: orderItem.supplierTireId, amount: args.amount - orderItem.amount }));\r\n      } else {\r\n        dispatch(AnalyticsActions.removeFromCart({ orderItem, amount: orderItem.amount - args.amount }));\r\n      }\r\n    }\r\n``` \r\n\r\n**`initiate()` promises and request timing**\r\n\r\n> Do you `await dispatch(api.endpoints.x.initiate(arg))` and use the value it resolves to? What happens if that request was deduped against one already in flight?\r\n\r\nAgain to solve a very specific problem we where facing. 3 cases in one app and 1 case in another. All of them steming from the same problem, we need to fetch data outside of react scope.\r\nIn the same app as the example above it's related to the same thing, the `AnalyticsActions` are setup as effects. In there we need to fetch data about the products so we fetch it using `initiate`, `await` the promise, then promptly unsubscribe.\r\n\r\nIn the other app we have 3 use-cases:\r\n\r\n1. We need to `fetch` some data before we initiate react to pass to our router.\r\n2. When `lazyLoading` code-chunks we check if there has been a new release of the frontend, if so we will reload the application before fetching a chunk that no longer exists. Again we are outside of the react component-structure.\r\n3. When logging in but before react get's another rerender we need to re-fetch the data we fetched in point 1 and update it in our store so the application doesn't try to rerender without the updated context.\r\n\r\n  \r\n>   Do you use `forceRefetch`, `subscribe: false`, or manual `unsubscribe()` calls? What for?\r\n\r\nAll of these are used in some combination or other in the examples above. \r\nFor `forceRefetch` we use it quite liberally. We have wrapped the endpoint definitions in our admin application.\r\nI think this needs a little bit of context on why we did this, sorry if it get's a bit long.\r\nWe have a multi-webshop system, in the admin applicaiton you can administrate all the different webshops and also administrate things on a top level, things that affect all webshops equally. So to forgo the need to write so much boilerplate in each react component (fetching which webshop we are currently in, and passing that into literally every api call in the entire application) we wrote a small wrapper that checks if the request is webshop dependent. If so it will force a refetch if we switched webshop since we last made this call with these parameters.\r\nThis little wrapper was something I built over 2 years ago, haven't needed to touch it since, it just works. It would be a huge rewrite of our entire application if we suddently didn't have access to this since we would need to start passing `webshopId` in as a parameter in 90%+ of all our requests. \r\n\r\n**Invalidation while a request is `pending`**\r\n\r\n    \r\n> If a mutation invalidates a tag while a query with that tag is still fetching, what do you expect to happen? Should the in-flight result be thrown away, should the query refetch after it finishes, or something else?\r\n\r\nI don't think we have ever encountered a problem with this but as a though experiment I guess refetch after it finishes would make sense?\r\n\r\n> If you write to the cache with `updateQueryData` or `upsertQueryData` while a `fetch` for that entry is in flight, which result do you expect to win?\r\n\r\nAgain I don't think we ever encountered a problem with this. And honestly I don't know. I feel like this would be a case-by-case thing. I don't think you can say categorically that one way or the other is the best solution. I would expect that once you run into this problem you have a very specific edge-case and would need to be able use the solution that matches your edge-case. So configurable would probably be the way to go here.\r\n\r\n**SSR, hydration and persistence**\r\n\r\n> Do you use `extractRehydrationInfo`? With which setup (Next.js pages or app router, redux-persist, something custom)?\r\n\r\nWe don't use `extractRehydrationInfo`, instead we initialize the entire store with `preloadedState` as hydration. Our setup is custom built. \r\n\r\n> Do you persist the RTKQ slice to storage? Do you persist all of it, or only some endpoints?\r\n\r\nWe do persist the logged in customer and carts in local storage so we can sync them across tabs.\r\nThat's only data from two specific endpoints though so we don't store the entire slice.\r\n\r\n> Do you need to hydrate entries that are still pending on the server, such as streamed SSR results?\r\n\r\nNo. Not found a use-case for that yet.\r\n\r\n----\r\nThanks for all your hard work!",
+        "url": "https://github.com/reduxjs/redux-toolkit/discussions/5534#discussioncomment-19438036",
+        "isMinimized": false,
+        "isAnswer": false
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-27T04:57:57.323Z"
+}

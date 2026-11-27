@@ -106,6 +106,38 @@ describe("migrations", () => {
     expect(getMeta(db, "k")).toBe("v");
   });
 
+  test("008 rekeys discussion subjects to owner/repo#N and keeps their item state", () => {
+    const db = openDb(":memory:");
+    expect(runMigrations(db, migrations.slice(0, 7))).toEqual({ from: 0, to: 7 });
+    const oldKey = "acme/app@9001";
+    db.run(
+      `INSERT INTO threads (thread_id, subject_key, repo, subject_type, reason, unread, updated_at, first_seen_at, subject_url, raw_json)
+       VALUES ('9001', '${oldKey}', 'acme/app', 'Discussion', 'author', 1, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z',
+               'https://api.github.com/repos/acme/app/discussions/42', '{}'),
+              ('9002', 'acme/app@9002', 'acme/app', 'Release', 'subscribed', 1, '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z',
+               'https://api.github.com/repos/acme/app/releases/7', '{}')`,
+    );
+    db.run(
+      `INSERT INTO subjects (subject_key, repo, number, kind, origin) VALUES ('${oldKey}', 'acme/app', NULL, 'other', 'thread'),
+       ('acme/app@9002', 'acme/app', NULL, 'other', 'thread')`,
+    );
+    db.run(
+      `INSERT INTO item_state (subject_key, dismissed_at, updated_at) VALUES ('${oldKey}', '2026-01-02T00:00:00Z', '2026-01-02T00:00:00Z')`,
+    );
+
+    expect(runMigrations(db)).toEqual({ from: 7, to: SCHEMA_VERSION });
+    const subject = getSubject(db, "acme/app#42");
+    expect(subject?.kind).toBe("discussion");
+    expect(subject?.number).toBe(42);
+    expect(subject?.dirtyAt).not.toBeNull();
+    expect(getSubject(db, oldKey)).toBeUndefined();
+    expect(getSubject(db, "acme/app@9002")?.kind).toBe("other");
+    expect(getItemState(db, "acme/app#42").dismissedAt).toBe("2026-01-02T00:00:00Z");
+    expect(
+      db.query<{ subject_key: string }, []>("SELECT subject_key FROM threads WHERE thread_id = '9001'").get()?.subject_key,
+    ).toBe("acme/app#42");
+  });
+
   test("assertCurrent throws when the database is behind", () => {
     const db = openDb(":memory:");
     expect(() => assertCurrent(db)).toThrow(/version 0/);

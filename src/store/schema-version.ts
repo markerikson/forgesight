@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 
 /** Version of the newest migration in `migrate.ts`. Bump it with every new migration. */
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export function userVersion(db: Database): number {
   const row = db.query<{ user_version: number }, []>("PRAGMA user_version").get();

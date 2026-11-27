@@ -3,6 +3,7 @@ import type { SubjectRecord, SubjectViewRecord, ThreadRecord } from "../types.ts
 import { isMe } from "./classify.ts";
 import type {
   CiState,
+  DiscussionInfo,
   InboxRow,
   ReviewDecision,
   SubjectHeader,
@@ -53,7 +54,26 @@ function reviewDecision(raw: Raw | null): ReviewDecision | null {
 
 export function subjectUrl(repo: string, kind: SubjectRecord["kind"], number: number | null): string | null {
   if (number === null || kind === "other") return null;
-  return `https://github.com/${repo}/${kind === "pr" ? "pull" : "issues"}/${number}`;
+  const path = kind === "pr" ? "pull" : kind === "discussion" ? "discussions" : "issues";
+  return `https://github.com/${repo}/${path}/${number}`;
+}
+
+function count(value: unknown): number {
+  return typeof value === "number" ? value : 0;
+}
+
+function discussionInfo(raw: Raw | null): DiscussionInfo {
+  const category = obj(raw?.category);
+  return {
+    category: str(category?.name),
+    categoryEmoji: str(category?.emoji),
+    answerable: category?.isAnswerable === true,
+    answerId: str(obj(raw?.answer)?.id),
+    answeredBy: str(obj(raw?.answerChosenBy)?.login),
+    answeredAt: str(raw?.answerChosenAt),
+    omittedComments: count(raw?.omittedComments),
+    omittedReplies: count(raw?.omittedReplies),
+  };
 }
 
 function threadTitle(threads: ThreadRecord[]): string | null {
@@ -94,6 +114,7 @@ export function buildHeader(
       .map((n) => str(n.name))
       .filter((n) => n !== null),
     enrichError: subject.enrichError,
+    ...(subject.kind === "discussion" && { discussion: discussionInfo(raw) }),
   };
 }
 
@@ -162,6 +183,9 @@ export function toInboxRow(view: SubjectView): InboxRow {
     enrichError: h.enrichError,
     ...(view.quiet ? { quiet: view.quiet } : {}),
     findings: h.state === "OPEN" ? findingIcons(view.findings ?? []) : [],
+    ...(h.discussion && {
+      discussion: { category: h.discussion.category, answered: h.discussion.answerId !== null },
+    }),
   };
 }
 

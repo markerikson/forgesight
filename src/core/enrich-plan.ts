@@ -123,7 +123,7 @@ export interface OpenedSubject {
 
 /** Whether the worker enriches subjects of this kind at all. */
 export function isEnrichable(kind: SubjectKind, config: Pick<Config, "polling">): boolean {
-  return kind === "pr" || (kind === "issue" && config.polling.enrichIssues);
+  return kind === "pr" || kind === "discussion" || (kind === "issue" && config.polling.enrichIssues);
 }
 
 /**

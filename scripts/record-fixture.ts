@@ -93,10 +93,10 @@ async function record(args: FixtureArgs): Promise<void> {
   };
   const mode = repoConfig(config, repo).mode;
 
-  // The notification URL is not always at hand, so try a pull request first and fall back to an issue.
-  for (const kind of ["pr", "issue"] as const) {
+  // The notification URL is not always at hand, so try a pull request, then an issue, then a discussion.
+  for (const kind of ["pr", "issue", "discussion"] as const) {
     calls.length = 0;
-    // oxlint-disable-next-line no-await-in-loop -- the issue attempt only runs if the PR one finds nothing
+    // oxlint-disable-next-line no-await-in-loop -- each later kind only runs if the earlier ones find nothing
     const out = await enrichRepoBatch(
       { graphql, clock },
       {
@@ -129,7 +129,7 @@ async function record(args: FixtureArgs): Promise<void> {
     );
     return;
   }
-  throw new Error(`${subjectKey} is not a pull request or issue`);
+  throw new Error(`${subjectKey} is not a pull request, issue or discussion`);
 }
 
 if (import.meta.main) {

@@ -1,0 +1,13 @@
+.category,
+.unanswered {
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.answered {
+  padding: 0 5px;
+  border: 1px solid var(--success);
+  border-radius: var(--radius);
+  color: var(--success);
+}

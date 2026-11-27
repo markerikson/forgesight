@@ -98,6 +98,11 @@ export function stateBadge(
     if (state === "OPEN") return { glyph: "○", tone: "open", label: "Open issue" };
     return { glyph: "○", tone: "unknown", label: "Issue" };
   }
+  if (kind === "discussion") {
+    if (state === "CLOSED") return { glyph: "▣", tone: "merged", label: "Closed discussion" };
+    if (state === "OPEN") return { glyph: "▢", tone: "open", label: "Open discussion" };
+    return { glyph: "▢", tone: "unknown", label: "Discussion" };
+  }
   return { glyph: "·", tone: "unknown", label: "Notification" };
 }
 
@@ -128,6 +133,7 @@ export const REASON_LABELS: Record<RankReason, string> = {
   closedByAuthor: "closed by author",
   keptUnread: "kept unread",
   staleReviewRequest: "old review request",
+  announcement: "announcement",
   nothingNew: "nothing new",
 };
 

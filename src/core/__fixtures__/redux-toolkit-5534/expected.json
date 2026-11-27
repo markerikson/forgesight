@@ -1,0 +1,32 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "nothingNew"
+  ],
+  "summaryLine": "popuguytheparrot replied: Two cases from our app (simplified, names changed). Both are about reacting to a cache entry…",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 0,
+    "rebases": 0,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-11T11:14:57Z",
+  "links": [],
+  "rounds": [
+    {
+      "start": null,
+      "isNew": false,
+      "hidden": 0,
+      "entries": [
+        "comment popuguytheparrot DC_kwDOB2ACAs4BKEL5",
+        "comment EskiMojo14 DC_kwDOB2ACAs4BKENE",
+        "comment markerikson DC_kwDOB2ACAs4BKFUu",
+        "comment popuguytheparrot DC_kwDOB2ACAs4BKJU1",
+        "comment markerikson DC_kwDOB2ACAs4BKKLj",
+        "comment popuguytheparrot DC_kwDOB2ACAs4BKiog",
+        "comment wirdehall DC_kwDOB2ACAs4BKJnU"
+      ]
+    }
+  ]
+}

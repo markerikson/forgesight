@@ -56,7 +56,7 @@ export function describe(e: ViewEvent): string {
   const withText = (verb: string) => truncate(text ? `${act(verb)}: ${text}` : act(verb));
   switch (e.kind) {
     case "comment":
-      return withText("commented");
+      return withText(e.data.replyTo ? "replied" : "commented");
     case "review":
       return withText(REVIEW_VERBS[e.data.reviewState ?? ""] ?? "reviewed");
     case "reviewComment":
@@ -115,6 +115,8 @@ export function describe(e: ViewEvent): string {
     case "milestoned":
       if (e.data.added === false) return act("removed the milestone");
       return truncate(act(e.data.milestone ? `added to milestone ${e.data.milestone}` : "set the milestone"));
+    case "answered":
+      return act("marked an answer");
     case "unknown":
       return act(typenameLabel(e.data.typename));
   }
@@ -126,7 +128,7 @@ const WEAK_SUMMARY_KINDS: ReadonlySet<EventKind> = new Set<EventKind>(["labeled"
 /** Summary for a subject with no event worth describing. */
 export function openedLine(subject: SubjectRecord): string {
   if (subject.kind === "other") return "no details loaded";
-  const noun = subject.kind === "pr" ? "PR" : "issue";
+  const noun = subject.kind === "pr" ? "PR" : subject.kind;
   return subject.author ? `${subject.author} opened this ${noun}` : `${noun} with no loaded activity`;
 }
 
@@ -227,7 +229,13 @@ function findingsLine(findings: readonly Finding[]): string {
   return truncate(findings.length > 1 ? `${lead} (+${findings.length - 1} more)` : lead);
 }
 
-const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
+const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened", "answered"]);
+
+/** Announcement discussions are release notes and news; activity on them only matters when it involves me. */
+function isAnnouncement(subject: SubjectRecord): boolean {
+  const name = obj(obj(subject.raw)?.category)?.name;
+  return typeof name === "string" && name.toLowerCase() === "announcements";
+}
 
 /**
  * Picks the inbox section. Waiting: an open review request for me, a new mention of me, or
@@ -243,6 +251,7 @@ const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
 export function rank(input: RankInput): Rank {
   const { subject, threads, events, rounds, state, me, now } = input;
   const isPr = subject.kind === "pr";
+  const isDiscussion = subject.kind === "discussion";
   const fresh = events.filter((e) => e.isNew);
   const shown = fresh.filter((e) => e.level === "show");
   const human = shown.filter(isHumanText);
@@ -269,7 +278,9 @@ export function rank(input: RankInput): Rank {
     if (isPr && iReviewed(subject, events, me)) add("onMyReview");
     if (!isPr && assignedToMe(subject, me)) add("assigned");
     if (threads.some((t) => PARTICIPATING_REASONS.has(t.reason))) add("participating");
+    if (isDiscussion && events.some((e) => e.kind === "comment" && isMe(e.actor?.login, me))) add("participating");
   }
+  if (isDiscussion && mine && shown.some((e) => e.kind === "answered")) add("onMine");
   const closed = subject.state === "MERGED" || subject.state === "CLOSED";
   // My open PRs, drafts included, are my work queue. Done still clears one until something new shows.
   if (isPr && mine && subject.state === "OPEN" && (state.doneAt == null || shown.length > 0)) add("myOpenPr");
@@ -290,6 +301,9 @@ export function rank(input: RankInput): Rank {
     } else if (isPr && closedByOthers && human.length === 0) {
       section = "hidden";
       add("closedByOthers");
+    } else if (isDiscussion && isAnnouncement(subject)) {
+      section = "hidden";
+      add("announcement");
     } else if (shown.length > 0) {
       add(shown.some((e) => STATE_KINDS.has(e.kind)) ? "stateChange" : "newActivity");
     } else if (!isPr && isNewIssue(subject, state.dismissedAt, me) && events.every((e) => e.kind !== "comment")) {

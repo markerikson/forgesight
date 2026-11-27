@@ -1,0 +1,276 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: discussion(number: 4933) { ...DiscussionCore }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment DiscussionCore on Discussion {\n  id number title body url createdAt updatedAt lastEditedAt closed closedAt stateReason locked\n  isAnswered answerChosenAt answerChosenBy { login __typename } answer { id }\n  category { name emoji isAnswerable }\n  author { login __typename }\n  labels(first: 20) { nodes { name } }\n  upvoteCount\n  comments(last: 50) {\n    totalCount\n    nodes {\n      id createdAt lastEditedAt author { login __typename } body url isMinimized isAnswer\n      replies(last: 20) { totalCount nodes { id createdAt lastEditedAt author { login __typename } body url isMinimized isAnswer replyTo { id } } }\n    }\n  }\n}\n",
+  "variables": {
+    "owner": "reduxjs",
+    "name": "redux-toolkit",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "reduxjs/redux-toolkit",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "id": "D_kwDOB2ACAs4AfMQa",
+          "number": 4933,
+          "title": "How do you lazy-load slices where its `extraReducers` listen to a thunk's payload and the thunk is fulfilled before the slice is injected?",
+          "body": "I have a thunk, `thunkA`, which contacts a REST API.  I also have a traditional Redux slice with an `extraReducers` where it responds to the `thunkA` and its payload when it is fulfilled.\r\n\r\nWhen trying to make this slice lazy-loaded, the slice doesn't exist immediately.  So when `thunkA` is dispatched while this slice is unavailable, the state in this slice cannot be updated; consequently, when the lazy-loaded slice loads, it will just only have the initial state.\r\n\r\nIs there a way to resolve this so that the lazy-loaded slice can contain the relevant state updates from the action?  Do I just need to dispatch the thunk and make another API call again?  Is there a solution without doing another API call?",
+          "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933",
+          "createdAt": "2025-04-07T21:39:14Z",
+          "updatedAt": "2025-12-16T15:35:04Z",
+          "lastEditedAt": null,
+          "closed": true,
+          "closedAt": "2025-12-16T15:35:04Z",
+          "stateReason": "RESOLVED",
+          "locked": false,
+          "isAnswered": true,
+          "answerChosenAt": "2025-12-16T15:34:58Z",
+          "answerChosenBy": {
+            "login": "TimeDropsSB",
+            "__typename": "User"
+          },
+          "answer": {
+            "id": "DC_kwDOB2ACAs4AwqyJ"
+          },
+          "category": {
+            "name": "Q&A",
+            "emoji": ":pray:",
+            "isAnswerable": true
+          },
+          "author": {
+            "login": "TimeDropsSB",
+            "__typename": "User"
+          },
+          "labels": {
+            "nodes": []
+          },
+          "upvoteCount": 1,
+          "comments": {
+            "totalCount": 2,
+            "nodes": [
+              {
+                "id": "DC_kwDOB2ACAs4AwqyJ",
+                "createdAt": "2025-04-08T01:49:44Z",
+                "lastEditedAt": null,
+                "author": {
+                  "login": "markerikson",
+                  "__typename": "User"
+                },
+                "body": "In one sense, there _isn't_ a solution here.  If that reducer isn't loaded when the fulfilled action is dispatched, then no, it wasn't around to handle the action (aka the \"tree falling in a forest and no one's around to hear it\" scenario).  \r\n\r\nIf there's some other section of the reducer logic that is _also_ listening for this action and does handle it, you could in theory write logic to grab some value from slice B and dispatch another action when slice A gets loaded.  But it's also likely that this was the only slice of state that cared about that action, in which case nothing else saved any values from that action at all.\r\n\r\nA rarely used alternative might be to use a special middleware that watches for that action, and only passes it onwards to the store + root reducer if the slice has been loaded.  If not, it could hold the action in a queue, and then actually re-dispatch it once the slice _is_ loaded.  Some of the packages I have listed at https://github.com/markerikson/redux-ecosystem-links/blob/master/middleware-async.md#timeouts-and-delays might give you some inspiration there.\r\n\r\nOut of curiosity, what are the general behavior steps that lead to the thunk being dispatched, and to the slice getting loaded?",
+                "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-12758153",
+                "isMinimized": false,
+                "isAnswer": true,
+                "replies": {
+                  "totalCount": 3,
+                  "nodes": [
+                    {
+                      "id": "DC_kwDOB2ACAs4Awtee",
+                      "createdAt": "2025-04-08T19:10:34Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "TimeDropsSB",
+                        "__typename": "User"
+                      },
+                      "body": "> Out of curiosity, what are the general behavior steps that lead to the thunk being dispatched, and to the slice getting loaded?\r\n\r\nWe have an app where the same app is used to serve content for a handful of sites that we have.  Each site has different content so serving content is done by from fetching config data from an API on initial load which is what the thunk is.  Config payload is sent to multiple reducers/slices but some slices are not needed on the initial load hence why we are lazy-loading them.  So aside from the thunk itself which is the critical part of updating the state first, no other aspect of these slices is required on initial load.\r\n\r\n> If there's some other section of the reducer logic that is also listening for this action and does handle it, you could in theory write logic to grab some value from slice B and dispatch another action when slice A gets loaded. But it's also likely that this was the only slice of state that cared about that action, in which case nothing else saved any values from that action at all.\r\n\r\nWe actually do have this architecture but our primary fear is that this singular slice is bloating itself by becoming the \"core slice\" to all the other slices which is why it would have been preferable to just simply send down the payload from the original thunk and the slice managing its own state, a.k.a. \"slim actions, heavy reducers\" model.  Not that we can't have this core slice but we really want to decrease our first load JS used and this didn't seem a viable idea for scaling purposes.\r\n\r\nI'll take a look at your link just in case there are any new ideas I'm missing but I think I got a way to move forward for the time being.  I appreciate the insight.",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-12769182",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4AwqyJ"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4Awte0",
+                      "createdAt": "2025-04-08T19:12:42Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "markerikson",
+                        "__typename": "User"
+                      },
+                      "body": "This also may not answer your question directly, but: have you looked into using RTK Query to do the fetching and caching instead of writing thunks yourself?",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-12769204",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4AwqyJ"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4Awth-",
+                      "createdAt": "2025-04-08T19:35:03Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "TimeDropsSB",
+                        "__typename": "User"
+                      },
+                      "body": "We are actually in the midst of trying to set RTK Query up but we have a roadblocker on setting it up and making it work for us so we're trying to get that sorted out.",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-12769406",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4AwqyJ"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "DC_kwDOB2ACAs4A6Gd5",
+                "createdAt": "2025-12-11T12:44:30Z",
+                "lastEditedAt": null,
+                "author": {
+                  "login": "bam",
+                  "__typename": "User"
+                },
+                "body": "Just found your question because I have similar situation: I want to guarantee the loading of lazy slice before the thunk will be fulfilled...\r\nSo I research for your problem too. If I understand you right you call thunk always (so there is no optimization in number of calls). And then you decide what the site to load (with or without slice) depending on the received data. If so seems you can use dynamic import of the slice in thunk, before fulfil it:\r\n```js\r\nexport const thunk = createAsyncThunk('typePrefix', async (params)=>{\r\n  try {\r\n    // ...\r\n    const data = await request()\r\n    if(data.success){\r\n      await import('/path/to/slice.js') // <-- Here your slice will be requested and loaded (but you will lose some time for loading)\r\n      return data // <-- Fulfil the thunk\r\n    }\r\n    // ...\r\n  }\r\n  // ...\r\n})\r\n```\r\nMaybe something is out of my sight, but I tested and it works in my project.\r\n\r\nP.s. And I realised it's not a risk for me (and there is no problem at all), because I import selector from slice always before thunk call.",
+                "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15230841",
+                "isMinimized": false,
+                "isAnswer": false,
+                "replies": {
+                  "totalCount": 8,
+                  "nodes": [
+                    {
+                      "id": "DC_kwDOB2ACAs4A6KDB",
+                      "createdAt": "2025-12-13T07:06:15Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "TimeDropsSB",
+                        "__typename": "User"
+                      },
+                      "body": "Dynamically importing works if you don't need the initial data at first.  Since I need the initial thunk to always fire (for bootstrapping the app), dynamic import wouldn't work for my case.\r\n\r\nHowever, even then, there is little value to dynamic import a slice because the selectors would already would be a problem unless you inject the slice first; otherwise, there is no state to access which raises an error.  That means, by use case, you would be better off just importing the slice with a regular import in components that need to use the slice and instead dynamic import (lazy-load) the components themselves.\r\n",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15245505",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6KLD",
+                      "createdAt": "2025-12-13T09:37:56Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "bam",
+                        "__typename": "User"
+                      },
+                      "body": "According to [docs](https://redux.js.org/usage/code-splitting#selector-utilities) your selector for lazy slice will return initial data even if slice does not persist in the store. There shouldn't be error on calling selector before slice comes to the store.\r\nAs I could understand, you mean initial data is the data from request, but you can read it right inside your thunk after receiving, why do you need a slice for this? I thought you need a slice in the future, don't see the problem to read raw data in thunk instead of selecting it from slice. So, you can decide whether to load and inject slice or not inside the thunk. Awaiting of import will guarantee readiness of the reducer for data. And in the meantime, the slice will be loaded and ready for the next site component.\r\nOf course, you can dynamically load whole component that will use selector from slice inside it. Thus, slice will be loaded too. But you don't need a component inside the thunk and must import later in the bootstrap component. If you use static import there, you don't achieve lazy loading effect...\r\nWell, actually I don't know the architecture of your app and can suggest incompatible thing. But I've tested it on my project, trying to replicate your case — works just fine. If you want, we can look at your app together precisely and try to adopt my solution. If not, it's ok, good luck and have a good time!",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15246019",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6KTN",
+                      "createdAt": "2025-12-13T12:40:52Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "EskiMojo14",
+                        "__typename": "User"
+                      },
+                      "body": "> According to [docs](https://redux.js.org/usage/code-splitting#selector-utilities) your selector for lazy slice will return initial data even if slice does not persist in the store. There shouldn't be error on calling selector before slice comes to the store.\r\n\r\nCorrect, RTK includes two methods for wrapping selectors to ensure slice state is available:\r\n```js\r\nconst rootReducer = combineSlices(authSlice).withLazyLoadedSlices<{ posts: PostState }>();\r\n\r\n// slice first approach\r\nconst postSlice = createSlice({\r\n  name: \"posts\",\r\n  initialState: { items: [] },\r\n  reducers: {},\r\n  selectors: {\r\n    selectPosts: (state) => state.items\r\n  }\r\n})\r\n\r\npostSlice.selectors.selectPosts({}) // throws, no post slice\r\n\r\nconst injectedPostSlice = postSlice.injectInto(rootReducer) \r\n\r\ninjectedPostSlice.selectors.selectPosts({}) // calls selector with initial state if no post slice\r\n\r\n// rootReducer first approach\r\nconst selectPosts = rootReducer.selector(state => state.posts.items)\r\n\r\nrootReducer.inject(postSlice);\r\n\r\n// uses a proxy around state to provide initial state for any reducers that have been injected but aren't in state yet\r\nselectPosts({})\r\n```",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15246541",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6O3x",
+                      "createdAt": "2025-12-16T04:08:49Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "TimeDropsSB",
+                        "__typename": "User"
+                      },
+                      "body": "> As I could understand, you mean initial data is the data from request, but you can read it right inside your thunk after receiving, why do you need a slice for this? I thought you need a slice in the future, don't see the problem to read raw data in thunk instead of selecting it from slice. \r\n\r\nI mentioned this in my original opening post.  `thunkA` which bootstraps the app invokes a REST API call.  But I don't need something like e.g. a blog page's slice state data on the home page.   However, `thunkA` when fulfilled contains data shared between the two pages but the data on the blog page slice can't be updated while on the home page (and vice-versa) because the slice doesn't exist at that point in time.  The part you are missing is that there is an AJAX fetch request needs to be done again so even if you dispatch `thunkA` again so that the lazy-loaded slice can be dynamically imported, another AJAX call needs to be made which is wasteful.  My original opening post specifically questions this part.\r\n\r\nI'm not saying dynamic import slice inside the thunk is bad in certain use cases but the subsequent repeated unnecessary AJAX requests is why it's a problem and wouldn't work for my case.  For the regular import the slice at the component and dynamically import (suspend) the component matter, the slice will only be injected when the component is ever used due to the dynamic import which achieves the same effect but has arguably better code splitting results.\r\n\r\nThat said, I didn't realize slices come with a `selectors` key that guarantees the state is available so I will be trying that more in the future.",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15265265",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6O7a",
+                      "createdAt": "2025-12-16T05:13:47Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "bam",
+                        "__typename": "User"
+                      },
+                      "body": "Have you tried my code in your thunk?\r\nIt doesn't call your api one more time. It just guarantees that slice will be ready at the time of data's been dispatched to reducer.",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15265498",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6PI4",
+                      "createdAt": "2025-12-16T07:30:06Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "TimeDropsSB",
+                        "__typename": "User"
+                      },
+                      "body": "What do you mean?  `const data = await request()` is the AJAX call line.  The if block after just dynamic loads the slice after but it's strictly for one slice that you know should be loaded.   But I mentioned in my [comment above](https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-12769182) describing my scenario that there are multiple slices involved.  So dynamically importing just one slice is inadequate.",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15266360",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6PvP",
+                      "createdAt": "2025-12-16T12:06:17Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "bam",
+                        "__typename": "User"
+                      },
+                      "body": "Well, now I see. You have got all the data in your initial request for all possible slices and sites. And want to optimize loading and creating of slices (which is actually a JS object with some \"functional\" sugar = not so expensive at least). Even if you will (then) use only one site (from your handful) and 90% (e.g.) of data is not needed, you must store it or refetch every time you need it (there is no magic, it's a price for such solution). Seems this storing is more expensive than creating another one slice. \r\nBack to your title question: put RTK allows such feature and you will have active reducer before slice is created, it must store the data somewhere (in a JS object?). If you will never need the slice, data will be stored permanent (actually, though named \"temporary until slice is created\"). What is the difference with creation of slice at the moment of receiving of the data? Rhetorical question...\r\nBut OK, it's your app, your decision whatever you (not me) did it and are responsible for the app's stability and developing!  \r\nSo you want to request the initial data once for all slices and have to keep it until it will be used. Here I see something like this solution:\r\nStore initial data at closure (initialData const, which you use at slice creation) or even at session storage and then put it in lazy-loaded slice with `initialState` property with const or function of `createSlice()`.\r\n```js\r\n// lazySlice.js\r\nimport store from 'store';\r\nconst initialState = ()=>{\r\n  const necessaryData = getStoredData() // get from session, closure etc.\r\n  // if you want to get data from main slice and put in site's one, you have to do it in an 'init' thunk with further cleanup at main... but i didn't test it\r\n  return necessaryData\r\n}\r\n\r\nconst lazySlice = createSlice({\r\n  name: 'lazy',\r\n  initialState,\r\n  // ...\r\n})\r\n```\r\nBut all such solutions are just putting same thing at another place. I can't figure any performance or other gains. Making a number of closured consts you get an alternative store managed by you. The only reason i saw is your desire to lightweight core slice, again, just managing internal structure — I don't know the boundaries of acceptable modifications you can do in your app and architecture. Also you can create just separate slice with initial data and don't join it with core slice. At the end of the day if you need to store data you have to store it. And seems we are talking longer than implement any of the cases)))))))\r\nHave a good time and a good luck with your project!",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15268815",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    },
+                    {
+                      "id": "DC_kwDOB2ACAs4A6QL0",
+                      "createdAt": "2025-12-16T15:34:52Z",
+                      "lastEditedAt": null,
+                      "author": {
+                        "login": "TimeDropsSB",
+                        "__typename": "User"
+                      },
+                      "body": "All good.  It's like markerikson said and there isn't quite a solution but I appreciate the thought.\r\n\r\nBecause of the nature of Redux, importing a slice means you have to import all of the actions that come with it and that leads to file size bloat and high First Load JS if the action files (as well as selectors) aren't properly organized or split.  A bit difficult to deal with it but it is what it is.  ",
+                      "url": "https://github.com/reduxjs/redux-toolkit/discussions/4933#discussioncomment-15270644",
+                      "isMinimized": false,
+                      "isAnswer": false,
+                      "replyTo": {
+                        "id": "DC_kwDOB2ACAs4A6Gd5"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 1,
+    "remaining": 4988,
+    "resetAt": "2026-11-27T05:45:33.000Z",
+    "gatewayErrors": 0
+  }
+}

@@ -21,6 +21,7 @@ import { groupOpened, rowRead, selectGroupOf, selectSelectedGroup, selectSelecte
 import { Avatar } from "./Avatar.tsx";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
+import { DiscussionMeta } from "./DiscussionMeta.tsx";
 import { CopyFindings, FindingsPanel } from "./FindingsPanel.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
@@ -264,7 +265,14 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
                 </span>
               </div>
             )}
-            <RoundView subjectKey={subject.key} round={round} index={index} focused={index === focused} now={now} />
+            <RoundView
+              subjectKey={subject.key}
+              round={round}
+              index={index}
+              focused={index === focused}
+              now={now}
+              answerId={subject.header.discussion?.answerId ?? null}
+            />
           </Fragment>
         );
       })}
@@ -303,6 +311,7 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
         <DraftBadge draft={header.draft} />
         <CiDot state={header.ciState} />
         <ReviewBadge decision={header.reviewDecision} />
+        <DiscussionMeta info={header.discussion} />
         {subject.snoozeUntil && <span>snoozed until {subject.snoozeUntil.slice(0, 10)}</span>}
       </div>
       {(reasons.length > 0 || notifiedFor || subject.fetching || hiddenWhy) && (
