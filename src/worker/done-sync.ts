@@ -25,22 +25,25 @@ function due(ctx: JobContext, now: Date): boolean {
   return Number.isNaN(at) || now.getTime() - at >= ctx.config.polling.doneSyncMinutes * 60_000;
 }
 
-/**
- * Reads one listing to the end. Returns null when the budget runs out first, so a partial
- * listing is never treated as complete.
- */
+interface Listing {
+  /** Thread id → `updated_at`. */
+  seen: Map<string, string>;
+  /** False when the budget ran out before the end (or before `stopWhen`). */
+  complete: boolean;
+}
+
 async function readListing(
   ctx: JobContext,
   pages: AsyncIterable<NotificationThread[]>,
   stopWhen: (seen: Map<string, string>) => boolean = () => false,
-): Promise<Map<string, string> | null> {
+): Promise<Listing> {
   const seen = new Map<string, string>();
   for await (const page of pages) {
     for (const t of page) seen.set(t.id, t.updatedAt);
-    if (stopWhen(seen)) return seen;
-    if (!ctx.governor.canSpend("rest", "doneSync")) return null;
+    if (stopWhen(seen)) return { seen, complete: true };
+    if (!ctx.governor.canSpend("rest", "doneSync")) return { seen, complete: false };
   }
-  return seen;
+  return { seen, complete: true };
 }
 
 /**
@@ -50,13 +53,13 @@ async function readListing(
  * GitHub's `all=true` listings keep showing done threads, and marking done does not change
  * `updated_at`, so the regular poll cannot see it. Instead:
  * 1. Candidates are local threads from the last `backfillDays` that are not done here or on GitHub.
- * 2. One `is_done=false` listing since the oldest candidate. Candidates missing from it, or listed
- *    with a different `updated_at`, are suspects. This listing is small: it is the GitHub inbox.
+ * 2. One `is_done=false` listing since the oldest candidate. Candidates missing from it are
+ *    suspects. This listing is small: it is the GitHub inbox.
  * 3. One `is_done=true` listing since the oldest suspect, stopping once every suspect is found.
  *    Only threads found there, with the same `updated_at` as ours, are marked done.
  *
- * Step 3 is what makes a thread done, so a partial or racing listing in step 2 can only cost an
- * extra request, never a wrong Done. A suspect that step 3 does not find (for example a thread
+ * Step 3 is what makes a thread done, so a racing listing in step 2 can only cost extra
+ * requests, never a wrong Done. A run cut short by the budget still waits a full interval. A suspect that step 3 does not find (for example a thread
  * GitHub dropped) is skipped for a day so it does not force a long listing every run.
  */
 export const doneSyncJob: Job = {
@@ -75,21 +78,30 @@ export const doneSyncJob: Job = {
     }
     if (!governor.canSpend("rest", "doneSync")) return "idle";
 
+    const nowIso = now.toISOString();
     const notDone = await readListing(ctx, gh.listNotificationsByDone(false, new Date(oldest.updatedAt)));
-    if (!notDone) return "worked";
+    if (!notDone.complete) {
+      // Out of budget: wait for the next interval instead of restarting on the next tick.
+      setMeta(db, META.doneSyncAt, nowIso, nowIso);
+      return "worked";
+    }
 
     const unconfirmed = readUnconfirmed(ctx);
-    const suspects = candidates.filter((c) => {
-      if (notDone.get(c.threadId) === c.updatedAt) return false;
+    const recentlyUnconfirmed = (c: DoneCandidate) => {
       const prev = unconfirmed[c.threadId];
-      return !(
-        prev &&
+      return (
+        prev !== undefined &&
         prev.updatedAt === c.updatedAt &&
         now.getTime() - Date.parse(prev.checkedAt) < UNCONFIRMED_RECHECK_MS
       );
-    });
+    };
+    // Any thread in the not-done listing is not done, whatever its `updated_at`: the poll will
+    // pick up its new activity.
+    const missing = candidates.filter((c) => !notDone.seen.has(c.threadId));
+    const suspects = missing.filter((c) => !recentlyUnconfirmed(c));
 
     const confirmed: DoneCandidate[] = [];
+    let doneComplete = true;
     const oldestSuspect = suspects[0];
     if (oldestSuspect) {
       const wanted = new Map(suspects.map((s) => [s.threadId, s]));
@@ -98,29 +110,21 @@ export const doneSyncJob: Job = {
         gh.listNotificationsByDone(true, new Date(oldestSuspect.updatedAt)),
         (seen) => [...wanted.keys()].every((id) => seen.has(id)),
       );
-      for (const [id, updatedAt] of done ?? []) {
+      doneComplete = done.complete;
+      for (const [id, updatedAt] of done.seen) {
         const suspect = wanted.get(id);
         if (suspect && suspect.updatedAt === updatedAt) confirmed.push(suspect);
       }
-      if (!done) {
-        const marked = applyExternalDone(db, confirmed, now.toISOString());
-        if (marked.length > 0) log.info(`doneSync: ${marked.length} subjects done on GitHub (partial listing)`);
-        return "worked";
-      }
     }
 
-    const nowIso = now.toISOString();
-    const confirmedIds = new Set(confirmed.map((c) => c.threadId));
-    const suspectIds = new Set(suspects.map((s) => s.threadId));
     const nextUnconfirmed: Unconfirmed = {};
-    for (const c of candidates) {
-      if (suspectIds.has(c.threadId)) {
-        if (!confirmedIds.has(c.threadId)) nextUnconfirmed[c.threadId] = { updatedAt: c.updatedAt, checkedAt: nowIso };
-      } else {
-        // Skipped this run because of a recent unconfirmed entry: keep that entry.
-        const prev = notDone.get(c.threadId) === c.updatedAt ? undefined : unconfirmed[c.threadId];
-        if (prev) nextUnconfirmed[c.threadId] = prev;
-      }
+    const confirmedIds = new Set(confirmed.map((c) => c.threadId));
+    for (const c of missing) {
+      if (confirmedIds.has(c.threadId)) continue;
+      const prev = unconfirmed[c.threadId];
+      if (recentlyUnconfirmed(c) && prev) nextUnconfirmed[c.threadId] = prev;
+      // A partial done listing did not check the rest, so they are not recorded as unconfirmed.
+      else if (doneComplete) nextUnconfirmed[c.threadId] = { updatedAt: c.updatedAt, checkedAt: nowIso };
     }
 
     const marked = db.transaction(() => {
@@ -130,8 +134,8 @@ export const doneSyncJob: Job = {
       return marked;
     })();
     log.info(
-      `doneSync: ${candidates.length} candidates, ${suspects.length} missing from the GitHub inbox, ` +
-        `${marked.length} subjects marked done`,
+      `doneSync: ${candidates.length} candidates, ${missing.length} missing from the GitHub inbox, ` +
+        `${marked.length} subjects marked done${doneComplete ? "" : " (done listing cut short by budget)"}`,
     );
     return "worked";
   },

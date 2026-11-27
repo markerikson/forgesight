@@ -100,6 +100,50 @@ describe("doneSyncJob", () => {
     expect(getItemState(t.db, t.subjectOf("1")).doneAt).toBeNull();
   });
 
+  test("a thread still in the GitHub inbox with newer activity does not trigger the done listing", async () => {
+    const t = await setup(fakeThread({ id: "1", updatedAt: ago(HOUR) }));
+    t.gh.setThreads(fakeThread({ id: "1", updatedAt: ago(MINUTE) }));
+
+    await doneSyncJob.run(t.ctx);
+
+    expect(t.listings()).toEqual(["notDone"]);
+    expect(getMeta(t.db, META.doneSyncUnconfirmed)).toBe("{}");
+  });
+
+  test("a run cut short by the budget keeps what it confirmed and waits for the next interval", async () => {
+    const t = await setup(
+      fakeThread({ id: "1", updatedAt: ago(HOUR) }),
+      fakeThread({ id: "2", updatedAt: ago(2 * HOUR) }),
+      fakeThread({ id: "3", updatedAt: ago(3 * HOUR) }),
+    );
+    t.gh.done.add("1");
+    t.gh.threads.delete("2");
+    let allowed = 2;
+    t.ctx.governor.canSpend = () => allowed-- > 0;
+
+    expect(await doneSyncJob.run(t.ctx)).toBe("worked");
+
+    expect(t.listings()).toEqual(["notDone", "done"]);
+    expect(t.ghDoneAt("1")).toBe(START.toISOString());
+    expect(getMeta(t.db, META.doneSyncUnconfirmed)).toBe("{}");
+    expect(getMeta(t.db, META.doneSyncAt)).toBe(START.toISOString());
+    allowed = 10;
+    expect(await doneSyncJob.run(t.ctx)).toBe("idle");
+  });
+
+  test("a not-done listing cut short by the budget concludes nothing", async () => {
+    const t = await setup(fakeThread({ id: "1", updatedAt: ago(HOUR) }), fakeThread({ id: "2", updatedAt: ago(2 * HOUR) }));
+    t.gh.done.add("1");
+    let allowed = 1;
+    t.ctx.governor.canSpend = () => allowed-- > 0;
+
+    expect(await doneSyncJob.run(t.ctx)).toBe("worked");
+
+    expect(t.listings()).toEqual(["notDone"]);
+    expect(t.ghDoneAt("1")).toBeNull();
+    expect(getMeta(t.db, META.doneSyncAt)).toBe(START.toISOString());
+  });
+
   test("a thread missing from both listings is left alone and rechecked a day later", async () => {
     const t = await setup(fakeThread({ id: "1", updatedAt: ago(HOUR) }), fakeThread({ id: "2", updatedAt: ago(2 * HOUR) }));
     t.gh.threads.delete("1");
