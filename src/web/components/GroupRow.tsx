@@ -22,7 +22,8 @@ import { useAppDispatch, useAppSelector } from "../store/hooks.ts";
 import { MEMBER_CAP, selectGoneKeys, toggleWorkstream } from "../store/view.ts";
 import { relativeTime, repoShortName, stateCountsText } from "../format.ts";
 import { Avatar } from "./Avatar.tsx";
-import { StateIcon } from "./Badges.tsx";
+import { sumFindingIcons } from "../../core/findings/index.ts";
+import { FindingBadges, StateIcon } from "./Badges.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { SubjectLink } from "./SubjectLink.tsx";
 import { rowDomId } from "./ThreadRow.tsx";
@@ -117,6 +118,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
         {group.summary?.changed && <span className={styles.changed}>summary updated</span>}
         {group.priority !== "normal" && <span className={styles.badge}>{PRIORITY_LABELS[group.priority]}</span>}
         {group.closed && <span className={styles.badge}>closed</span>}
+        <FindingBadges icons={sumFindingIcons(group.members.map((m) => m.findings))} />
         {!editing && (
           <div className={rowStyles.actions}>
             <select

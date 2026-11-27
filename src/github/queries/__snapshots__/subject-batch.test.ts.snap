@@ -22,7 +22,7 @@ fragment PrCore on PullRequest {
     ... on CheckRun { name status conclusion detailsUrl }
     ... on StatusContext { context state targetUrl } } } } } } }
   reviewThreads(last: 50) { nodes { id isResolved isOutdated path line
-    comments(first: 1) { nodes { id author { login } body createdAt } } } }
+    comments(first: 1) { nodes { id author { login } body createdAt url originalCommit { oid } } } } }
 }
 fragment PrItems on PullRequestTimelineItems {
   __typename

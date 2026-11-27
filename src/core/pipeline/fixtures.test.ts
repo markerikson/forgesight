@@ -96,7 +96,9 @@ export async function loadFixture(name: string): Promise<DeriveInput> {
     subject,
     threads,
     items,
-    reviewThreads: [],
+    reviewThreads: (enrichment.reviewThreads ?? []).map((t) =>
+      Object.assign({}, t, { subjectKey: meta.subjectKey, fetchedAt: meta.recordedAt }),
+    ),
     stickies,
     state,
     config,
@@ -115,6 +117,13 @@ function trim(view: SubjectView) {
     hiddenStats: view.hiddenStats,
     sortAt: view.sortAt,
     links: view.links,
+    ...(view.findings
+      ? {
+          findings: view.findings.map(
+            (f) => `${f.tool} ${f.status} ${f.severity}${f.isNew ? " (new)" : ""} ${f.id} ${f.title}`,
+          ),
+        }
+      : {}),
     rounds: view.rounds.map((r) => ({
       start: r.startLabel,
       isNew: r.isNew,

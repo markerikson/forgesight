@@ -1,3 +1,4 @@
+import { findingIcons } from "../findings/status.ts";
 import type { SubjectRecord, SubjectViewRecord, ThreadRecord } from "../types.ts";
 import { isMe } from "./classify.ts";
 import type {
@@ -159,7 +160,7 @@ export function toInboxRow(view: SubjectView): InboxRow {
     snoozeUntil: view.snoozeUntil,
     unread: view.unread,
     enrichError: h.enrichError,
-    findings: [],
+    findings: h.state === "OPEN" ? findingIcons(view.findings ?? []) : [],
   };
 }
 

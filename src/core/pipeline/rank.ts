@@ -1,3 +1,4 @@
+import type { Finding } from "../findings/types.ts";
 import type { ItemState, SubjectRecord, ThreadRecord } from "../types.ts";
 import { isHumanText, isMe, isRestack, restackText } from "./classify.ts";
 import { firstLine, mentions, truncate, typenameLabel } from "./text.ts";
@@ -15,6 +16,8 @@ export interface RankInput {
   now: Date;
   /** A review request older than this, with nothing shown since, no longer counts as waiting. */
   reviewRequestMaxAgeDays: number;
+  /** Review-bot findings, set only for PRs in findings scope. */
+  findings?: readonly Finding[];
 }
 
 export interface Rank {
@@ -164,6 +167,19 @@ function iReviewed(subject: SubjectRecord, events: ViewEvent[], me: string | nul
   return nodes(obj(subject.raw)?.latestReviews).some((n) => isMe(obj(n.author)?.login as string | undefined, me));
 }
 
+/** PRs whose review-bot findings matter to me: mine, ones I reviewed, and ones I am asked to review. */
+export function findingsInScope(subject: SubjectRecord, events: ViewEvent[], me: string | null): boolean {
+  if (subject.kind !== "pr" || me === null) return false;
+  if (isMe(subject.author ?? undefined, me) || iReviewed(subject, events, me)) return true;
+  return nodes(obj(subject.raw)?.reviewRequests).some((n) =>
+    isMe(obj(n.requestedReviewer)?.login as string | undefined, me),
+  );
+}
+
+function newSeriousFindings(findings: readonly Finding[] | undefined): Finding[] {
+  return (findings ?? []).filter((f) => f.isNew && f.serious && f.status === "outstanding");
+}
+
 const BODY_KINDS = new Set(["comment", "review", "reviewComment"]);
 
 /** A PR its author closed without merging, where the close is new and I never reviewed or commented. */
@@ -202,12 +218,22 @@ function hiddenStats(events: ViewEvent[], rounds: Round[]): HiddenStats {
   };
 }
 
+const TOOL_NAMES: Record<Finding["tool"], string> = { diffloupe: "DiffLoupe", coderabbit: "CodeRabbit" };
+
+function findingsLine(findings: readonly Finding[]): string {
+  const [first] = findings;
+  if (!first) return "";
+  const lead = `${TOOL_NAMES[first.tool]} found: ${first.title}`;
+  return truncate(findings.length > 1 ? `${lead} (+${findings.length - 1} more)` : lead);
+}
+
 const STATE_KINDS = new Set(["merged", "closed", "closedByPr", "reopened"]);
 
 /**
  * Picks the inbox section. Waiting: an open review request for me, a new mention of me, or
  * new human comments on something I authored, reviewed, was assigned or am participating in,
- * or any open PR of mine (drafts too) that I have not marked done since its last shown event.
+ * any open PR of mine (drafts too) that I have not marked done since its last shown event,
+ * or a new blocker or should-fix review-bot finding on an open PR I reviewed or was asked to review.
  * Once something I authored is closed, only a new mention or review request makes it waiting.
  * Updates: anything else new and shown. Hidden: nothing new and shown, a PR someone else
  * merged or closed with no new human comment, or a PR its author closed unmerged that I never
@@ -247,6 +273,9 @@ export function rank(input: RankInput): Rank {
   const closed = subject.state === "MERGED" || subject.state === "CLOSED";
   // My open PRs, drafts included, are my work queue. Done still clears one until something new shows.
   if (isPr && mine && subject.state === "OPEN" && (state.doneAt == null || shown.length > 0)) add("myOpenPr");
+  // My own open PRs already wait; on others, a new blocker or should-fix finding raises it.
+  const newFindings = isPr && !mine && subject.state === "OPEN" ? newSeriousFindings(input.findings) : [];
+  if (newFindings.length > 0) add("newFindings");
   // Once my own PR or issue is closed, only a new mention or review request keeps it waiting.
   const waits = closed && mine
     ? reasons.some((r) => r === "mentioned" || r === "reviewRequested")
@@ -277,6 +306,7 @@ export function rank(input: RankInput): Rank {
     (newest?.kind === "mentioned" ? newest : undefined);
   let summaryLine = "";
   if (summarized) summaryLine = describe(summarized);
+  else if (newFindings.length > 0) summaryLine = findingsLine(newFindings);
   else if (reasons.includes("reviewRequested") || reasons.includes("staleReviewRequest")) {
     summaryLine = lastRequest ? describe(lastRequest) : "review requested";
   } else {
@@ -287,6 +317,7 @@ export function rank(input: RankInput): Rank {
 
   const sortAt =
     newest?.at ??
+    newFindings.map((f) => f.firstSeenAt).sort().at(-1) ??
     lastRequest?.at ??
     last(fresh)?.at ??
     last(events.filter((e) => e.undated !== true))?.at ??

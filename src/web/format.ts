@@ -116,6 +116,7 @@ export const REASON_LABELS: Record<RankReason, string> = {
   onMine: "mine",
   myOpenPr: "my open PR",
   onMyReview: "I reviewed",
+  newFindings: "new findings",
   participating: "participating",
   newActivity: "new activity",
   stateChange: "state changed",

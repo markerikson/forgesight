@@ -3,7 +3,7 @@ import type { InboxRow } from "../../core/index.ts";
 import { isMuted } from "../store/actions.ts";
 import { relativeTime, repoShortName, rowByline } from "../format.ts";
 import { Avatar } from "./Avatar.tsx";
-import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
+import { CiDot, DraftBadge, FindingBadges, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { GitHubIcon } from "./SubjectLink.tsx";
 import styles from "./ThreadRow.module.css";
 
@@ -68,6 +68,7 @@ export const ThreadRow = memo(function ThreadRow({
           {row.title}
         </span>
         <DraftBadge draft={row.draft} />
+        <FindingBadges icons={row.findings} />
         <CiDot state={row.ciState} />
         <ReviewBadge decision={row.reviewDecision} />
         <div className={styles.actions}>

@@ -21,6 +21,7 @@ import { groupOpened, rowRead, selectGroupOf, selectSelectedGroup, selectSelecte
 import { Avatar } from "./Avatar.tsx";
 import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
+import { CopyFindings, FindingsPanel } from "./FindingsPanel.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { GitHubIcon, SubjectLink } from "./SubjectLink.tsx";
@@ -184,6 +185,7 @@ function ActionBar({ row, url, subject }: { row: InboxRow; url: string | null; s
           {subject.fetching ? "Refreshing…" : "Refresh"}
         </button>
       )}
+      {subject?.header.state === "OPEN" && <CopyFindings subject={subject} />}
       {subject && subject.workstream === null && <AddToWorkstream header={subject.header} />}
       {url && (
         <a className={styles.button} href={url} target="_blank" rel="noopener noreferrer" title="Open on GitHub (o)">
@@ -245,6 +247,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
       </div>
       {subject.workstream && <StackBox workstream={subject.workstream} subjectKey={subject.key} />}
       {subject.body && <Description key={subject.key} body={subject.body} />}
+      {subject.findings && <FindingsPanel findings={subject.findings} open={subject.header.state === "OPEN"} />}
       {subject.rounds.length === 0 && (
         <p className={styles.message}>{subject.fetching ? "Loading from GitHub…" : "No activity stored yet."}</p>
       )}

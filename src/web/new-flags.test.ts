@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Round, SubjectDetail, ViewEvent } from "../core/index.ts";
+import type { Finding, Round, SubjectDetail, ViewEvent } from "../core/index.ts";
 import { keepNewFlags } from "./new-flags.ts";
 
 function event(id: string, isNew: boolean): ViewEvent {
@@ -43,6 +43,20 @@ test("events that arrived while reading count as new", () => {
   const fresh = detail("acme/app#1", [round([event("late", false)]), round([event("old", false), event("new", false)])], null);
   const kept = keepNewFlags(base, fresh, null);
   expect(kept.rounds.map((r) => r.isNew)).toEqual([true, true]);
+});
+
+test("findings keep their markers, and ones that arrived while reading are new", () => {
+  const finding = (id: string, isNew: boolean) => ({ tool: "diffloupe", id, isNew }) as unknown as Finding;
+  const withFindings = (d: SubjectDetail, findings: Finding[]) => ({ ...d, findings });
+  const before = withFindings(base, [finding("f1", true), finding("f2", false)]);
+  const fresh = withFindings(detail("acme/app#1", base.rounds, null), [finding("f1", false), finding("f2", false), finding("f3", false)]);
+  expect(keepNewFlags(before, fresh, null).findings?.map((f) => [f.id, f.isNew])).toEqual([
+    ["f1", true],
+    ["f2", false],
+    ["f3", true],
+  ]);
+  const unlisted = withFindings(detail("acme/app#1", base.rounds, null), [finding("f1", false)]);
+  expect(keepNewFlags(base, unlisted, null).findings?.map((f) => f.isNew)).toEqual([false]);
 });
 
 test("leaves another subject untouched", () => {

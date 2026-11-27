@@ -9,13 +9,14 @@ import type {
 } from "../types.ts";
 import type { PushVerdict } from "../rebase/patch.ts";
 import type { StackContext } from "../workstreams.ts";
-import { classify, isMe } from "./classify.ts";
+import { deriveFindings } from "../findings/status.ts";
+import { classify, isMe, isRestack } from "./classify.ts";
 import { normalize } from "./normalize.ts";
-import { applyOverrides, openedLine, type Rank, rank } from "./rank.ts";
+import { applyOverrides, findingsInScope, openedLine, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
 import { buildHeader, buildLinks, subjectBody } from "./row.ts";
 import { isAfter } from "./time.ts";
-import type { RankReason, Round, Section, SubjectView, ViewEvent } from "./types.ts";
+import type { Finding, RankReason, Round, Section, SubjectView, ViewEvent } from "./types.ts";
 
 export { isRestack, restackText } from "./classify.ts";
 export { describe } from "./rank.ts";
@@ -152,6 +153,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
   const shown = onlyNewestRoundIfUnvisited(subject, state, events, allRounds);
   const rounds = shown.rounds;
   const enriched = subject.timelineSyncedUntil !== null || events.length > 0;
+  const findings = findingsInScope(subject, events, me) ? subjectFindings(input, events) : undefined;
   const ranked = enriched
     ? {
         ...rank({
@@ -163,6 +165,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
           me,
           now,
           reviewRequestMaxAgeDays: config.ranking.reviewRequestMaxAgeDays,
+          ...(findings ? { findings } : {}),
         }),
         newMeaningfulCount: shown.events.filter((e) => e.isNew && e.level === "show").length,
       }
@@ -186,7 +189,28 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     snoozeUntil: state.snoozeUntil,
     unread: threads.some((t) => isUnreadHere(t, state)) || state.keepUnread,
     ...(input.stack ? { stack: input.stack } : {}),
+    ...(findings ? { findings } : {}),
   };
+}
+
+/** The later of the last visit and the last Done: findings first reported after it are new. */
+function findingsSince(state: ItemState): string | null {
+  const { dismissedAt, doneAt } = state;
+  if (dismissedAt === null || doneAt == null) return dismissedAt ?? doneAt ?? null;
+  return isAfter(doneAt, dismissedAt) ? doneAt : dismissedAt;
+}
+
+function subjectFindings(input: DeriveInput, events: ViewEvent[]): Finding[] {
+  const pushes = events
+    .filter((e) => e.kind === "forcePush")
+    .map((e) => ({ before: e.data.beforeSha ?? null, after: e.data.afterSha ?? null, restack: isRestack(e) }));
+  return deriveFindings({
+    headSha: input.subject.headSha,
+    stickies: input.stickies,
+    reviewThreads: input.reviewThreads,
+    pushes,
+    since: findingsSince(input.state),
+  });
 }
 
 /**
