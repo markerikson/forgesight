@@ -276,7 +276,7 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
   const url = subject.githubUrl ?? header.url;
   const notifiedFor = subject.reason !== "subscribed" ? subject.reason : null;
   const reasons = subject.fetching ? subject.reasons.filter((reason) => reason !== "notEnriched") : subject.reasons;
-  const hiddenWhy = hiddenReason(subject);
+  const hiddenWhy = hiddenReason({ ...subject, merged: header.merged });
   return (
     <header className={styles.header}>
       <h2 className={styles.title}>

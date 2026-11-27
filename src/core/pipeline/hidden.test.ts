@@ -22,7 +22,7 @@ function hidden(overrides: Partial<HiddenReasonInput> = {}): HiddenReasonInput {
   return {
     section: "hidden",
     reasons: ["nothingNew"],
-    hiddenStats: { pushes: 0, rebases: 0, merged: 0, closed: 0 },
+    merged: false,
     quiet: NONE,
     ...overrides,
   };
@@ -65,11 +65,9 @@ describe("hiddenReason", () => {
     expect(hiddenReason(hidden({ reasons: ["closedByAuthor"] }))).toBe("closed by its author without merging");
   });
 
-  test("merged or closed by others with no new comments", () => {
-    const merged = { pushes: 0, rebases: 0, merged: 1, closed: 0 };
-    const closed = { pushes: 0, rebases: 0, merged: 0, closed: 1 };
-    expect(hiddenReason(hidden({ reasons: ["closedByOthers"], hiddenStats: merged }))).toBe("merged, no new comments");
-    expect(hiddenReason(hidden({ reasons: ["closedByOthers"], hiddenStats: closed }))).toBe("closed, no new comments");
+  test("merged or closed by others with no new comments, whether or not the merge is new", () => {
+    expect(hiddenReason(hidden({ reasons: ["closedByOthers"], merged: true }))).toBe("merged, no new comments");
+    expect(hiddenReason(hidden({ reasons: ["closedByOthers"], merged: false }))).toBe("closed, no new comments");
   });
 
   test("names the only kinds of quiet activity", () => {

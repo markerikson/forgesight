@@ -38,7 +38,7 @@ function quietLine(quiet: QuietActivity | undefined): string {
   return `only ${joinWithAnd(kinds.map((k) => QUIET_NOUNS[k]))}`;
 }
 
-export type HiddenReasonInput = Pick<InboxRow, "section" | "reasons" | "hiddenStats" | "quiet">;
+export type HiddenReasonInput = Pick<InboxRow, "section" | "reasons" | "merged" | "quiet">;
 
 /**
  * Why a subject sits in Hidden, in plain words, from its rank reasons and quiet activity.
@@ -50,7 +50,7 @@ export function hiddenReason(row: HiddenReasonInput): string | null {
   if (reasons.includes("muted")) return "muted";
   if (reasons.includes("closedByAuthor")) return "closed by its author without merging";
   if (reasons.includes("closedByOthers")) {
-    return row.hiddenStats.merged > 0 ? "merged, no new comments" : "closed, no new comments";
+    return row.merged ? "merged, no new comments" : "closed, no new comments";
   }
   return quietLine(row.quiet);
 }
