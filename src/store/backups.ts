@@ -33,6 +33,15 @@ export function dateTag(now: Date): string {
 }
 
 /**
+ * Tag for the backup taken before deploying `shortSha`. The UTC time keeps a repeated deploy of
+ * the same commit from replacing the backup taken before its first deploy.
+ */
+export function preDeployTag(shortSha: string, now: Date): string {
+  const time = now.toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z");
+  return `pre-deploy-${shortSha}-${time}`;
+}
+
+/**
  * Backups to delete: all but the newest `dated` date-tagged files (by date in the name) and
  * the newest `preDeploy` pre-deploy files (by mtime, since their names hold a sha).
  * Files with any other tag are never deleted.

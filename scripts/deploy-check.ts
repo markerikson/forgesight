@@ -1,8 +1,10 @@
 // Server-side steps for scripts/deploy.ts.
 //   bun scripts/deploy-check.ts wait-app <name>     wait until a pm2 app stays online (on the server)
 //   bun scripts/deploy-check.ts health <sha>        wait for /api/health to report <sha>, then print status (on the server)
+//   bun scripts/deploy-check.ts backup-dir          print the directory scripts/backup.ts writes to (on the server)
+import { join } from "node:path";
 import { loadConfig } from "../src/config/load.ts";
-import { configPath } from "../src/config/paths.ts";
+import { configPath, dataDir } from "../src/config/paths.ts";
 import { pm2AppState, readiness } from "../src/deploy/pm2.ts";
 
 const MIN_UPTIME_MS = 10_000;
@@ -86,6 +88,9 @@ switch (command) {
     if (!arg) fail("usage: deploy-check.ts health <sha>");
     await health(arg);
     break;
+  case "backup-dir":
+    console.log(join(dataDir(), "backups"));
+    break;
   default:
-    fail("usage: deploy-check.ts wait-app|health <arg>");
+    fail("usage: deploy-check.ts wait-app <name> | health <sha> | backup-dir");
 }

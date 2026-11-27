@@ -14,6 +14,7 @@ import {
   rsyncPlatformFlags,
   shellQuote,
 } from "../src/deploy/settings.ts";
+import { preDeployTag } from "../src/store/backups.ts";
 
 const root = join(import.meta.dir, "..");
 $.cwd(root);
@@ -96,7 +97,7 @@ async function deploy(): Promise<void> {
   await remote("bun install --frozen-lockfile --production");
 
   step("Back up database");
-  await remote(`bun scripts/backup.ts --if-exists --tag pre-deploy-${shortSha}`);
+  await remote(`bun scripts/backup.ts --if-exists --tag ${preDeployTag(shortSha, new Date())}`);
 
   for (const app of ["forgesight-worker", "forgesight-web"]) {
     step(`Restart ${app}`);

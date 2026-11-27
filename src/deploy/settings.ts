@@ -54,17 +54,21 @@ export function resolveSettings(
   env: Record<string, string | undefined>,
   home: string,
 ): DeploySettings {
-  const get = (key: string): string | null => {
-    const value = env[key] || fileVars[key];
+  const raw = (key: string): string | null => env[key] || fileVars[key] || null;
+  // Only local file paths get `~` expanded; DEPLOY_DIR is a path on the server.
+  const local = (key: string): string | null => {
+    const value = raw(key);
     return value ? expandHome(value, home) : null;
   };
-  const server = get("DEPLOY_SERVER");
+  const server = raw("DEPLOY_SERVER");
   if (!server) throw new Error("DEPLOY_SERVER is not set (put it in .deploy.env or the environment)");
+  const dir = raw("DEPLOY_DIR") ?? DEFAULT_DEPLOY_DIR;
+  if (!dir.startsWith("/")) throw new Error(`DEPLOY_DIR must be an absolute path on the server (got ${dir})`);
   return {
     server,
-    dir: get("DEPLOY_DIR") ?? DEFAULT_DEPLOY_DIR,
-    envFile: get("DEPLOY_ENV_FILE") ?? DEFAULT_ENV_FILE,
-    configFile: get("DEPLOY_CONFIG_FILE"),
+    dir,
+    envFile: local("DEPLOY_ENV_FILE") ?? DEFAULT_ENV_FILE,
+    configFile: local("DEPLOY_CONFIG_FILE"),
   };
 }
 

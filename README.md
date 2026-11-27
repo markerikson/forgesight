@@ -39,7 +39,7 @@ Deploying needs `ssh` and `rsync` on your machine too. Deploy settings come from
 
 ```sh
 DEPLOY_SERVER=user@your-server       # ssh destination or Host alias (required)
-DEPLOY_DIR=/opt/forgesight           # optional
+DEPLOY_DIR=/opt/forgesight           # optional; absolute path on the server
 DEPLOY_ENV_FILE=.env.production      # optional; uploaded as $DEPLOY_DIR/.env by --sync-env
 DEPLOY_CONFIG_FILE=~/forgesight-server.jsonc   # uploaded as the server config by --sync-config
 ```
@@ -50,7 +50,7 @@ bun run deploy:full     # also uploads the env file and config
 bun scripts/deploy.ts --skip-checks --allow-dirty
 ```
 
-`deploy.ts` refuses a dirty tree unless `--allow-dirty`, runs typecheck, lint and tests unless `--skip-checks`, writes `build-info.json`, builds, rsyncs the repo (with `.timber/dist`, without `node_modules`, `data`, `.env*`, `.git`), runs `bun install --production` on the server, backs up the database as `inbox-pre-deploy-<sha>.db`, restarts the worker (which migrates), waits for it to stay online, restarts the web, and waits until `/api/health` reports the new sha. It then prints `worker.alive` and `outbox.dryRun` from `/api/status`, and runs `pm2 save`. Run `pm2 startup` once on the server so pm2 restores the apps after a reboot.
+`deploy.ts` refuses a dirty tree unless `--allow-dirty`, runs typecheck, lint and tests unless `--skip-checks`, writes `build-info.json`, builds, rsyncs the repo (with `.timber/dist`, without `node_modules`, `data`, `.env*`, `.git`), runs `bun install --production` on the server, backs up the database as `inbox-pre-deploy-<sha>-<UTC time>.db`, restarts the worker (which migrates), waits for it to stay online, restarts the web, and waits until `/api/health` reports the new sha. It then prints `worker.alive` and `outbox.dryRun` from `/api/status`, and runs `pm2 save`. Run `pm2 startup` once on the server so pm2 restores the apps after a reboot.
 
 ### First deploy
 
@@ -68,7 +68,7 @@ The worker reads config only at startup. After changing only the config, restart
 - `pm2 ls`, `pm2 logs forgesight-worker`: status and logs on the server.
 - `pm2 stop forgesight-worker`: stops all GitHub reads and writes. The web keeps serving the last data.
 - `bun scripts/backup.ts [--tag <tag>]` writes `$FORGESIGHT_DATA_DIR/backups/inbox-<tag>.db` with `VACUUM INTO` and checks it with `PRAGMA integrity_check`. The tag defaults to the UTC date. It keeps the 14 newest dated backups and the 5 newest pre-deploy backups.
-- `bun run backup:pull [dest]` copies the server's backups to `~/forgesight-backups/` (or `dest`).
+- `bun run backup:pull [dest]` asks the server for its backup directory and copies the backups to `~/forgesight-backups/` (or `dest`).
 
 ### Rollback
 
@@ -78,9 +78,9 @@ The worker reads config only at startup. After changing only the config, restart
   pm2 stop forgesight-worker forgesight-web
   cd "$FORGESIGHT_DATA_DIR"
   mv inbox.db inbox.db.bad && rm -f inbox.db-wal inbox.db-shm
-  cp backups/inbox-pre-deploy-<bad-short-sha>.db inbox.db
+  cp backups/inbox-pre-deploy-<bad-short-sha>-<time>.db inbox.db
   ```
-  Then deploy the good sha as above. The pre-deploy backup is named after the sha being deployed and holds the schema from before it.
+  Then deploy the good sha as above. The pre-deploy backup is named after the sha being deployed and the UTC time, and holds the schema from before it.
 
 
 ## Layout

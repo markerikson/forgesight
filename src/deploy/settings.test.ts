@@ -49,6 +49,14 @@ describe("resolveSettings", () => {
   test("requires DEPLOY_SERVER", () => {
     expect(() => resolveSettings({}, { DEPLOY_SERVER: "" }, "/h")).toThrow("DEPLOY_SERVER is not set");
   });
+
+  test("rejects a DEPLOY_DIR that is not absolute instead of expanding ~ locally", () => {
+    for (const dir of ["~/forgesight", "forgesight"]) {
+      expect(() => resolveSettings({ DEPLOY_SERVER: "vm", DEPLOY_DIR: dir }, {}, "/h")).toThrow(
+        "DEPLOY_DIR must be an absolute path",
+      );
+    }
+  });
 });
 
 describe("remote commands", () => {

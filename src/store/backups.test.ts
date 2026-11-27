@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { backupDb, backupFileName, backupsToDelete, dateTag } from "./backups.ts";
+import { backupDb, backupFileName, backupsToDelete, dateTag, preDeployTag } from "./backups.ts";
 
 function days(count: number): string[] {
   return Array.from({ length: count }, (_, i) => `inbox-2026-11-${String(i + 1).padStart(2, "0")}.db`);
@@ -41,6 +41,12 @@ describe("backupsToDelete", () => {
 describe("backup names", () => {
   test("dateTag is the UTC date", () => {
     expect(dateTag(new Date("2026-11-26T23:30:00-05:00"))).toBe("2026-11-27");
+  });
+
+  test("preDeployTag adds the UTC time so repeated deploys of a commit get separate backups", () => {
+    const tag = preDeployTag("abc1234-dirty", new Date("2026-11-26T20:30:05.123-05:00"));
+    expect(tag).toBe("pre-deploy-abc1234-dirty-20261127T013005Z");
+    expect(backupFileName(tag)).toBe("inbox-pre-deploy-abc1234-dirty-20261127T013005Z.db");
   });
 
   test("rejects tags that are not plain file name parts", () => {
