@@ -70,7 +70,7 @@ export function prCore(shape: QueryShape): string {
   const threads =
     shape.reviewThreads > 0
       ? `reviewThreads(last: ${shape.reviewThreads}) { nodes { id isResolved isOutdated path line
-    comments(first: 1) { nodes { id author { login } body createdAt } } } }`
+    comments(first: 1) { nodes { id author { login } body createdAt url } } } }`
       : "";
   return `fragment PrCore on PullRequest {
   id number title state isDraft author { login __typename } body

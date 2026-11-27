@@ -2,7 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { resolveConfig } from "../../config/load.ts";
 import type { RepoMode } from "../config.ts";
 import type { PushVerdict } from "../rebase/patch.ts";
-import type { ItemState, SubjectRecord, ThreadRecord, TimelineItemRecord } from "../types.ts";
+import type {
+  ItemState,
+  StickyCommentVersion,
+  SubjectRecord,
+  ThreadRecord,
+  TimelineItemRecord,
+} from "../types.ts";
 import { deriveSubjectView, subjectBody } from "./index.ts";
 
 const ME = "markerikson";
@@ -56,6 +62,8 @@ interface Opts {
   bots?: Parameters<typeof resolveConfig>[0]["bots"];
   enrichIssues?: boolean;
   pushVerdicts?: Map<string, PushVerdict>;
+  stickies?: StickyCommentVersion[];
+  headSha?: string;
 }
 
 function derive(opts: Opts) {
@@ -70,7 +78,7 @@ function derive(opts: Opts) {
     author: opts.author ?? "bob",
     headRef: null,
     baseRef: null,
-    headSha: null,
+    headSha: opts.headSha ?? null,
     baseSha: null,
     updatedAt: "2026-11-21T00:00:00Z",
     timelineSyncedUntil: opts.enriched === false ? null : "2026-11-21T00:00:00Z",
@@ -99,7 +107,7 @@ function derive(opts: Opts) {
     threads: [thread],
     items: opts.items ?? [],
     reviewThreads: [],
-    stickies: [],
+    stickies: opts.stickies ?? [],
     state: {
       dismissedAt: DISMISSED,
       keepUnread: false,
@@ -759,5 +767,61 @@ describe("description", () => {
     ["text", undefined],
   ])("subjectBody(%j)", (raw, expected) => {
     expect(subjectBody(raw)).toBe(expected);
+  });
+});
+
+describe("review-bot findings", () => {
+  const sticky = (at: string, head: string, sev = "should-fix"): StickyCommentVersion => ({
+    commentNodeId: "IC1",
+    bodyHash: `${at}-${sev}`,
+    subjectKey: KEY,
+    author: "github-actions",
+    lastEditedAt: at,
+    seenAt: at,
+    lastSeenAt: at,
+    body: [
+      "### Review of `abc`",
+      "- `src/a.ts`",
+      `  - 🟠 **Should fix** Leaks a handle — [L3](https://x/blob/h/src/a.ts#L3) · _[1]_ <!-- ai-review kind=summary-item file=src/a.ts line=3 fp=abcdef0123 sev=${sev} -->`,
+      `<!-- ai-review kind=summary pr=1 runs=1 head=${head} -->`,
+    ].join("\n"),
+  });
+  const reviewedByMe = { latestReviews: { nodes: [{ author: user(ME) }] } };
+
+  test("a new serious finding on a PR I reviewed is waiting", () => {
+    const view = derive({ raw: reviewedByMe, headSha: "h1", stickies: [sticky("2026-11-21T02:00:00Z", "h1")] });
+    expect(view.findings?.map((f) => [f.status, f.isNew])).toEqual([["outstanding", true]]);
+    expect(view.reasons).toContain("newFindings");
+    expect(view.section).toBe("waiting");
+    expect(view.summaryLine).toBe("DiffLoupe found: Leaks a handle");
+  });
+
+  test("findings seen before I dismissed the PR do not raise it again", () => {
+    const view = derive({ raw: reviewedByMe, headSha: "h1", stickies: [sticky("2026-11-19T02:00:00Z", "h1")] });
+    expect(view.findings?.[0]?.isNew).toBe(false);
+    expect(view.reasons).not.toContain("newFindings");
+  });
+
+  test("minor findings are listed but do not raise the PR", () => {
+    const view = derive({
+      raw: reviewedByMe,
+      headSha: "h1",
+      stickies: [sticky("2026-11-21T02:00:00Z", "h1", "question")],
+    });
+    expect(view.findings).toHaveLength(1);
+    expect(view.reasons).not.toContain("newFindings");
+  });
+
+  test("PRs I have no part in get no findings", () => {
+    const view = derive({ headSha: "h1", stickies: [sticky("2026-11-21T02:00:00Z", "h1")] });
+    expect(view.findings).toBeUndefined();
+    expect(view.reasons).not.toContain("newFindings");
+  });
+
+  test("my own PR lists findings but waits through myOpenPr only", () => {
+    const view = derive({ author: ME, headSha: "h1", stickies: [sticky("2026-11-21T02:00:00Z", "h1")] });
+    expect(view.findings).toHaveLength(1);
+    expect(view.reasons).toContain("myOpenPr");
+    expect(view.reasons).not.toContain("newFindings");
   });
 });

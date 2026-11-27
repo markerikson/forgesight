@@ -22,6 +22,14 @@
       "url": "https://pkg.pr.new/template/72dd7d40-0f9b-4624-b97b-73c3e92e8b43"
     }
   ],
+  "findings": [
+    "diffloupe stale should-fix (new) 7251e4772f ignoreEarlierFetches does not discard an in-flight upsertQueryData when the entry already had a request",
+    "coderabbit fixed major PRRT_kwDOB2ACAs66rEK2 Track the in-flight fetch separately from the entry status",
+    "coderabbit fixed major PRRT_kwDOB2ACAs66rQRP Do not discard another entry from the same upsert action",
+    "coderabbit fixed minor PRRT_kwDOB2ACAs67I3iQ Keep upserted provided tags when an ignored request is rejected",
+    "coderabbit fixed minor PRRT_kwDOB2ACAs66rEK4 Advance the fake clock before the upsert in the timestamp-preservation test",
+    "coderabbit fixed minor PRRT_kwDOB2ACAs66rEK7 Check that the restarted timer eventually removes the entry"
+  ],
   "rounds": [
     {
       "start": "pushed 1 commit",

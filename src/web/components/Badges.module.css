@@ -68,3 +68,30 @@
   color: var(--error);
   border-color: currentColor;
 }
+
+.finding {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 5px;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.finding-blocker {
+  color: var(--error);
+}
+
+.finding-serious {
+  color: var(--warning);
+}
+
+.finding-minor {
+  color: var(--fg-mute);
+}
+
+.finding-stale {
+  border-style: dashed;
+  opacity: 0.7;
+}

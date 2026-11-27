@@ -1,6 +1,7 @@
 // View types produced by the derive pipeline. Everything here is plain JSON so it can be
 // stored in `subject_views` and sent to the web client unchanged.
 import type { ContentLevel } from "../config.ts";
+import type { Finding, FindingIcon } from "../findings/types.ts";
 import type { PushVerdictKind } from "../rebase/patch.ts";
 import type { SubjectKey, SubjectKind, SubjectState } from "../types.ts";
 import type { StackContext } from "../workstreams.ts";
@@ -196,6 +197,7 @@ export type RankReason =
   | "onMine"
   | "myOpenPr"
   | "onMyReview"
+  | "newFindings"
   | "participating"
   | "newActivity"
   | "stateChange"
@@ -244,12 +246,8 @@ export interface SubjectView {
   unread: boolean;
   /** Present only for members of a workstream. */
   stack?: StackContext;
-}
-
-/** Placeholder for findings badges (M5). */
-export interface FindingIcon {
-  kind: string;
-  count: number;
+  /** Review-bot findings on PRs I authored, reviewed or was asked to review. */
+  findings?: Finding[];
 }
 
 /** Compact list row for the inbox. */
@@ -276,5 +274,8 @@ export interface InboxRow {
   snoozeUntil: string | null;
   unread: boolean;
   enrichError: string | null;
+  /** One icon per review tool with outstanding or stale findings; open PRs only. */
   findings: FindingIcon[];
 }
+
+export type { Finding, FindingIcon };
