@@ -1,12 +1,14 @@
 import type { Database } from "bun:sqlite";
 import { configHash } from "../config/load.ts";
 import type { Config } from "../core/config.ts";
+import { autoDoneThreads } from "../core/auto-done.ts";
 import { META } from "../core/meta-keys.ts";
 import { deriveSubjectView, PIPELINE_VERSION, toViewRecord } from "../core/pipeline/index.ts";
 import type { SubjectViewRecord } from "../core/types.ts";
 import { DEFAULT_ITEM_STATE, getItemStates, snoozesEndedBetween } from "../store/item-state.ts";
 import { getMeta, setMeta } from "../store/meta.ts";
 import { verdictsFor } from "../store/push-verdicts.ts";
+import { type AutoDoneEntry, lastDoneQueuedAt, queueAutoDone } from "../store/state-ops.ts";
 import { getSubject } from "../store/subjects.ts";
 import { threadsForSubject } from "../store/threads.ts";
 import { reviewThreadsFor, stickiesFor, timelineFor } from "../store/timeline.ts";
@@ -64,23 +66,26 @@ function deriveBatch(
   db: Database,
   keys: string[],
   ctx: { config: Config; hash: string; now: Date; log: Logger },
-): { views: SubjectViewRecord[]; failed: string[] } {
+): { views: SubjectViewRecord[]; failed: string[]; autoDone: AutoDoneEntry[] } {
   const states = getItemStates(db, keys);
   const stacks = stackContextsFor(db, keys);
   const computedAt = ctx.now.toISOString();
   const views: SubjectViewRecord[] = [];
   const failed: string[] = [];
+  const autoDone: AutoDoneEntry[] = [];
   for (const key of keys) {
     const subject = getSubject(db, key);
     if (!subject) continue;
     try {
+      const threads = threadsForSubject(db, key);
+      const state = states.get(key) ?? { ...DEFAULT_ITEM_STATE };
       const view = deriveSubjectView({
         subject,
-        threads: threadsForSubject(db, key),
+        threads,
         items: timelineFor(db, key),
         reviewThreads: reviewThreadsFor(db, key),
         stickies: stickiesFor(db, key),
-        state: states.get(key) ?? { ...DEFAULT_ITEM_STATE },
+        state,
         config: ctx.config,
         me: ctx.config.me,
         now: ctx.now,
@@ -90,12 +95,22 @@ function deriveBatch(
       views.push(
         toViewRecord(view, { pipelineVersion: PIPELINE_VERSION, configHash: ctx.hash, computedAt }),
       );
+      if (state.doneAt !== null) {
+        const threadIds = autoDoneThreads({
+          state,
+          view,
+          subject,
+          threads,
+          lastDoneQueuedAt: lastDoneQueuedAt(db, key),
+        });
+        if (threadIds.length > 0) autoDone.push({ subjectKey: key, threadIds });
+      }
     } catch (e) {
       failed.push(key);
       ctx.log.warn(`derive ${key} failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  return { views, failed };
+  return { views, failed, autoDone };
 }
 
 export interface DerivedKeys {
@@ -118,7 +133,11 @@ function deriveAndStore(
 ): DerivedKeys {
   return db.transaction(() => {
     const batch = deriveBatch(db, keys, ctx);
-    const changed = putViews(db, batch.views, ctx.now.toISOString());
+    const nowIso = ctx.now.toISOString();
+    const changed = putViews(db, batch.views, nowIso);
+    if (queueAutoDone(db, batch.autoDone, nowIso)) {
+      for (const e of batch.autoDone) ctx.log.info(`auto done: ${e.subjectKey} (${e.threadIds.join(", ")})`);
+    }
     return { views: batch.views, changed, failed: batch.failed };
   }).immediate();
 }
@@ -126,7 +145,8 @@ function deriveAndStore(
 /**
  * Derives and stores the views for `keys` in batches of `DERIVE_BATCH`. Uses only the store
  * and the pure pipeline, so the web server calls it right after a state op. Also ends the
- * snooze of any workstream that activity on these subjects woke.
+ * snooze of any workstream that activity on these subjects woke, and queues a GitHub `done`
+ * for Done subjects whose new activity is all noise.
  */
 export function deriveKeys(
   db: Database,
