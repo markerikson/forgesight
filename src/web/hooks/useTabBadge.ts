@@ -3,7 +3,7 @@ import { useAppSelector } from "../store/hooks.ts";
 import { selectInbox } from "../store/view.ts";
 
 export function tabTitle(count: number): string {
-  return count > 0 ? `(${count}) Forgesight` : "Forgesight";
+  return count > 0 ? `Forgesight (${count})` : "Forgesight";
 }
 
 function iconLink(): HTMLLinkElement {
