@@ -112,6 +112,12 @@ export interface GitHubClient {
   listNotificationsSince(since: Date): AsyncIterable<NotificationThread[]>;
   /** Backfill: pages from newest, stopping at the first thread older than `cutoff`. */
   listNotificationsBefore(cutoff: Date): AsyncIterable<NotificationThread[]>;
+  /**
+   * Pages of threads updated since `since`, newest first, filtered on whether they are marked done
+   * on GitHub (by any client). The other listings include done threads too; only this one tells
+   * them apart.
+   */
+  listNotificationsByDone(done: boolean, since: Date): AsyncIterable<NotificationThread[]>;
   markDone(threadId: string): Promise<void>;
   markRead(threadId: string): Promise<void>;
   unsubscribe(threadId: string): Promise<void>;

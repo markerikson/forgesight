@@ -158,6 +158,48 @@ export function deriveViews(
   return { derived: keys.length - failed.length, changed, failed: failed.length, ms };
 }
 
+export interface RederiveSummary {
+  subjects: number;
+  changed: number;
+  failed: string[];
+  ms: number;
+}
+
+/**
+ * Recomputes the view of every subject from the stored data, for pipeline changes that did
+ * not bump `PIPELINE_VERSION`. Each batch reads and writes inside one immediate transaction,
+ * so a worker deriving at the same time cannot write a newer view between this batch's read
+ * and its write. Other writers wait at most one batch (they use `busy_timeout`).
+ */
+export function rederiveAll(
+  db: Database,
+  config: Config,
+  now: Date,
+  log: Logger,
+  opts: { batch?: number; onBatch?: (done: number, total: number) => void } = {},
+): RederiveSummary {
+  const started = performance.now();
+  const size = opts.batch ?? DERIVE_BATCH;
+  const hash = configHash(config);
+  const nowIso = now.toISOString();
+  const keys = db
+    .query<{ subject_key: string }, []>("SELECT subject_key FROM subjects ORDER BY subject_key")
+    .all()
+    .map((r) => r.subject_key);
+  const summary: RederiveSummary = { subjects: keys.length, changed: 0, failed: [], ms: 0 };
+  for (let i = 0; i < keys.length; i += size) {
+    const batchKeys = keys.slice(i, i + size);
+    db.transaction(() => {
+      const batch = deriveBatch(db, batchKeys, { config, hash, now, log });
+      summary.failed.push(...batch.failed);
+      summary.changed += putViews(db, batch.views, nowIso).length;
+    }).immediate();
+    opts.onBatch?.(Math.min(i + size, keys.length), keys.length);
+  }
+  summary.ms = Math.round(performance.now() - started);
+  return summary;
+}
+
 export const deriveJob: Job = {
   name: "derive",
   local: true,

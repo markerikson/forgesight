@@ -13,7 +13,11 @@ export interface StatusPayload {
     heartbeatAt: string | null;
     /** null until the worker has written a heartbeat. */
     alive: boolean | null;
+    /** GitHub rejected the token. The worker keeps running local jobs and retries the token. */
     authFailed: boolean;
+    authError: string | null;
+    /** When the worker next tries the token. */
+    authRetryAt: string | null;
   };
   viewer: { login: string | null };
   poll: {
@@ -46,6 +50,8 @@ export function readStatus(ctx: ServerCtx): StatusPayload {
       heartbeatAt: meta.heartbeatAt,
       alive: Number.isNaN(heartbeat) ? null : now.getTime() - heartbeat < HEARTBEAT_STALE_MS,
       authFailed: meta.status === "auth_failed",
+      authError: meta.status === "auth_failed" ? meta.authError : null,
+      authRetryAt: meta.status === "auth_failed" ? meta.authRetryAt : null,
     },
     viewer: { login: meta.viewerLogin },
     poll: {

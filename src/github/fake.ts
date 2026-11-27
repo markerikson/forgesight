@@ -14,6 +14,7 @@ export type FakeCall =
   | { method: "pollNotifications"; opts: PollOptions }
   | { method: "listNotificationsSince"; since: Date }
   | { method: "listNotificationsBefore"; cutoff: Date }
+  | { method: "listNotificationsByDone"; done: boolean; since: Date }
   | { method: "markDone" | "markRead" | "unsubscribe" | "resubscribe"; threadId: string }
   | { method: "graphql"; query: string; variables: Record<string, unknown>; opts: GqlOpts }
   | { method: "getCommit"; repo: string; sha: string }
@@ -66,10 +67,9 @@ export class FakeGitHubClient implements GitHubClient {
     }
   }
 
+  /** Like GitHub's `all=true` listings, this includes threads marked done. */
   private sorted(): NotificationThread[] {
-    return [...this.threads.values()]
-      .filter((t) => !this.done.has(t.id))
-      .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+    return [...this.threads.values()].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   }
 
   private pages(threads: NotificationThread[]): NotificationThread[][] {
@@ -97,6 +97,15 @@ export class FakeGitHubClient implements GitHubClient {
     this.calls.push({ method: "listNotificationsBefore", cutoff });
     this.takeError();
     const threads = this.sorted().filter((t) => Date.parse(t.updatedAt) >= cutoff.getTime());
+    yield* this.pages(threads);
+  }
+
+  async *listNotificationsByDone(done: boolean, since: Date): AsyncIterable<NotificationThread[]> {
+    this.calls.push({ method: "listNotificationsByDone", done, since });
+    this.takeError();
+    const threads = this.sorted().filter(
+      (t) => this.done.has(t.id) === done && Date.parse(t.updatedAt) >= since.getTime(),
+    );
     yield* this.pages(threads);
   }
 

@@ -1,7 +1,14 @@
 export type Resource = "rest" | "graphql";
 
 /** Kinds of GitHub work, highest priority first. */
-export type WorkClass = "notifications" | "enrich" | "writeback" | "openPulls" | "rebase" | "backfill";
+export type WorkClass =
+  | "notifications"
+  | "enrich"
+  | "writeback"
+  | "openPulls"
+  | "rebase"
+  | "doneSync"
+  | "backfill";
 
 export const WORK_CLASSES: readonly WorkClass[] = [
   "notifications",
@@ -9,6 +16,7 @@ export const WORK_CLASSES: readonly WorkClass[] = [
   "writeback",
   "openPulls",
   "rebase",
+  "doneSync",
   "backfill",
 ];
 

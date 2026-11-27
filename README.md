@@ -68,6 +68,8 @@ The worker reads config only at startup. After changing only the config, restart
 - `pm2 ls`, `pm2 logs forgesight-worker`: status and logs on the server.
 - `pm2 stop forgesight-worker`: stops all GitHub reads and writes. The web keeps serving the last data.
 - `bun scripts/backup.ts [--tag <tag>]` writes `$FORGESIGHT_DATA_DIR/backups/inbox-<tag>.db` with `VACUUM INTO` and checks it with `PRAGMA integrity_check`. The tag defaults to the UTC date. It keeps the 14 newest dated backups and the 5 newest pre-deploy backups.
+- `bun run rederive` (on the server, from the deploy directory) re-derives every subject view from the stored data, without GitHub calls. Run it after a deploy that changes what the views show but does not bump `PIPELINE_VERSION`. It is safe to run while the worker runs: it works in short batches, and the open browser tabs pick up the changes.
+- If GitHub rejects the token, the worker keeps running with GitHub calls stopped, and the status bar shows "GitHub auth failed". Upload a new `GITHUB_TOKEN` with `bun run deploy:full` or edit `.env` on the server; the worker notices the changed `.env` within a tick, and otherwise retries every 5 minutes.
 - `bun run backup:pull [dest]` asks the server for its backup directory and copies the backups to `~/forgesight-backups/` (or `dest`).
 
 ### Rollback

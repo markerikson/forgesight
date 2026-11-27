@@ -13,3 +13,7 @@ export function setMeta(db: Database, key: string, value: string, now: string): 
      ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
   ).run(key, value, now);
 }
+
+export function deleteMeta(db: Database, key: string): void {
+  db.query("DELETE FROM meta WHERE key = ?").run(key);
+}

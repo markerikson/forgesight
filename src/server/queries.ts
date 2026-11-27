@@ -5,6 +5,8 @@ import { getMeta } from "../store/meta.ts";
 /** Meta keys the web reads for worker status. */
 export const WORKER_META = {
   status: META.workerStatus,
+  authError: META.authError,
+  authRetryAt: META.authRetryAt,
   heartbeatAt: META.heartbeatAt,
   viewerLogin: META.viewerLogin,
   outboxDryRun: META.outboxDryRun,
