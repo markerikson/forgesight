@@ -55,7 +55,7 @@ bun scripts/deploy.ts --skip-checks --allow-dirty
 ### First deploy
 
 1. `cp .env.production.example .env.production` and fill in `GITHUB_TOKEN` and `ANTHROPIC_API_KEY`.
-2. Write the server config and point `DEPLOY_CONFIG_FILE` at it. Keeping `"outbox": { "dryRun": true }` at first is a safe way to watch the worker before it changes anything on GitHub. Actions you take while in dry run are recorded locally and are not sent to GitHub when you turn it off.
+2. Write the server config and point `DEPLOY_CONFIG_FILE` at it. Keeping `"outbox": { "dryRun": true }` at first is a safe way to watch the worker before it changes anything on GitHub. Actions you take while in dry run are recorded locally and are not sent to GitHub when you turn it off. Separately, `outbox.autoDone` (`"log"` by default) controls whether Forgesight re-marks a Done item done on GitHub when GitHub brings it back for noise only: `"log"` records and logs those writes without sending them, `"send"` sends them.
 3. Stop any other worker polling the same GitHub account.
 4. `bun run deploy:full`. The worker creates the database on its first poll, and the web answers 503 until then. To keep existing history, copy a backup to `$FORGESIGHT_DATA_DIR/inbox.db` on the server before this step.
 5. Schedule a nightly backup on the server, for example in crontab:

@@ -239,6 +239,21 @@ describe("auto done", () => {
     expect(getView(db, KEY)?.section).toBe("hidden");
   });
 
+  test("only logs the writes unless outbox.autoDone is send", () => {
+    const { db } = doneSetup();
+    resurface(db, "2026-11-23T12:00:00Z");
+    const logOnly = resolveConfig({ me: "markerikson" });
+    deriveKeys(db, [KEY], logOnly, new Date("2026-11-23T12:01:00Z"), quietLog);
+    const logged = db.query("SELECT completed_at, last_error FROM outbox ORDER BY id DESC").get();
+    expect(logged).toEqual({ completed_at: "2026-11-23T12:01:00.000Z", last_error: "log_only" });
+
+    resurface(db, "2026-11-23T13:00:00Z");
+    const send = resolveConfig({ me: "markerikson", outbox: { autoDone: "send" } });
+    deriveKeys(db, [KEY], send, new Date("2026-11-23T13:01:00Z"), quietLog);
+    const queued = db.query("SELECT completed_at, last_error FROM outbox ORDER BY id DESC").get();
+    expect(queued).toEqual({ completed_at: null, last_error: null });
+  });
+
   test("rederiveAll queues auto done too", () => {
     const { db, config } = doneSetup();
     resurface(db, "2026-11-23T12:00:00Z");

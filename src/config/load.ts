@@ -228,6 +228,7 @@ export function resolveConfig(user: UserConfig, defaults: UserConfig = defaultCo
     },
     outbox: {
       dryRun: required(user.outbox?.dryRun ?? d.outbox.dryRun, "outbox.dryRun"),
+      autoDone: required(user.outbox?.autoDone ?? d.outbox.autoDone, "outbox.autoDone"),
     },
     server: {
       port: required(user.server?.port ?? d.server.port, "server.port"),

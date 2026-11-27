@@ -5,6 +5,7 @@ export type RepoMode = "full" | "normal" | "simple";
 export type RepoView = "overview" | "triage";
 export type ContentLevel = "hidden" | "collapsed" | "show";
 export type RebaseMethod = "api" | "range_diff";
+export type AutoDoneMode = "log" | "send";
 
 export interface BranchRule {
   pattern: RegExp;
@@ -76,6 +77,11 @@ export interface Config {
   outbox: {
     /** Log queued GitHub writes and mark them sent without calling GitHub. For scratch databases. */
     dryRun: boolean;
+    /**
+     * Done subjects that GitHub brings back for noise only: `log` records the `done` writes it
+     * would queue without sending them, `send` queues them for real.
+     */
+    autoDone: AutoDoneMode;
   };
   server: { port: number; allowedHosts: string[] };
   llm: {

@@ -135,8 +135,10 @@ function deriveAndStore(
     const batch = deriveBatch(db, keys, ctx);
     const nowIso = ctx.now.toISOString();
     const changed = putViews(db, batch.views, nowIso);
-    if (queueAutoDone(db, batch.autoDone, nowIso)) {
-      for (const e of batch.autoDone) ctx.log.info(`auto done: ${e.subjectKey} (${e.threadIds.join(", ")})`);
+    const logOnly = ctx.config.outbox.autoDone === "log";
+    if (queueAutoDone(db, batch.autoDone, nowIso, logOnly)) {
+      const label = logOnly ? "auto done (log only, not sent)" : "auto done";
+      for (const e of batch.autoDone) ctx.log.info(`${label}: ${e.subjectKey} (${e.threadIds.join(", ")})`);
     }
     return { views: batch.views, changed, failed: batch.failed };
   }).immediate();

@@ -232,8 +232,15 @@ export interface AutoDoneEntry {
  * Queues `done` writes for threads GitHub brought back on subjects that stay Done, under one
  * `autoDone` op. The op changes no item state and records no previous states, so it never
  * blocks undoing a user op. The rows are due at once: there is no user action to undo.
+ * With `logOnly` the rows are stored already completed with the note `log_only`, so they are
+ * never sent but still count as handled for that activity.
  */
-export function queueAutoDone(db: Database, entries: readonly AutoDoneEntry[], now: string): ApplyResult | null {
+export function queueAutoDone(
+  db: Database,
+  entries: readonly AutoDoneEntry[],
+  now: string,
+  logOnly: boolean,
+): ApplyResult | null {
   const rows = entries.flatMap((e) => e.threadIds.map((threadId) => ({ key: e.subjectKey, threadId })));
   if (rows.length === 0) return null;
   return db.transaction(() => {
@@ -243,10 +250,14 @@ export function queueAutoDone(db: Database, entries: readonly AutoDoneEntry[], n
         .run(now, toJson({ kind: "autoDone" })).lastInsertRowid,
     );
     const insertOutbox = db.query(
-      `INSERT INTO outbox (state_op_id, op, thread_id, subject_key, created_at, run_after)
-       VALUES (?, 'done', ?, ?, ?, ?)`,
+      `INSERT INTO outbox (state_op_id, op, thread_id, subject_key, created_at, run_after, completed_at, last_error)
+       VALUES (?, 'done', ?, ?, ?, ?, ?, ?)`,
     );
-    const outboxIds = rows.map((r) => Number(insertOutbox.run(opId, r.threadId, r.key, now, now).lastInsertRowid));
+    const completedAt = logOnly ? now : null;
+    const note = logOnly ? "log_only" : null;
+    const outboxIds = rows.map((r) =>
+      Number(insertOutbox.run(opId, r.threadId, r.key, now, now, completedAt, note).lastInsertRowid),
+    );
     return { opId, outboxIds };
   })();
 }
