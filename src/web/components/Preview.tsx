@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import type { InboxRow, SubjectDetail, SubjectHeader } from "../../core/index.ts";
+import { hiddenReason, type InboxRow, type SubjectDetail, type SubjectHeader } from "../../core/index.ts";
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { keepNewFlags } from "../new-flags.ts";
@@ -276,6 +276,7 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
   const url = subject.githubUrl ?? header.url;
   const notifiedFor = subject.reason !== "subscribed" ? subject.reason : null;
   const reasons = subject.fetching ? subject.reasons.filter((reason) => reason !== "notEnriched") : subject.reasons;
+  const hiddenWhy = hiddenReason({ ...subject, merged: header.merged });
   return (
     <header className={styles.header}>
       <h2 className={styles.title}>
@@ -304,9 +305,10 @@ function Header({ header, subject }: { header: SubjectHeader; subject: SubjectDe
         <ReviewBadge decision={header.reviewDecision} />
         {subject.snoozeUntil && <span>snoozed until {subject.snoozeUntil.slice(0, 10)}</span>}
       </div>
-      {(reasons.length > 0 || notifiedFor || subject.fetching) && (
+      {(reasons.length > 0 || notifiedFor || subject.fetching || hiddenWhy) && (
         <div className={styles.meta}>
           {subject.fetching && <span className={styles.reason}>loading…</span>}
+          {hiddenWhy && <span className={styles.hiddenWhy}>Hidden: {hiddenWhy}</span>}
           {notifiedFor && <span className={styles.reason}>notified: {notifiedFor.replaceAll("_", " ")}</span>}
           {reasons.map((reason) => (
             <span key={reason} className={styles.reason}>

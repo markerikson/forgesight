@@ -91,6 +91,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.hiddenWhy {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--fg-fade);
+}
+
 .stale {
   flex: none;
   color: var(--warning);

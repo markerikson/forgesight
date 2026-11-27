@@ -160,6 +160,7 @@ export function toInboxRow(view: SubjectView): InboxRow {
     snoozeUntil: view.snoozeUntil,
     unread: view.unread,
     enrichError: h.enrichError,
+    ...(view.quiet ? { quiet: view.quiet } : {}),
     findings: h.state === "OPEN" ? findingIcons(view.findings ?? []) : [],
   };
 }

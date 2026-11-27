@@ -11,6 +11,7 @@ import type { PushVerdict } from "../rebase/patch.ts";
 import type { StackContext } from "../workstreams.ts";
 import { deriveFindings } from "../findings/status.ts";
 import { classify, isMe, isRestack } from "./classify.ts";
+import { quietActivity } from "./hidden.ts";
 import { normalize } from "./normalize.ts";
 import { applyOverrides, findingsInScope, openedLine, type Rank, rank } from "./rank.ts";
 import { buildRounds } from "./rounds.ts";
@@ -19,6 +20,7 @@ import { isAfter } from "./time.ts";
 import type { Finding, RankReason, Round, Section, SubjectView, ViewEvent } from "./types.ts";
 
 export { isRestack, restackText } from "./classify.ts";
+export { hiddenReason } from "./hidden.ts";
 export { describe } from "./rank.ts";
 export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
 export { typenameLabel } from "./text.ts";
@@ -188,6 +190,7 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     sortAt: r.sortAt,
     snoozeUntil: state.snoozeUntil,
     unread: threads.some((t) => isUnreadHere(t, state)) || state.keepUnread,
+    ...(enriched ? { quiet: quietActivity(events) } : {}),
     ...(input.stack ? { stack: input.stack } : {}),
     ...(findings ? { findings } : {}),
   };
