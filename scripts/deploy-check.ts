@@ -1,10 +1,8 @@
-// Helper steps for scripts/deploy.sh.
-//   bun scripts/deploy-check.ts build-info <sha>    write build-info.json (local, before the build)
+// Server-side steps for scripts/deploy.ts.
 //   bun scripts/deploy-check.ts wait-app <name>     wait until a pm2 app stays online (on the server)
 //   bun scripts/deploy-check.ts health <sha>        wait for /api/health to report <sha>, then print status (on the server)
 import { loadConfig } from "../src/config/load.ts";
 import { configPath } from "../src/config/paths.ts";
-import { writeBuildInfo } from "../src/deploy/build-info.ts";
 import { pm2AppState, readiness } from "../src/deploy/pm2.ts";
 
 const MIN_UPTIME_MS = 10_000;
@@ -80,12 +78,6 @@ async function health(sha: string): Promise<void> {
 }
 
 switch (command) {
-  case "build-info": {
-    if (!arg) fail("usage: deploy-check.ts build-info <sha>");
-    const info = await writeBuildInfo(process.cwd(), arg, new Date());
-    console.log(`build-info.json: ${info.sha} ${info.time}`);
-    break;
-  }
   case "wait-app":
     if (!arg) fail("usage: deploy-check.ts wait-app <name>");
     await waitApp(arg);
@@ -95,5 +87,5 @@ switch (command) {
     await health(arg);
     break;
   default:
-    fail("usage: deploy-check.ts build-info|wait-app|health <arg>");
+    fail("usage: deploy-check.ts wait-app|health <arg>");
 }

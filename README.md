@@ -31,11 +31,11 @@ The web app reads the same database read-only and answers 503 until `db:migrate`
 
 ## Self-hosting
 
-`scripts/deploy.sh` builds on your machine and deploys over ssh to a Linux server, where pm2 runs two apps from `ecosystem.config.cjs`: `forgesight-worker` and `forgesight-web`. The server needs Bun 1.4 or newer (older versions can't read `bun.lock`), pm2 (with Node), and rsync. The web app has no login and listens on 127.0.0.1 only, so how you reach it (ssh tunnel, private network, reverse proxy with auth) is up to you. Add any hostname you use to `server.allowedHosts`.
+`scripts/deploy.ts` builds on your machine and deploys over ssh to a Linux server, where pm2 runs two apps from `ecosystem.config.cjs`: `forgesight-worker` and `forgesight-web`. The server needs Bun 1.4 or newer (older versions can't read `bun.lock`), pm2 (with Node), and rsync. The web app has no login and listens on 127.0.0.1 only, so how you reach it (ssh tunnel, private network, reverse proxy with auth) is up to you. Add any hostname you use to `server.allowedHosts`.
 
 On the server, code lives in `DEPLOY_DIR` (default `/opt/forgesight`), secrets in `$DEPLOY_DIR/.env` (Bun loads it from the working directory), and config in `~/.config/forgesight/config.jsonc` for the ssh user. Set `FORGESIGHT_DATA_DIR` in `.env`, for example to `$DEPLOY_DIR/data`. pm2 logs go to `$DEPLOY_DIR/data/logs/`.
 
-Deploy settings come from the environment or a gitignored `.deploy.env` in the repo root:
+Deploying needs `ssh` and `rsync` on your machine too. Deploy settings come from a gitignored `.deploy.env` in the repo root (plain `KEY=value` lines; a leading `~/` is expanded) or from environment variables, which take precedence:
 
 ```sh
 DEPLOY_SERVER=user@your-server       # ssh destination or Host alias (required)
@@ -47,10 +47,10 @@ DEPLOY_CONFIG_FILE=~/forgesight-server.jsonc   # uploaded as the server config b
 ```sh
 bun run deploy          # checks, build, rsync, restart worker then web, verify
 bun run deploy:full     # also uploads the env file and config
-bash scripts/deploy.sh --skip-checks --allow-dirty
+bun scripts/deploy.ts --skip-checks --allow-dirty
 ```
 
-`deploy.sh` refuses a dirty tree unless `--allow-dirty`, runs typecheck, lint and tests unless `--skip-checks`, writes `build-info.json`, builds, rsyncs the repo (with `.timber/dist`, without `node_modules`, `data`, `.env*`, `.git`), runs `bun install --production` on the server, backs up the database as `inbox-pre-deploy-<sha>.db`, restarts the worker (which migrates), waits for it to stay online, restarts the web, and waits until `/api/health` reports the new sha. It then prints `worker.alive` and `outbox.dryRun` from `/api/status`, and runs `pm2 save`. Run `pm2 startup` once on the server so pm2 restores the apps after a reboot.
+`deploy.ts` refuses a dirty tree unless `--allow-dirty`, runs typecheck, lint and tests unless `--skip-checks`, writes `build-info.json`, builds, rsyncs the repo (with `.timber/dist`, without `node_modules`, `data`, `.env*`, `.git`), runs `bun install --production` on the server, backs up the database as `inbox-pre-deploy-<sha>.db`, restarts the worker (which migrates), waits for it to stay online, restarts the web, and waits until `/api/health` reports the new sha. It then prints `worker.alive` and `outbox.dryRun` from `/api/status`, and runs `pm2 save`. Run `pm2 startup` once on the server so pm2 restores the apps after a reboot.
 
 ### First deploy
 
@@ -72,7 +72,7 @@ The worker reads config only at startup. After changing only the config, restart
 
 ### Rollback
 
-- No migration since the good commit: `git checkout <good-sha>` and `bash scripts/deploy.sh --skip-checks`.
+- No migration since the good commit: `git checkout <good-sha>` and `bun scripts/deploy.ts --skip-checks`.
 - A migration ran: the old code cannot open the newer schema. On the server:
   ```sh
   pm2 stop forgesight-worker forgesight-web

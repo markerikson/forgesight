@@ -14,10 +14,10 @@
     "test": "bun test src",
     "typecheck": "tsc --noEmit && tsc --noEmit -p src/core",
     "lint": "oxlint app/ src/ scripts/",
-    "deploy": "bash scripts/deploy.sh",
-    "deploy:full": "bash scripts/deploy.sh --sync-env --sync-config",
+    "deploy": "bun scripts/deploy.ts",
+    "deploy:full": "bun scripts/deploy.ts --sync-env --sync-config",
     "backup": "bun scripts/backup.ts",
-    "backup:pull": "bash scripts/backup-pull.sh"
+    "backup:pull": "bun scripts/backup-pull.ts"
   },
   "engines": {
     "bun": ">=1.4.0"
