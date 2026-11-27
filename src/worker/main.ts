@@ -16,6 +16,7 @@ import { getMeta, setMeta } from "../store/meta.ts";
 import { runMigrations } from "../store/migrate.ts";
 import { SqliteApiCallLog } from "./api-call-log.ts";
 import { deriveJob, deriveViews } from "./derive.ts";
+import { doneSyncJob } from "./done-sync.ts";
 import { enrichJob, urgentEnrichJob } from "./enrich.ts";
 import { startHeartbeat } from "./heartbeat.ts";
 import { maintenanceJob } from "./maintenance.ts";
@@ -24,6 +25,8 @@ import { outboxJob } from "./outbox.ts";
 import { createPoller } from "./poller.ts";
 import { rebaseDetectorJob } from "./rebase-detector.ts";
 import { consoleLogger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
+import { currentEnv, ENV_PATH, fileChangeWatcher, rejectingGitHubClient } from "./credentials.ts";
+import type { Config } from "../core/config.ts";
 import { createWorkstreamSummaryJobs } from "./workstream-summaries.ts";
 
 const { values: args } = parseArgs({
@@ -55,24 +58,32 @@ if (args["no-github"]) {
 }
 
 const governor = new Governor(new SqliteApiCallLog(db), config.budget, clock);
-let gh: GitHubClient;
-let viewer: string;
+
+// Startup signs in with the environment the worker started with. A retry after a rejected
+// token reads `.env` as it is on disk now, so a rotated token is picked up without a restart.
+async function connect(env: Record<string, string | undefined>): Promise<{ gh: GitHubClient; config: Config }> {
+  const client = createGitHubClient(config, resolveToken({ env }), { governor, clock });
+  const viewer = await client.viewerLogin();
+  setMeta(db, META.viewerLogin, viewer, clock().toISOString());
+  if (config.me && config.me !== viewer) {
+    log.warn(`Config "me" is ${config.me} but the token belongs to ${viewer}; using ${config.me}.`);
+  }
+  log.info(`Signed in as ${viewer}`);
+  return { gh: client, config: config.me ? config : { ...config, me: viewer } };
+}
+
+let connection: { gh: GitHubClient; config: Config };
+let authError: TokenError | null = null;
 try {
-  gh = createGitHubClient(config, resolveToken(), { governor, clock });
-  viewer = await gh.viewerLogin();
+  connection = await connect(process.env);
 } catch (e) {
   if (!(e instanceof TokenError)) throw e;
-  log.error(`GitHub token problem: ${e.message}`);
-  setMeta(db, WORKER_STATUS_KEY, "auth_failed", clock().toISOString());
-  db.close();
-  process.exit(1);
+  authError = e;
+  // Keep running local jobs with the last known viewer until the token works again.
+  const me = config.me ?? getMeta(db, META.viewerLogin) ?? null;
+  connection = { gh: rejectingGitHubClient(e), config: { ...config, me } };
 }
-setMeta(db, META.viewerLogin, viewer, clock().toISOString());
-if (config.me && config.me !== viewer) {
-  log.warn(`Config "me" is ${config.me} but the token belongs to ${viewer}; using ${config.me}.`);
-}
-const effectiveConfig = config.me ? config : { ...config, me: viewer };
-log.info(`Signed in as ${viewer}`);
+const credentialsChanged = fileChangeWatcher(ENV_PATH);
 setMeta(db, META.outboxDryRun, config.outbox.dryRun ? "1" : "0", clock().toISOString());
 if (config.outbox.dryRun) log.warn("Outbox dry run: GitHub writes are completed locally and not sent.");
 // A broken config falls back to defaults, which would turn a configured dry run into live
@@ -95,7 +106,8 @@ const summaryJobs = createWorkstreamSummaryJobs({ llm });
 // Summaries call Anthropic, not GitHub, so they get their own turn every tick, followed by
 // the local derive and maintenance jobs. The API key is read once at startup, so setting it
 // needs a worker restart.
-const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clock, log }, [
+const jobContext = { db, gh: connection.gh, governor, config: connection.config, clock, log };
+const scheduler = new Scheduler(jobContext, [
   urgentEnrichJob,
   poller.pollJob,
   ...(error ? [] : [outboxJob]),
@@ -104,10 +116,12 @@ const scheduler = new Scheduler({ db, gh, governor, config: effectiveConfig, clo
   rebaseDetectorJob,
   summaryJobs.texts,
   enrichJob,
+  doneSyncJob,
   ...(summaryJobs.summaries ? [summaryJobs.summaries] : []),
   deriveJob,
   maintenanceJob,
-]);
+], { reconnect: async () => connect(await currentEnv(ENV_PATH)), credentialsChanged });
+if (authError) scheduler.markAuthFailed(authError.message);
 
 if (args.once) {
   poller.request();
@@ -117,7 +131,7 @@ if (args.once) {
   for (const [name, count] of failing) log.error(`${name} still failing after ${count} attempts`);
   log.info(`--once finished: ${result}`);
   db.close();
-  process.exit(result === "stopped" || failing.size > 0 ? 1 : 0);
+  process.exit(result === "stopped" || result === "auth_failed" || failing.size > 0 ? 1 : 0);
 }
 
 let interrupted = false;
@@ -131,7 +145,6 @@ process.on("SIGTERM", shutdown);
 
 await scheduler.run();
 stopHeartbeat();
-// An auth failure already wrote its own status.
 if (interrupted) setMeta(db, WORKER_STATUS_KEY, "stopped", clock().toISOString());
 db.close();
 process.exit(interrupted ? 0 : 1);

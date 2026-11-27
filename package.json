@@ -9,6 +9,7 @@
     "start": "bun scripts/start-web.ts",
     "worker": "bun run src/worker/main.ts",
     "db:migrate": "bun run src/store/migrate-cli.ts",
+    "rederive": "bun scripts/rederive.ts",
     "inspect": "bun run src/worker/inspect.ts",
     "fixture:record": "bun run scripts/record-fixture.ts",
     "test": "bun test src",

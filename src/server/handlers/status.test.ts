@@ -26,7 +26,14 @@ describe("statusHandler", () => {
   test("reports nulls on a fresh database", async () => {
     const s = await status(ctx());
     expect(s.now).toBe(NOW.toISOString());
-    expect(s.worker).toEqual({ status: null, heartbeatAt: null, alive: null, authFailed: false });
+    expect(s.worker).toEqual({
+      status: null,
+      heartbeatAt: null,
+      alive: null,
+      authFailed: false,
+      authError: null,
+      authRetryAt: null,
+    });
     expect(s.viewer.login).toBeNull();
     expect(s.poll.lastPollStartedAt).toBeNull();
     expect(s.backfill.inProgress).toBe(false);
@@ -50,6 +57,8 @@ describe("statusHandler", () => {
       heartbeatAt: "2026-11-23T11:59:50.000Z",
       alive: true,
       authFailed: false,
+      authError: null,
+      authRetryAt: null,
     });
     expect(s.viewer.login).toBe("markerikson");
     expect(s.poll.lastPollStartedAt).toBe(at);
@@ -59,10 +68,14 @@ describe("statusHandler", () => {
   test("flags a stale heartbeat and auth failure", async () => {
     const c = ctx();
     setMeta(c.db, "worker.status", "auth_failed", NOW.toISOString());
+    setMeta(c.db, "worker.authError", "GitHub rejected the token (401)", NOW.toISOString());
+    setMeta(c.db, "worker.authRetryAt", "2026-11-23T12:05:00.000Z", NOW.toISOString());
     setMeta(c.db, "worker.heartbeatAt", "2026-11-23T11:50:00.000Z", NOW.toISOString());
     const s = await status(c);
     expect(s.worker.alive).toBe(false);
     expect(s.worker.authFailed).toBe(true);
+    expect(s.worker.authError).toBe("GitHub rejected the token (401)");
+    expect(s.worker.authRetryAt).toBe("2026-11-23T12:05:00.000Z");
   });
 
   test("sums API spend over the last hour only", async () => {

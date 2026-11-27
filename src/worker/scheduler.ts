@@ -4,7 +4,7 @@ import { META } from "../core/meta-keys.ts";
 import type { Governor } from "../github/budget.ts";
 import { GitHubApiError, RateLimitedError, TokenError } from "../github/errors.ts";
 import type { GitHubClient } from "../github/types.ts";
-import { setMeta } from "../store/meta.ts";
+import { deleteMeta, setMeta } from "../store/meta.ts";
 
 export interface Logger {
   info(message: string): void;
@@ -60,42 +60,107 @@ const RATE_LIMIT_MIN_PAUSE_MS = 60_000;
 const RETRY_BASE_MS = 5_000;
 const RETRY_MAX_MS = 5 * 60_000;
 
-export type TickResult = "worked" | "idle" | "paused" | "stopped";
+/** How long GitHub jobs wait after a rejected token before the worker tries the token again. */
+export const AUTH_RETRY_MS = 5 * 60_000;
+
+export type TickResult = "worked" | "idle" | "paused" | "auth_failed" | "stopped";
+
+/** A fresh GitHub client and config, built from a re-read token. Throws `TokenError` on failure. */
+export type Reconnect = () => Promise<Pick<JobContext, "gh" | "config">>;
 
 export interface SchedulerOptions {
   tickMs?: number;
   sleep?: (ms: number) => Promise<void>;
+  /** Called to retry the token after an auth failure. Without it the same client is retried. */
+  reconnect?: Reconnect;
+  /** Checked every tick during an auth failure; true retries the token right away. */
+  credentialsChanged?: () => boolean;
 }
 
 /**
  * Runs jobs in priority order, one at a time. Each tick runs GitHub jobs until one reports
  * "worked", so higher-priority work goes first on the next tick, then runs every local and
  * own-turn job.
- * A job that throws is retried with backoff; a 401 stops the scheduler; a rate limit pauses
- * the GitHub jobs.
+ * A job that throws is retried with backoff; a rate limit pauses the GitHub jobs. A rejected
+ * token (401) holds every GitHub job, including the outbox, while local and own-turn jobs keep
+ * running; the token is retried every `AUTH_RETRY_MS` or when `credentialsChanged` says so.
  */
 export class Scheduler {
   private stopped = false;
   private running: Promise<TickResult> | null = null;
   private readonly failures = new Map<string, { count: number; retryAt: number }>();
+  private authRetryAt: number | null = null;
   private readonly tickMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
+  private readonly reconnect: Reconnect | undefined;
+  private readonly credentialsChanged: (() => boolean) | undefined;
 
   constructor(
-    private readonly ctx: JobContext,
+    private ctx: JobContext,
     private readonly jobs: Job[],
     opts: SchedulerOptions = {},
   ) {
     this.tickMs = opts.tickMs ?? 1000;
     this.sleep = opts.sleep ?? ((ms) => Bun.sleep(ms));
+    this.reconnect = opts.reconnect;
+    this.credentialsChanged = opts.credentialsChanged;
   }
 
   get isStopped(): boolean {
     return this.stopped;
   }
 
+  get authFailed(): boolean {
+    return this.authRetryAt !== null;
+  }
+
   stop(): void {
     this.stopped = true;
+  }
+
+  /** Holds GitHub jobs until the token works again, and records why for the status bar. */
+  markAuthFailed(message: string): void {
+    const { db, clock, log } = this.ctx;
+    const now = clock();
+    this.authRetryAt = now.getTime() + AUTH_RETRY_MS;
+    const nowIso = now.toISOString();
+    setMeta(db, WORKER_STATUS_KEY, "auth_failed", nowIso);
+    setMeta(db, META.authError, message, nowIso);
+    setMeta(db, META.authRetryAt, new Date(this.authRetryAt).toISOString(), nowIso);
+    log.error(
+      `GitHub rejected the token; GitHub jobs are held, retrying at ${new Date(this.authRetryAt).toISOString()}. ${message}`,
+    );
+  }
+
+  private clearAuthFailure(): void {
+    const { db, clock, log } = this.ctx;
+    this.authRetryAt = null;
+    setMeta(db, WORKER_STATUS_KEY, "running", clock().toISOString());
+    deleteMeta(db, META.authError);
+    deleteMeta(db, META.authRetryAt);
+    log.info("GitHub token accepted; GitHub jobs resume");
+  }
+
+  /** True when GitHub jobs may run this tick. */
+  private async authReady(): Promise<boolean> {
+    if (this.authRetryAt === null) return true;
+    const due = this.ctx.clock().getTime() >= this.authRetryAt;
+    if (!due && !(this.credentialsChanged?.() ?? false)) return false;
+    if (!this.reconnect) {
+      // Let the next GitHub call test the token; another 401 marks the failure again.
+      this.clearAuthFailure();
+      return true;
+    }
+    try {
+      const next = await this.reconnect();
+      this.ctx = { ...this.ctx, ...next };
+      this.clearAuthFailure();
+      return true;
+    } catch (error) {
+      // A network error while checking the token also waits for the next retry.
+      this.markAuthFailed(errorMessage(error));
+      return false;
+    }
   }
 
   /** One pass over the jobs. Calls made while a tick is running wait for it and share its result. */
@@ -109,7 +174,9 @@ export class Scheduler {
 
   private async runTick(): Promise<TickResult> {
     if (this.stopped) return "stopped";
-    const remote = await this.runFirstWorking(this.jobs.filter((j) => !everyTick(j)));
+    const remote = (await this.authReady())
+      ? await this.runFirstWorking(this.jobs.filter((j) => !everyTick(j)))
+      : "auth_failed";
     if (remote === "stopped") return "stopped";
     let localWorked = false;
     for (const job of this.jobs.filter(everyTick)) {
@@ -132,6 +199,7 @@ export class Scheduler {
       const result = await this.runJob(job);
       if (this.stopped) return "stopped";
       if (result === "failed") {
+        if (this.authFailed) return "auth_failed";
         if (this.ctx.governor.pausedUntil()) return "paused";
         continue;
       }
@@ -157,12 +225,10 @@ export class Scheduler {
   }
 
   private handleError(job: Job, error: unknown): void {
-    const { db, governor, log, clock } = this.ctx;
+    const { governor, log, clock } = this.ctx;
     const now = clock();
     if (isAuthFailure(error, job.stopOn403 ?? false)) {
-      log.error(`${job.name}: GitHub rejected the token, stopping the worker. ${errorMessage(error)}`);
-      setMeta(db, WORKER_STATUS_KEY, "auth_failed", now.toISOString());
-      this.stop();
+      this.markAuthFailed(`${job.name}: ${errorMessage(error)}`);
       return;
     }
     if (error instanceof RateLimitedError) {
@@ -183,7 +249,11 @@ export class Scheduler {
 
   /** Ticks until stopped: right away after work, after `tickMs` when idle or paused. */
   async run(): Promise<void> {
-    setMeta(this.ctx.db, WORKER_STATUS_KEY, "running", this.ctx.clock().toISOString());
+    if (!this.authFailed) {
+      setMeta(this.ctx.db, WORKER_STATUS_KEY, "running", this.ctx.clock().toISOString());
+      deleteMeta(this.ctx.db, META.authError);
+      deleteMeta(this.ctx.db, META.authRetryAt);
+    }
     while (!this.stopped) {
       // oxlint-disable-next-line no-await-in-loop
       const result = await this.tick();

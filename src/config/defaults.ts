@@ -104,6 +104,7 @@ export const defaultConfig = {
   polling: {
     backfillDays: 90,
     fullRefreshMinutes: 15,
+    doneSyncMinutes: 15,
     openPullsMinutes: 10,
     enrichIssues: true,
   },

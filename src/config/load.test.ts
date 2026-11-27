@@ -67,6 +67,7 @@ describe("resolveConfig", () => {
     expect(config.polling).toEqual({
       backfillDays: 30,
       fullRefreshMinutes: 15,
+      doneSyncMinutes: 15,
       openPullsMinutes: 10,
       enrichIssues: true,
     });

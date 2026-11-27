@@ -3,7 +3,7 @@ import type { Cursor, NotificationListOptions, NotificationRef } from "forges";
 import { github } from "forges/github";
 import type { Config } from "../core/config.ts";
 import { Governor, MemoryApiCallLog } from "./budget.ts";
-import { RateLimitedError } from "./errors.ts";
+import { GitHubApiError, RateLimitedError } from "./errors.ts";
 import { createGraphqlRunner, type FetchFn, quotaFromHeaders } from "./graphql.ts";
 import {
   type FetchNotificationPage,
@@ -13,7 +13,7 @@ import {
   toPollResult,
 } from "./notifications.ts";
 import { withRestRetry } from "./rest.ts";
-import { toCommitDetail, toCompare, toLogin } from "./schemas.ts";
+import { toCommitDetail, toCompare, toLogin, toNotificationThread } from "./schemas.ts";
 import { checkScopes } from "./token.ts";
 import type { GitHubClient, NotificationThread, WorkClass } from "./types.ts";
 
@@ -138,6 +138,30 @@ export function createGitHubClient(
         pageFetcher("backfill", "backfill notifications", { all: true, perPage: NOTIFICATIONS_PER_PAGE, force: true }),
         cutoff,
       );
+    },
+
+    async *listNotificationsByDone(done: boolean, since: Date): AsyncIterable<NotificationThread[]> {
+      // forges has no `is_done` option, so this pages by number with a raw request.
+      for (let page = 1; ; page++) {
+        // oxlint-disable-next-line no-await-in-loop
+        const response = await run("doneSync", `list ${done ? "done" : "not done"} notifications`, () =>
+          gh.request<unknown>("GET", "/notifications", {
+            query: {
+              all: "true",
+              is_done: String(done),
+              since: since.toISOString(),
+              per_page: String(NOTIFICATIONS_PER_PAGE),
+              page: String(page),
+            },
+          }),
+        );
+        if (!Array.isArray(response.data)) {
+          throw new GitHubApiError("Unexpected done notifications shape from GitHub: not an array", 200);
+        }
+        const threads = response.data.map(toNotificationThread);
+        if (threads.length > 0) yield threads;
+        if (threads.length < NOTIFICATIONS_PER_PAGE) return;
+      }
     },
 
     async markDone(threadId) {

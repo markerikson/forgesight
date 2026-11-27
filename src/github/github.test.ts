@@ -289,10 +289,32 @@ describe("createGitHubClient", () => {
     const { client } = setup(() => new Response(JSON.stringify({ message: "Not Found" }), { status: 404 }));
     await expect(client.markRead("123")).rejects.toThrow(NotFoundError);
   });
+
+  test("listNotificationsByDone filters by is_done and pages until a short page", async () => {
+    const full = Array.from({ length: 50 }, (_, i) => restNotification(String(i), "2026-11-23T11:00:00Z"));
+    const { client, requests, log } = setup(
+      (url) =>
+        new Response(JSON.stringify(url.searchParams.get("page") === "1" ? full : [restNotification("x", "2026-11-23T10:00:00Z")]), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    );
+    const ids: string[] = [];
+    for await (const threads of client.listNotificationsByDone(true, new Date("2026-11-20T00:00:00Z"))) {
+      ids.push(...threads.map((t) => t.id));
+    }
+    expect(ids.length).toBe(51);
+    expect(requests.map((r) => [r.url.searchParams.get("is_done"), r.url.searchParams.get("all"), r.url.searchParams.get("page")])).toEqual([
+      ["true", "true", "1"],
+      ["true", "true", "2"],
+    ]);
+    expect(requests[0]?.url.searchParams.get("since")).toBe("2026-11-20T00:00:00.000Z");
+    expect(log.calls.map((c) => c.workClass)).toEqual(["doneSync", "doneSync"]);
+  });
 });
 
 describe("FakeGitHubClient", () => {
-  test("serves 304s for an unchanged etag and hides done threads", async () => {
+  test("serves 304s for an unchanged etag and keeps done threads in all=true listings", async () => {
     const fake = new FakeGitHubClient(clock);
     fake.setThreads(fakeThread({ id: "1" }), fakeThread({ id: "2", updatedAt: "2026-11-23T13:00:00Z" }));
     const first = await fake.pollNotifications({});
@@ -300,8 +322,13 @@ describe("FakeGitHubClient", () => {
     const etag = first.kind === "changed" ? first.etag : "";
     expect((await fake.pollNotifications({ etag })).kind).toBe("notModified");
     await fake.markDone("2");
-    const after = await fake.pollNotifications({ etag });
-    expect(after.kind === "changed" && after.threads.map((t) => t.id)).toEqual(["1"]);
+    const listed = async (done: boolean) => {
+      const ids: string[] = [];
+      for await (const page of fake.listNotificationsByDone(done, new Date(0))) ids.push(...page.map((t) => t.id));
+      return ids;
+    };
+    expect(await listed(true)).toEqual(["2"]);
+    expect(await listed(false)).toEqual(["1"]);
     expect(fake.getCommit("octo/repo", "abc")).rejects.toThrow(NotFoundError);
   });
 });

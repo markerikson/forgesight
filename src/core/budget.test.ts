@@ -5,7 +5,7 @@ const now = new Date("2026-11-23T12:00:00Z");
 const later = new Date("2026-11-23T12:30:00Z");
 const earlier = new Date("2026-11-23T11:30:00Z");
 
-const all: WorkClass[] = ["notifications", "enrich", "writeback", "openPulls", "rebase", "backfill"];
+const all: WorkClass[] = ["notifications", "enrich", "writeback", "openPulls", "rebase", "doneSync", "backfill"];
 const soft: WorkClass[] = ["notifications", "enrich", "writeback"];
 const essential: WorkClass[] = ["notifications", "writeback"];
 

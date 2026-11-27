@@ -9,7 +9,7 @@ import { memoryDb } from "../store/test-db.ts";
 import { changesAfter, getView } from "../store/views.ts";
 import { putWorkstreamState } from "../store/workstreams.ts";
 import { DEFAULT_WORKSTREAM_STATE } from "../core/workstream-state.ts";
-import { deriveViews } from "./derive.ts";
+import { deriveViews, rederiveAll } from "./derive.ts";
 import type { Logger } from "./scheduler.ts";
 
 const KEY = "octo/repo#1";
@@ -126,3 +126,29 @@ describe("deriveViews", () => {
     expect(deriveViews(db, changed, new Date("2026-11-23T11:01:00Z"), quietLog).derived).toBe(1);
   });
 });
+
+describe("rederiveAll", () => {
+  test("rewrites views that are current by version but stale in content", () => {
+    const { db, config } = setup();
+    ensureSubjects(db, [{ subjectKey: "octo/repo#2", repo: "octo/repo", number: 2, kind: "pr", origin: "thread" }]);
+    deriveViews(db, config, new Date("2026-11-23T11:00:00Z"), quietLog);
+    db.run("UPDATE subject_views SET section = 'hidden' WHERE subject_key = ?", [KEY]);
+    const seq = latestSeq(db);
+
+    const batches: number[] = [];
+    const summary = rederiveAll(db, config, new Date("2026-11-23T11:01:00Z"), quietLog, {
+      batch: 1,
+      onBatch: (done) => batches.push(done),
+    });
+
+    expect(summary).toMatchObject({ subjects: 2, changed: 1, failed: [] });
+    expect(batches).toEqual([1, 2]);
+    expect(getView(db, KEY)?.section).toBe("waiting");
+    expect(changesAfter(db, seq).map((c) => c.subjectKey)).toContain(KEY);
+    expect(deriveViews(db, config, new Date("2026-11-23T11:02:00Z"), quietLog).derived).toBe(0);
+  });
+});
+
+function latestSeq(db: ReturnType<typeof memoryDb>): number {
+  return changesAfter(db, 0).at(-1)?.seq ?? 0;
+}

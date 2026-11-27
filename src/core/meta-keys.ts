@@ -1,6 +1,10 @@
 /** `meta` keys shared by the worker, which writes them, and the web process, which reads them. */
 export const META = {
   workerStatus: "worker.status",
+  /** Why GitHub rejected the token, while `worker.status` is "auth_failed". */
+  authError: "worker.authError",
+  /** When the worker next retries the token, while `worker.status` is "auth_failed". */
+  authRetryAt: "worker.authRetryAt",
   heartbeatAt: "worker.heartbeatAt",
   viewerLogin: "viewer.login",
   /** "1" when the running worker completes outbox rows without sending them to GitHub. */
@@ -24,6 +28,10 @@ export const META = {
   deriveFailed: "derive.failed",
   /** Time of the last maintenance run, which prunes old changes, API calls and state ops. */
   maintenanceAt: "maintenance.at",
+  /** Time of the last check for threads marked done outside Forgesight. */
+  doneSyncAt: "doneSync.at",
+  /** JSON map of threads missing from the GitHub inbox that the done listing did not confirm. */
+  doneSyncUnconfirmed: "doneSync.unconfirmed",
 } as const;
 
 /** Adaptive SubjectBatch state for one repo, stored as JSON `BatchState`. */

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { resolveConfig } from "../config/load.ts";
+import { META } from "../core/meta-keys.ts";
 import { Governor, MemoryApiCallLog } from "../github/budget.ts";
 import { GitHubApiError, RateLimitedError, TokenError } from "../github/errors.ts";
 import { FakeGitHubClient, fakeThread } from "../github/fake.ts";
@@ -10,7 +11,14 @@ import { memoryDb } from "../store/test-db.ts";
 import { listThreads, threadsForSubject } from "../store/threads.ts";
 import { changesAfter } from "../store/views.ts";
 import { createPoller, POLL_META } from "./poller.ts";
-import { type Job, type JobContext, type Logger, Scheduler, WORKER_STATUS_KEY } from "./scheduler.ts";
+import {
+  AUTH_RETRY_MS,
+  type Job,
+  type JobContext,
+  type Logger,
+  Scheduler,
+  WORKER_STATUS_KEY,
+} from "./scheduler.ts";
 
 const START = new Date("2026-11-23T12:00:00Z");
 const HOUR = 60 * 60 * 1000;
@@ -266,19 +274,112 @@ describe("backfill", () => {
 });
 
 describe("scheduler errors", () => {
-  test("a token error stops the worker and records auth_failed", async () => {
+  test("a token error holds GitHub jobs, records auth_failed and keeps running", async () => {
     const { db, gh, scheduler } = setup();
     gh.nextError = new TokenError("bad token");
-    expect(await scheduler.tick()).toBe("stopped");
+    expect(await scheduler.tick()).toBe("auth_failed");
     expect(getMeta(db, WORKER_STATUS_KEY)).toBe("auth_failed");
-    expect(scheduler.isStopped).toBe(true);
+    expect(getMeta(db, META.authError)).toBe("notifications: bad token");
+    expect(getMeta(db, META.authRetryAt)).toBe(new Date(START.getTime() + AUTH_RETRY_MS).toISOString());
+    expect(scheduler.isStopped).toBe(false);
+
+    const calls = gh.calls.length;
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(gh.calls.length).toBe(calls);
   });
 
-  test("a plain 403 on notifications stops the worker", async () => {
+  test("a plain 403 on notifications counts as an auth failure", async () => {
     const { db, gh, scheduler } = setup();
     gh.nextError = new GitHubApiError("forbidden", 403);
-    expect(await scheduler.tick()).toBe("stopped");
+    expect(await scheduler.tick()).toBe("auth_failed");
     expect(getMeta(db, WORKER_STATUS_KEY)).toBe("auth_failed");
+  });
+
+  test("local jobs keep running while auth is failed", async () => {
+    const { gh, ctx, poller } = setup();
+    let localRuns = 0;
+    const local: Job = {
+      name: "local",
+      local: true,
+      run: async () => {
+        localRuns++;
+        return "idle";
+      },
+    };
+    const scheduler = new Scheduler(ctx, [poller.pollJob, local]);
+    gh.nextError = new TokenError("bad token");
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(localRuns).toBe(2);
+  });
+
+  test("the token is retried after the retry interval through reconnect", async () => {
+    const { db, gh, ctx, poller, advance } = setup();
+    const fresh = new FakeGitHubClient(ctx.clock);
+    fresh.setThreads(fakeThread({ id: "1", updatedAt: ago(HOUR) }));
+    let attempts = 0;
+    const scheduler = new Scheduler(ctx, [poller.pollJob], {
+      reconnect: async () => {
+        attempts++;
+        if (attempts === 1) throw new TokenError("still bad");
+        return { gh: fresh, config: ctx.config };
+      },
+    });
+    gh.nextError = new TokenError("bad token");
+    expect(await scheduler.tick()).toBe("auth_failed");
+
+    advance(AUTH_RETRY_MS - 1);
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(attempts).toBe(0);
+
+    advance(1);
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(attempts).toBe(1);
+    expect(getMeta(db, META.authError)).toBe("still bad");
+
+    advance(AUTH_RETRY_MS);
+    poller.request();
+    expect(await scheduler.tick()).toBe("worked");
+    expect(attempts).toBe(2);
+    expect(getMeta(db, WORKER_STATUS_KEY)).toBe("running");
+    expect(getMeta(db, META.authError)).toBeUndefined();
+    expect(callsOf(fresh, "pollNotifications")).toBe(1);
+    expect(listThreads(db).map((t) => t.threadId)).toEqual(["1"]);
+  });
+
+  test("a credentials change retries the token right away", async () => {
+    const { gh, ctx, poller } = setup();
+    let changed = false;
+    let attempts = 0;
+    const scheduler = new Scheduler(ctx, [poller.pollJob], {
+      reconnect: async () => {
+        attempts++;
+        return { gh, config: ctx.config };
+      },
+      credentialsChanged: () => changed,
+    });
+    gh.nextError = new TokenError("bad token");
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(attempts).toBe(0);
+
+    changed = true;
+    poller.request();
+    expect(await scheduler.tick()).toBe("worked");
+    expect(attempts).toBe(1);
+    expect(scheduler.authFailed).toBe(false);
+  });
+
+  test("an auth failure marked at startup holds GitHub jobs until it clears", async () => {
+    const { db, gh, ctx, poller, advance } = setup();
+    const scheduler = new Scheduler(ctx, [poller.pollJob]);
+    scheduler.markAuthFailed("no token");
+    expect(await scheduler.tick()).toBe("auth_failed");
+    expect(gh.calls.length).toBe(0);
+    expect(getMeta(db, META.authError)).toBe("no token");
+    advance(AUTH_RETRY_MS);
+    expect(await scheduler.tick()).toBe("worked");
+    expect(getMeta(db, WORKER_STATUS_KEY)).toBe("running");
   });
 
   test("a rate limit pauses every job for at least a minute", async () => {

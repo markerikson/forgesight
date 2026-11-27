@@ -66,6 +66,8 @@ export interface Config {
   polling: {
     backfillDays: number;
     fullRefreshMinutes: number;
+    /** How often to check GitHub for threads marked done elsewhere (github.com, mobile app). */
+    doneSyncMinutes: number;
     openPullsMinutes: number;
     enrichIssues: boolean;
   };

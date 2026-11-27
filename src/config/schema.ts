@@ -74,6 +74,7 @@ export const userConfigSchema = type({
     "+": "reject",
     "backfillDays?": positiveInt,
     "fullRefreshMinutes?": positiveInt,
+    "doneSyncMinutes?": positiveInt,
     "openPullsMinutes?": positiveInt,
     "enrichIssues?": "boolean",
   },

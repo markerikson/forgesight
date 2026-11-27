@@ -199,6 +199,10 @@ export function resolveConfig(user: UserConfig, defaults: UserConfig = defaultCo
         user.polling?.fullRefreshMinutes ?? d.polling.fullRefreshMinutes,
         "polling.fullRefreshMinutes",
       ),
+      doneSyncMinutes: required(
+        user.polling?.doneSyncMinutes ?? d.polling.doneSyncMinutes,
+        "polling.doneSyncMinutes",
+      ),
       openPullsMinutes: required(
         user.polling?.openPullsMinutes ?? d.polling.openPullsMinutes,
         "polling.openPullsMinutes",

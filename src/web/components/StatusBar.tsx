@@ -26,17 +26,24 @@ export function StatusBar() {
     content = <span className={styles.bad}>Status unavailable: the last status check failed.</span>;
   } else if (data) {
     const { worker, viewer, poll, enrichQueue, backfill, outbox } = data;
-    const workerText = worker.authFailed
-      ? "auth failed"
-      : worker.alive === null
-        ? (worker.status ?? "unknown")
-        : worker.alive
-          ? "alive"
-          : "stale";
-    const workerClass = worker.authFailed || worker.alive === false ? styles.bad : worker.alive ? styles.ok : undefined;
+    const workerText =
+      worker.alive === null ? (worker.status ?? "unknown") : worker.alive ? "alive" : "stale";
+    const workerClass = worker.alive === false ? styles.bad : worker.alive ? styles.ok : undefined;
+    const authTitle = [
+      worker.authError,
+      worker.authRetryAt &&
+        `Retrying at ${new Date(worker.authRetryAt).toLocaleTimeString()}, or sooner when .env changes.`,
+    ]
+      .filter(Boolean)
+      .join("\n");
     content = (
       <>
         <span className={workerClass}>Worker {workerText}</span>
+        {worker.authFailed && (
+          <span className={styles.bad} title={authTitle || undefined}>
+            GitHub auth failed
+          </span>
+        )}
         <span>{viewer.login ?? "unknown user"}</span>
         <span>Polled {ago(poll.lastPollStartedAt)}</span>
         {enrichQueue.pending > 0 && <span>{enrichQueue.pending} to refresh</span>}

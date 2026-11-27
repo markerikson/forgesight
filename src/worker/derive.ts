@@ -106,6 +106,24 @@ export interface DerivedKeys {
 }
 
 /**
+ * Derives and stores the views for one batch of keys. Reads and writes happen inside one
+ * immediate transaction, so the worker, the web server and `bun run rederive` cannot write a
+ * newer view between another writer's read and its write. Other writers wait at most one
+ * batch (they use `busy_timeout`).
+ */
+function deriveAndStore(
+  db: Database,
+  keys: string[],
+  ctx: { config: Config; hash: string; now: Date; log: Logger },
+): DerivedKeys {
+  return db.transaction(() => {
+    const batch = deriveBatch(db, keys, ctx);
+    const changed = putViews(db, batch.views, ctx.now.toISOString());
+    return { views: batch.views, changed, failed: batch.failed };
+  }).immediate();
+}
+
+/**
  * Derives and stores the views for `keys` in batches of `DERIVE_BATCH`. Uses only the store
  * and the pure pipeline, so the web server calls it right after a state op. Also ends the
  * snooze of any workstream that activity on these subjects woke.
@@ -118,13 +136,12 @@ export function deriveKeys(
   log: Logger = console,
 ): DerivedKeys {
   const hash = configHash(config);
-  const nowIso = now.toISOString();
   const result: DerivedKeys = { views: [], changed: [], failed: [] };
   for (let i = 0; i < keys.length; i += DERIVE_BATCH) {
-    const batch = deriveBatch(db, keys.slice(i, i + DERIVE_BATCH), { config, hash, now, log });
+    const batch = deriveAndStore(db, keys.slice(i, i + DERIVE_BATCH), { config, hash, now, log });
     result.views.push(...batch.views);
     result.failed.push(...batch.failed);
-    result.changed.push(...putViews(db, batch.views, nowIso));
+    result.changed.push(...batch.changed);
   }
   endWokenSnoozes(db, config, keys, now);
   return result;
@@ -156,6 +173,43 @@ export function deriveViews(
     log.info(`derive: ${keys.length} subjects, ${changed} list changes, ${failed.length} failed, ${ms}ms`);
   }
   return { derived: keys.length - failed.length, changed, failed: failed.length, ms };
+}
+
+export interface RederiveSummary {
+  subjects: number;
+  changed: number;
+  failed: string[];
+  ms: number;
+}
+
+/**
+ * Recomputes the view of every subject from the stored data, for pipeline changes that did
+ * not bump `PIPELINE_VERSION`. Stores each batch the same way the worker does, so it is safe
+ * to run while the worker runs.
+ */
+export function rederiveAll(
+  db: Database,
+  config: Config,
+  now: Date,
+  log: Logger,
+  opts: { batch?: number; onBatch?: (done: number, total: number) => void } = {},
+): RederiveSummary {
+  const started = performance.now();
+  const size = opts.batch ?? DERIVE_BATCH;
+  const hash = configHash(config);
+  const keys = db
+    .query<{ subject_key: string }, []>("SELECT subject_key FROM subjects ORDER BY subject_key")
+    .all()
+    .map((r) => r.subject_key);
+  const summary: RederiveSummary = { subjects: keys.length, changed: 0, failed: [], ms: 0 };
+  for (let i = 0; i < keys.length; i += size) {
+    const batch = deriveAndStore(db, keys.slice(i, i + size), { config, hash, now, log });
+    summary.failed.push(...batch.failed);
+    summary.changed += batch.changed.length;
+    opts.onBatch?.(Math.min(i + size, keys.length), keys.length);
+  }
+  summary.ms = Math.round(performance.now() - started);
+  return summary;
 }
 
 export const deriveJob: Job = {
