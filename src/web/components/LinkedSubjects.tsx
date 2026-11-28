@@ -10,7 +10,8 @@ function relationLabel(relation: LinkRelation, link: LinkedSubject): string {
     case "branchRule":
       return "fixes";
     case "closedBy":
-      return link.state === "MERGED" ? "fixed by" : "fix in";
+      if (link.state === "MERGED") return "fixed by";
+      return link.state === "CLOSED" ? "closed PR" : "fix in";
     case "duplicate":
       return "duplicate of";
     case "connected":

@@ -9,7 +9,7 @@ import type {
   ThreadRecord,
   TimelineItemRecord,
 } from "../types.ts";
-import { deriveSubjectView, subjectBody } from "./index.ts";
+import { deriveSubjectView, subjectBody, toInboxRow } from "./index.ts";
 
 const ME = "markerikson";
 const REPO = "replayio/backend";
@@ -451,6 +451,26 @@ describe("rank", () => {
       branchRules: [{ pattern: "^fix/qa-issue-(\\d+)$", link: "issue" }],
     });
     expect(view.linked).toEqual([{ kind: "issue", repo: REPO, number: 4153, relation: "branchRule" }]);
+  });
+
+  test("row chips keep closed issues a PR fixes but drop abandoned PRs", () => {
+    const node = (typename: string, number: number, state: string) => ({
+      __typename: typename,
+      number,
+      state,
+      repository: { nameWithOwner: REPO },
+    });
+    const merged = derive({ raw: { closingIssuesReferences: { nodes: [node("Issue", 9, "CLOSED")] } } });
+    expect(toInboxRow(merged).linked?.map((l) => l.number)).toEqual([9]);
+    const issue = derive({
+      kind: "issue",
+      raw: {
+        closedByPullRequestsReferences: {
+          nodes: [node("PullRequest", 10, "CLOSED"), node("PullRequest", 11, "OPEN")],
+        },
+      },
+    });
+    expect(toInboxRow(issue).linked?.map((l) => l.number)).toEqual([11]);
   });
 
   test("assignment to me shows on issues but not on PRs", () => {
