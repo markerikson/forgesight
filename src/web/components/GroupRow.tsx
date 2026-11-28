@@ -4,6 +4,7 @@ import {
   groupKey,
   groupTotals,
   type InboxGroup,
+  isNewIssuesGroup,
   isNewWorkstream,
   type UnlistedMember,
   type UnlistedReason,
@@ -56,6 +57,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
   const authors = groupAuthors(group);
   const totals = groupTotals(group);
   const activityAt = group.sortAt || totals.lastActivityAt;
+  const stored = !isNewIssuesGroup(group);
 
   const act = (e: MouseEvent, fn: () => void) => {
     e.stopPropagation();
@@ -102,7 +104,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
             onKeyDown={onRenameKey}
             onBlur={(e) => finishRename(e.currentTarget.value)}
           />
-        ) : (
+        ) : stored ? (
           <span
             className={rowStyles.title}
             title={`${group.name} (double-click to rename)`}
@@ -110,8 +112,10 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
           >
             {group.name}
           </span>
+        ) : (
+          <span className={rowStyles.title}>{group.name}</span>
         )}
-        <span className={styles.count} title={`${count} pull requests and issues`}>
+        <span className={styles.count} title={stored ? `${count} pull requests and issues` : `${count} new issues`}>
           {count}
         </span>
         {isNewWorkstream(group) && <span className={styles.newBadge}>new workstream</span>}
@@ -121,7 +125,9 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
         <FindingBadges icons={sumFindingIcons(group.members.map((m) => m.findings))} />
         {!editing && (
           <div className={rowStyles.actions}>
-            <select
+            {stored && (
+              <>
+                <select
               className={styles.priority}
               title="Workstream priority"
               value={group.priority}
@@ -148,6 +154,8 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
             >
               Merge…
             </button>
+              </>
+            )}
             {doneCount > 0 && (
               <button
                 type="button"
@@ -177,6 +185,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
           </span>
         )}
       </div>
+      {stored && (
       <div className={`${rowStyles.line} ${rowStyles.sub}`}>
         <span className={rowStyles.summary}>
           {group.summary?.status && <span className={styles.status}>{group.summary.status} · </span>}
@@ -193,6 +202,7 @@ export const GroupRow = memo(function GroupRow({ group, index, selected, expande
           </button>
         )}
       </div>
+      )}
       {summaryOpen && group.summary && <p className={styles.summaryText}>{group.summary.text}</p>}
       {mergeAnchor && (
         <WorkstreamPicker

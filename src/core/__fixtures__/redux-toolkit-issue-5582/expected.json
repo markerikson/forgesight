@@ -1,0 +1,33 @@
+{
+  "section": "hidden",
+  "reasons": [
+    "nothingNew"
+  ],
+  "summaryLine": "fixed by #5649",
+  "newMeaningfulCount": 0,
+  "hiddenStats": {
+    "pushes": 0,
+    "rebases": 0,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-26T02:35:03Z",
+  "links": [],
+  "linked": [
+    "closedBy pr reduxjs/redux-toolkit#5649 MERGED"
+  ],
+  "rounds": [
+    {
+      "start": null,
+      "isNew": false,
+      "hidden": 0,
+      "entries": [
+        "[1 milestone change, 3 label changes, 1 sub-issue change, 1 cross-reference]",
+        "comment MannXo IC_kwDOB2ACAs8AAAABjlxyZQ",
+        "[2 milestone changes, 1 cross-reference]",
+        "closedByPr markerikson CE_lADOB2ACAs8AAAABczsZTs8AAAAIsJXVPg",
+        "[1 other event]"
+      ]
+    }
+  ]
+}

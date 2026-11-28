@@ -160,6 +160,24 @@ describe("enrichWorkClass", () => {
     expect(enrichWorkClass({ origin: "stack", threadUpdatedAt: null, now })).toBe("enrich");
     expect(enrichWorkClass({ origin: "stack", threadUpdatedAt: daysAgo(60), now })).toBe("enrich");
   });
+
+  test("issues in normal and full repos are enrich while open or updated in the last 30 days", () => {
+    const issue = { origin: "thread", kind: "issue", now } as const;
+    expect(enrichWorkClass({ ...issue, state: "OPEN", threadUpdatedAt: daysAgo(90), mode: "normal" })).toBe("enrich");
+    expect(enrichWorkClass({ ...issue, state: "OPEN", threadUpdatedAt: null, mode: "full" })).toBe("enrich");
+    expect(enrichWorkClass({ ...issue, state: "CLOSED", threadUpdatedAt: daysAgo(20), mode: "normal" })).toBe("enrich");
+    expect(enrichWorkClass({ ...issue, state: "CLOSED", threadUpdatedAt: daysAgo(35), mode: "normal" })).toBe("backfill");
+    expect(enrichWorkClass({ ...issue, state: null, threadUpdatedAt: daysAgo(20), mode: "normal" })).toBe("enrich");
+  });
+
+  test("issues in simple repos and pull requests keep the 14-day window", () => {
+    expect(
+      enrichWorkClass({ origin: "thread", kind: "issue", state: "OPEN", threadUpdatedAt: daysAgo(20), now, mode: "simple" }),
+    ).toBe("backfill");
+    expect(
+      enrichWorkClass({ origin: "thread", kind: "pr", state: "OPEN", threadUpdatedAt: daysAgo(20), now, mode: "normal" }),
+    ).toBe("backfill");
+  });
 });
 
 describe("pickEnrichBatch", () => {
@@ -168,6 +186,8 @@ describe("pickEnrichBatch", () => {
   const queued = (subjectKey: string, extra: Partial<QueuedSubject> = {}): QueuedSubject => ({
     subjectKey,
     repo: subjectKey.split("#")[0] ?? "",
+    kind: "pr",
+    state: null,
     origin: "thread",
     priority: 0,
     dirtyAt: daysAgo(1),
@@ -177,15 +197,21 @@ describe("pickEnrichBatch", () => {
   const opts = (extra: Partial<PickEnrichOptions> = {}): PickEnrichOptions => ({
     canSpend: () => true,
     batchSize: () => 10,
+    mode: () => "normal",
     ...extra,
   });
 
   test("tiers: urgent, then recent activity, then backlog", () => {
-    expect(enrichTier(queued("a/x#1", { priority: ENRICH_PRIORITY.urgent, threadUpdatedAt: null }), now)).toBe("urgent");
-    expect(enrichTier(queued("a/x#1"), now)).toBe("active");
-    expect(enrichTier(queued("a/x#1", { origin: "stack", threadUpdatedAt: null }), now)).toBe("active");
-    expect(enrichTier(queued("a/x#1", { threadUpdatedAt: daysAgo(30) }), now)).toBe("backlog");
-    expect(enrichTier(queued("a/x#1", { threadUpdatedAt: null }), now)).toBe("backlog");
+    const tier = (subject: QueuedSubject) => enrichTier(subject, now, "normal");
+    expect(tier(queued("a/x#1", { priority: ENRICH_PRIORITY.urgent, threadUpdatedAt: null }))).toBe("urgent");
+    expect(tier(queued("a/x#1"))).toBe("active");
+    expect(tier(queued("a/x#1", { origin: "stack", threadUpdatedAt: null }))).toBe("active");
+    expect(tier(queued("a/x#1", { threadUpdatedAt: daysAgo(30) }))).toBe("backlog");
+    expect(tier(queued("a/x#1", { threadUpdatedAt: null }))).toBe("backlog");
+    expect(tier(queued("a/x#2", { kind: "issue", state: "OPEN", threadUpdatedAt: daysAgo(60) }))).toBe("active");
+    expect(enrichTier(queued("a/x#2", { kind: "issue", state: "OPEN", threadUpdatedAt: daysAgo(60) }), now, "simple")).toBe(
+      "backlog",
+    );
   });
 
   test("orders across repos by tier before repo or age", () => {

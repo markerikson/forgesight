@@ -4,6 +4,7 @@ import {
   planPoll,
   planSubjects,
   type PollState,
+  queuesOnFirstRun,
   type ThreadInput,
   threadChanged,
 } from "./notifications.ts";
@@ -36,6 +37,23 @@ function thread(id: string, overrides: Partial<ThreadInput> = {}): ThreadInput {
     ...overrides,
   };
 }
+
+describe("queuesOnFirstRun", () => {
+  const daysAgo = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * MIN).toISOString();
+  const issue = (days: number) => thread("i", { subjectType: "Issue", updatedAt: daysAgo(days) });
+
+  test("queues threads from the last 14 days in any repo", () => {
+    expect(queuesOnFirstRun(thread("p", { updatedAt: daysAgo(10) }), NOW, "simple")).toBe(true);
+    expect(queuesOnFirstRun(thread("p", { updatedAt: daysAgo(20) }), NOW, "normal")).toBe(false);
+  });
+
+  test("queues issues from the last 30 days in normal and full repos", () => {
+    expect(queuesOnFirstRun(issue(20), NOW, "normal")).toBe(true);
+    expect(queuesOnFirstRun(issue(20), NOW, "full")).toBe(true);
+    expect(queuesOnFirstRun(issue(20), NOW, "simple")).toBe(false);
+    expect(queuesOnFirstRun(issue(35), NOW, "normal")).toBe(false);
+  });
+});
 
 describe("planPoll", () => {
   test("waits for nextPollAt", () => {

@@ -1,0 +1,444 @@
+{
+  "subjectKey": "immerjs/immer#1141",
+  "subject": {
+    "nodeId": "I_kwDOBuXBf86VRvvc",
+    "state": "OPEN",
+    "author": "diandian18",
+    "headRef": null,
+    "baseRef": null,
+    "headSha": null,
+    "baseSha": null,
+    "updatedAt": "2026-11-22T12:00:08Z",
+    "raw": {
+      "id": "I_kwDOBuXBf86VRvvc",
+      "number": 1141,
+      "title": "Please remove `process.env.NODE_ENV`  in `dist/immer.mjs`",
+      "state": "OPEN",
+      "stateReason": null,
+      "author": {
+        "login": "diandian18",
+        "__typename": "User"
+      },
+      "body": "## 🚀 Feature Proposal\r\n\r\nI use `import { produce } from 'immer'` in vite project. After building, `process.env.NODE_ENV` is still in my built file. \r\n\r\n\r\n## Motivation\r\n\r\nCould `process.env.NODE_ENV`  be removed in `dist/immer.mjs`?\r\n",
+      "createdAt": "2024-09-04T06:50:46Z",
+      "updatedAt": "2026-11-22T12:00:08Z",
+      "closedAt": null,
+      "assignees": {
+        "nodes": []
+      },
+      "labels": {
+        "nodes": [
+          {
+            "name": "proposal"
+          }
+        ]
+      },
+      "issueType": null,
+      "parent": null,
+      "subIssuesSummary": {
+        "total": 0,
+        "completed": 0
+      },
+      "closedByPullRequestsReferences": {
+        "nodes": [
+          {
+            "number": 1379,
+            "title": "fix: do not read process.env when process is not defined",
+            "state": "OPEN",
+            "repository": {
+              "nameWithOwner": "immerjs/immer"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "LE_lADOBuXBf86VRvvczwAAAANJ7Cwb",
+      "typename": "LabeledEvent",
+      "createdAt": "2024-09-04T06:50:46Z",
+      "raw": {
+        "__typename": "LabeledEvent",
+        "id": "LE_lADOBuXBf86VRvvczwAAAANJ7Cwb",
+        "createdAt": "2024-09-04T06:50:46Z",
+        "actor": {
+          "login": "diandian18",
+          "__typename": "User"
+        },
+        "label": {
+          "name": "proposal"
+        }
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86K1H4V",
+      "typename": "IssueComment",
+      "createdAt": "2024-09-04T14:12:11Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86K1H4V",
+        "createdAt": "2024-09-04T14:12:11Z",
+        "updatedAt": "2024-09-04T14:12:11Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "body": "That inclusion is intentional, and Vite _should_ be replacing it automatically.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2329181717"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86Ofy69",
+      "typename": "IssueComment",
+      "createdAt": "2024-10-03T07:19:38Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86Ofy69",
+        "createdAt": "2024-10-03T07:19:38Z",
+        "updatedAt": "2024-10-03T07:19:57Z",
+        "lastEditedAt": "2024-10-03T07:19:56Z",
+        "author": {
+          "login": "blixt",
+          "__typename": "User"
+        },
+        "body": "This problem is not only about Vite, and this is typically not happening with other packages. As an example, using `immer` via JSPM (e.g. using the [Import Map Generator](https://generator.jspm.io/)) will not work in a browser unless you shim a Node.js environment.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2390699709"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86OnP__",
+      "typename": "IssueComment",
+      "createdAt": "2024-10-04T02:10:12Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86OnP__",
+        "createdAt": "2024-10-04T02:10:12Z",
+        "updatedAt": "2024-10-04T02:10:12Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "body": "I'm not familiar with how JSPM resolves which file to use inside of an NPM package, but if you need to use it in a browser directly you should be pointing it to `dist/immer.production.mjs`, which is an ESM module that _has_ already been precompiled to strip out the `process.env.NODE_ENV` checks, minified, and is meant for use as a modern `<script type=\"module\">` directly.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2392653823"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86Ooieb",
+      "typename": "IssueComment",
+      "createdAt": "2024-10-04T07:17:03Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86Ooieb",
+        "createdAt": "2024-10-04T07:17:03Z",
+        "updatedAt": "2024-10-04T07:17:03Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "blixt",
+          "__typename": "User"
+        },
+        "body": "JSPM is an import maps first approach to package management so it does support development builds and production builds, so the true solution might not be as simple as to just say \"use production builds if you want the Node environment stuff stripped out\". However, I believe JSPM will respect the `exports` conditional property, i.e.:\r\n\r\n```\r\n{\r\n  \"exports\": {\r\n    \"node\": \"./dist/cjs/index.js\",\r\n    \"default\": \"./dist/esm/index.js\"\r\n  }\r\n}\r\n```\r\n\r\nYou can read more here: https://nodejs.org/api/packages.html#conditional-exports\r\n\r\nBasically this would be the most official way to say \"for Node environments we use this entry point, otherwise we use this other one\".\r\n\r\nFor Immer, which already uses `exports` to differentiate CJS and ESM it would look something like this:\r\n\r\n```jsonc\r\n{\r\n  // ...\r\n  \"exports\": {\r\n    \"./package.json\": \"./package.json\",\r\n    \".\": {\r\n      \"types\": \"./dist/immer.d.ts\",\r\n      \"node\": {\r\n        \"import\": \"./dist/immer.mjs\",\r\n        \"require\": \"./dist/cjs/index.js\"\r\n      },\r\n      \"default\": \"./dist/immer.production.mjs\"\r\n    }\r\n  },\r\n  // ...\r\n}\r\n```\r\n\r\nNow like I implied initially, this would hide the development version from JSPM (which would be useful if you want to have a bundler-less browser first environment with development support, like we did at Framer which is completely ES Modules + Import Maps based). But from what I can see, there is no `./dist/immer.browser.mjs` or so which would be needed, and I do think the change I wrote above would already be a step up.\r\n\r\nNow I'm not sure what @guybedford's stance is on these kinds of situations – for example esm.sh appears to have taken another approach where it doesn't include the `process` reference – possibly by figuring out which module is for production (maybe with a manual override?), or by just post-processing the code to consider `process.env.NODE_ENV` a constant that can be turned into `true` or `false`.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2392991643"
+      }
+    },
+    {
+      "nodeId": "MEE_lADOBuXBf86VRvvczwAAAANhIYa4",
+      "typename": "MentionedEvent",
+      "createdAt": "2024-10-04T07:17:05Z",
+      "raw": {
+        "__typename": "MentionedEvent",
+        "id": "MEE_lADOBuXBf86VRvvczwAAAANhIYa4",
+        "createdAt": "2024-10-04T07:17:05Z",
+        "actor": {
+          "login": "guybedford",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "SE_lADOBuXBf86VRvvczwAAAANhIYbt",
+      "typename": "SubscribedEvent",
+      "createdAt": "2026-11-27T05:03:56.984Z",
+      "raw": {
+        "__typename": "SubscribedEvent",
+        "id": "SE_lADOBuXBf86VRvvczwAAAANhIYbt"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86Oybxb",
+      "typename": "IssueComment",
+      "createdAt": "2024-10-06T21:07:17Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86Oybxb",
+        "createdAt": "2024-10-06T21:07:17Z",
+        "updatedAt": "2024-10-06T21:07:17Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "guybedford",
+          "__typename": "User"
+        },
+        "body": "JSPM will replace `process.env.NODE_ENV` in CommonJS as a CommonJS feature contract, but yes for native ES modules we don't do the same thing, the reason being that we don't consider it to be a modern pattern going forward into the native ES ecosystem.\r\n\r\nWhat we do for CommonJS is effectively build two files - one with the dev and one with the production condition, and then set up entry conditions to those variations depending on which mode the package is loaded. It's a little messy, and doing this explicitly at the package level is the preferred model (using the `\"development\"` and `\"production\"` package conditions - https://nodejs.org/docs/latest/api/packages.html#community-conditions-definitions).\r\n\r\nThis is mostly a principled stance in JSPM though which we can change anytime, so if there is strong resistance to moving away from `process.env.NODE_ENV` in the ESM ecosystem we could support it in JSPM for native modules. `import.meta.env` is also another active discussion as a native ESM approach in Node.js itself.\r\n\r\nAs for using `dist/immer.production.mjs`, this isn't described in any of the package.json entry points for tools to pick up:\r\n\r\n```json\r\n{\r\n  \"main\": \"./dist/cjs/index.js\",\r\n  \"module\": \"./dist/immer.legacy-esm.js\",\r\n  \"exports\": {\r\n    \"./package.json\": \"./package.json\",\r\n    \".\": {\r\n      \"types\": \"./dist/immer.d.ts\",\r\n      \"import\": \"./dist/immer.mjs\",\r\n      \"require\": \"./dist/cjs/index.js\"\r\n    }\r\n  },\r\n  \"jsnext:main\": \"dist/immer.mjs\",\r\n  \"react-native\": \"./dist/immer.legacy-esm.js\"\r\n}\r\n```\r\n\r\nAdding a `browser` entry to this in the above `\"exports\"` would be very helpful if that is the intention.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2395585627"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86OydHa",
+      "typename": "IssueComment",
+      "createdAt": "2024-10-06T21:25:39Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86OydHa",
+        "createdAt": "2024-10-06T21:25:39Z",
+        "updatedAt": "2024-10-06T21:25:39Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "body": "Sure, makes sense. Immer isn't my package, but I did contribute the packaging setup based on what I was working on for the Redux libraries.  File a PR here?  ",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2395591130"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOLyxw3c5gSgNh",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2024-10-27T02:13:54Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOLyxw3c5gSgNh",
+        "createdAt": "2024-10-27T02:13:54Z",
+        "actor": {
+          "login": "dsebastien",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": true,
+        "source": {
+          "__typename": "Issue",
+          "number": 11,
+          "title": "Not working on mobile",
+          "state": "CLOSED",
+          "repository": {
+            "nameWithOwner": "dsebastien/obsidian-dataview-serializer"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86VYc79",
+      "typename": "IssueComment",
+      "createdAt": "2024-11-28T14:10:48Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86VYc79",
+        "createdAt": "2024-11-28T14:10:48Z",
+        "updatedAt": "2024-11-28T14:10:48Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "tpluscode",
+          "__typename": "User"
+        },
+        "body": "> That inclusion is intentional, and Vite _should_ be replacing it automatically.\r\n\r\nTo chime in, the usage of `process` is also blocking me from moving from v9 to v10 because I run tests in browser using [@web/test-runner](https://www.npmjs.com/package/@web/test-runner) which tries to be as \"browser native\" as possible.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2506215165"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86Va6_2",
+      "typename": "IssueComment",
+      "createdAt": "2024-11-28T23:55:33Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86Va6_2",
+        "createdAt": "2024-11-28T23:55:33Z",
+        "updatedAt": "2024-11-29T00:00:28Z",
+        "lastEditedAt": "2024-11-29T00:00:28Z",
+        "author": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "body": "@tpluscode how does that tool determine which package artifact to use?\r\n\r\nIt does say \"powered by ESBuild\", so I assume it's finding the standard ESM artifact, but as discussed here that artifact is intentionally _not_ meant for use directly in a browser.\r\n\r\nDug through the source and found https://github.com/modernweb-dev/web/blob/17cfc0d70f46b321912e4506b2cccae1b16b1534/packages/dev-server-esbuild/src/EsbuildPlugin.ts as a likely-looking ESBuild config, and it looks like it's not doing anything to replace `process.env.NODE_ENV`.\r\n\r\nSeems like an impedance mismatch - using a bundler, but not doing a full transform.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2506862582"
+      }
+    },
+    {
+      "nodeId": "MEE_lADOBuXBf86VRvvczwAAAAOaE7Or",
+      "typename": "MentionedEvent",
+      "createdAt": "2024-11-28T23:55:34Z",
+      "raw": {
+        "__typename": "MentionedEvent",
+        "id": "MEE_lADOBuXBf86VRvvczwAAAAOaE7Or",
+        "createdAt": "2024-11-28T23:55:34Z",
+        "actor": {
+          "login": "tpluscode",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "SE_lADOBuXBf86VRvvczwAAAAOaE7Ox",
+      "typename": "SubscribedEvent",
+      "createdAt": "2026-11-27T05:03:56.984Z",
+      "raw": {
+        "__typename": "SubscribedEvent",
+        "id": "SE_lADOBuXBf86VRvvczwAAAAOaE7Ox"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf86WSDKL",
+      "typename": "IssueComment",
+      "createdAt": "2024-12-05T20:19:31Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf86WSDKL",
+        "createdAt": "2024-12-05T20:19:31Z",
+        "updatedAt": "2024-12-05T20:19:50Z",
+        "lastEditedAt": "2024-12-05T20:19:50Z",
+        "author": {
+          "login": "tpluscode",
+          "__typename": "User"
+        },
+        "body": "`@web/test-runner` is not really bundling. It is meant to be as fast and as close to the original sources as possible. It can compile CJS and dedupe imports but that's about it. Like some ESM CDNs, I suppose, but locally.\r\n\r\nIt does also have the option to create custom transform functions where I could get rid of `process`. I am actually doing something similar for version 9 right now but should hope that that should not be necessary.\r\n\r\n> as discussed here that artifact is intentionally not meant for use directly in a browser.\r\n\r\nI understand that you refer to what [you said earlier](https://github.com/immerjs/immer/issues/1141#issuecomment-2392653823)?\r\n\r\n> if you need to use it in a browser directly you should be pointing it to `dist/immer.production.mjs`\r\n\r\nIf so, I believe that the fix is to add a `browser` conditional to the existing exports\r\n\r\n```diff\r\n\"exports\": {\r\n    \"./package.json\": \"./package.json\",\r\n    \".\": {\r\n      \"types\": \"./dist/immer.d.ts\",\r\n      \"import\": \"./dist/immer.mjs\",\r\n+     \"browser\": \"./dist/immer.production.mjs\",\r\n      \"require\": \"./dist/cjs/index.js\"\r\n    }\r\n  },\r\n```\r\n\r\nI believe that would allow tool like `@web/test-runner` and other tools which recognise the nonstandard `browser` condition.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-2521313931"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOBuXBf854JZEl",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2025-02-05T18:05:18Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOBuXBf854JZEl",
+        "createdAt": "2025-02-05T18:05:18Z",
+        "actor": {
+          "login": "benallfree",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 1032,
+          "title": "Switch build tooling to `tsup` and modernize JS build artifacts",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "immerjs/immer"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "SE_lADOBuXBf86VRvvczwAAAAPH5e4x",
+      "typename": "SubscribedEvent",
+      "createdAt": "2026-11-27T05:03:56.984Z",
+      "raw": {
+        "__typename": "SubscribedEvent",
+        "id": "SE_lADOBuXBf86VRvvczwAAAAPH5e4x"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOB2ACAs6Qbmfn",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2025-05-07T16:37:10Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOB2ACAs6Qbmfn",
+        "createdAt": "2025-05-07T16:37:10Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": true,
+        "source": {
+          "__typename": "Issue",
+          "number": 4971,
+          "title": "SyntaxError: Unexpected token 'export' in jest",
+          "state": "CLOSED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "SE_lADOBuXBf86VRvvczwAAAAZt3OQY",
+      "typename": "SubscribedEvent",
+      "createdAt": "2026-11-27T05:03:56.984Z",
+      "raw": {
+        "__typename": "SubscribedEvent",
+        "id": "SE_lADOBuXBf86VRvvczwAAAAZt3OQY"
+      }
+    },
+    {
+      "nodeId": "IC_kwDOBuXBf88AAAABpe4HEw",
+      "typename": "IssueComment",
+      "createdAt": "2026-11-22T12:00:08Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOBuXBf88AAAABpe4HEw",
+        "createdAt": "2026-11-22T12:00:08Z",
+        "updatedAt": "2026-11-22T12:00:08Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "ilyaigpetrov",
+          "__typename": "User"
+        },
+        "body": "What is the status of adding \"browser\" condition to npm exports like suggested by @tpluscode above?\nMy use case is generating an import map by jspm for usage in browsers: see <https://github.com/jspm/jspm/issues/2747>.",
+        "url": "https://github.com/immerjs/immer/issues/1141#issuecomment-7078807315"
+      }
+    },
+    {
+      "nodeId": "MEE_lADOBuXBf86VRvvczwAAAAiYsZVY",
+      "typename": "MentionedEvent",
+      "createdAt": "2026-11-22T12:00:10Z",
+      "raw": {
+        "__typename": "MentionedEvent",
+        "id": "MEE_lADOBuXBf86VRvvczwAAAAiYsZVY",
+        "createdAt": "2026-11-22T12:00:10Z",
+        "actor": {
+          "login": "tpluscode",
+          "__typename": "User"
+        }
+      }
+    },
+    {
+      "nodeId": "SE_lADOBuXBf86VRvvczwAAAAiYsZak",
+      "typename": "SubscribedEvent",
+      "createdAt": "2026-11-27T05:03:56.984Z",
+      "raw": {
+        "__typename": "SubscribedEvent",
+        "id": "SE_lADOBuXBf86VRvvczwAAAAiYsZak"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOBuXBf88AAAAF1ZKEeA",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-26T00:24:40Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOBuXBf88AAAAF1ZKEeA",
+        "createdAt": "2026-11-26T00:24:40Z",
+        "actor": {
+          "login": "draarivpatel-ui",
+          "__typename": "User"
+        },
+        "willCloseTarget": true,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 1379,
+          "title": "fix: do not read process.env when process is not defined",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "immerjs/immer"
+          }
+        }
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-27T05:03:56.984Z"
+}

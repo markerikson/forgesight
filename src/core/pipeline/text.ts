@@ -73,6 +73,13 @@ export function typenameLabel(typename: string): string {
     .toLowerCase();
 }
 
+/** "closed", or "closed as not planned" / "closed as duplicate" from an issue's close reason. */
+export function closeText(stateReason: string | undefined): string {
+  if (stateReason === "NOT_PLANNED") return "closed as not planned";
+  if (stateReason === "DUPLICATE") return "closed as duplicate";
+  return "closed";
+}
+
 export function plural(count: number, noun: string): string {
   if (count === 1) return `${count} ${noun}`;
   const suffix = /(sh|ch|s|x)$/.test(noun) ? "es" : "s";

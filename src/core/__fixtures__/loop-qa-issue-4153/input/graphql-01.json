@@ -1,0 +1,219 @@
+{
+  "query": "query SubjectBatch($owner: String!, $name: String!, $stickyIds: [ID!]!) {\n  rateLimit { cost remaining resetAt }\n  repository(owner: $owner, name: $name) {\n    s0: issue(number: 4153) { ...IssueCore timelineItems(first: 100) { pageInfo { hasNextPage endCursor } nodes { ...IssueItems } } }\n  }\n  stickies: nodes(ids: $stickyIds) { ... on IssueComment { id body lastEditedAt updatedAt author { login __typename } } }\n}\nfragment IssueCore on Issue {\n  id number title state stateReason author { login __typename } body createdAt updatedAt closedAt\n  assignees(first: 10) { nodes { login } }\n  labels(first: 20) { nodes { name } }\n  issueType { name }\n  parent { number title }\n  subIssuesSummary { total completed }\n  closedByPullRequestsReferences(first: 5, includeClosedPrs: true) { nodes { number title state repository { nameWithOwner } } }\n}\nfragment IssueItems on IssueTimelineItems {\n  __typename\n  ... on Node { id }\n  ... on IssueComment { createdAt updatedAt lastEditedAt author { login __typename } body url }\n  ... on CrossReferencedEvent { createdAt actor { login __typename } willCloseTarget isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ReferencedEvent { createdAt actor { login __typename } isCrossRepository commit { oid messageHeadline } }\n  ... on ConnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename\n  ... on PullRequest { number title state repository { nameWithOwner } }\n  ... on Issue { number title state repository { nameWithOwner } } } }\n  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number title state repository { nameWithOwner } } ... on Commit { oid } } }\n  ... on ReopenedEvent { createdAt actor { login __typename } }\n  ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }\n  ... on LabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on UnlabeledEvent { createdAt actor { login __typename } label { name } }\n  ... on MentionedEvent { createdAt actor { login __typename } }\n  ... on RenamedTitleEvent { createdAt actor { login __typename } previousTitle currentTitle }\n  ... on MilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n  ... on DemilestonedEvent { createdAt actor { login __typename } milestoneTitle }\n\n  ... on MarkedAsDuplicateEvent { createdAt actor { login __typename } canonical { __typename ... on Issue { number } ... on PullRequest { number } } }\n  ... on TransferredEvent { createdAt actor { login __typename } fromRepository { nameWithOwner } }\n  ... on SubIssueAddedEvent { createdAt actor { login __typename } subIssue { number title } }\n  ... on ParentIssueAddedEvent { createdAt actor { login __typename } parent { number title } }\n  ... on SubIssueRemovedEvent { createdAt actor { login __typename } subIssue { number title } }\n  ... on ParentIssueRemovedEvent { createdAt actor { login __typename } parent { number title } }\n}\n",
+  "variables": {
+    "owner": "replayio",
+    "name": "loop-qa",
+    "stickyIds": []
+  },
+  "opts": {
+    "repo": "replayio/loop-qa",
+    "workClass": "enrich"
+  },
+  "result": {
+    "data": {
+      "repository": {
+        "s0": {
+          "id": "I_kwDOSw4eCs8AAAABSKtTbQ",
+          "number": 4153,
+          "title": "[QA] Playwright failure-analysis detail component (b6e/_6e) inlined in the eagerly-loaded entry bundle assets/index-BZPqRl0e.js — 545KB on the wire, ~2.0MB decoded, parsed on every page load",
+          "state": "CLOSED",
+          "stateReason": "COMPLETED",
+          "author": {
+            "login": "replay-qa",
+            "__typename": "Bot"
+          },
+          "body": "The app's main entry script https://qa.replay.io/assets/index-BZPqRl0e.js decodes to 2,047,267 bytes (~2000KB) while only 557,596 bytes (545KB) travel on the wire br-compressed. A body read of the bundle shows one concrete waste source: the rarely-invoked Playwright failure-analysis detail component — function b6e (the 'bug-report playwright-failure-report' report renderer, bundle lines 99727–100010) and its route container _6e (lines 100011–100036) — is inlined in this eagerly-loaded chunk, even though it only ever renders at the deep route :projectId/playwright-tests/:analysisId (lines 115181–115182), a URL requiring both a specific project ID and analysis ID that a normal visitor never opens. Its full report UI, including the collapsible 'Test source and context' section that renders the raw test source into a <pre> (line 100003), is shipped and parsed on every first load of the app. The bundle's own __vite__mapDeps table shows the build already emits 35 lazy chunks, so eager inlining of this detail view is avoidable.\n\n**Actual behavior**\nGET https://qa.replay.io/assets/index-BZPqRl0e.js returns 200 with content-encoding: br and content-length 557,596 bytes (545KB on the wire); the body decodes to 2,047,267 chars (~2000KB) and contains the b6e/_6e Playwright analysis detail component inline at lines 99727–100036, wired to route :projectId/playwright-tests/:analysisId at lines 115181–115182. Every first-time visitor to the site downloads and parses this rarely-invoked detail-page code as part of the entry bundle, regardless of navigation intent.\n\n**Expected behavior**\nThe Playwright failure-analysis detail component (b6e/_6e) — the report renderer for the rarely-visited :projectId/playwright-tests/:analysisId route — should be split into its own lazily-loaded chunk (as the build already does for the 35 chunks enumerated in __vite__mapDeps, e.g. AdminUsers, LineChart), so every-first-load visitors do not download and parse its code as part of the ~2.0MB entry script.\n\n— Filed by Replay QA ([bug-mu8z8bor-g25v](https://qa.replay.io/projects/proj-qa-replay-io-mrgtvysw/bugs/bug-mu8z8bor-g25v))",
+          "createdAt": "2026-09-19T22:46:25Z",
+          "updatedAt": "2026-09-20T19:03:14Z",
+          "closedAt": "2026-09-20T19:03:14Z",
+          "assignees": {
+            "nodes": []
+          },
+          "labels": {
+            "nodes": [
+              {
+                "name": "qa"
+              },
+              {
+                "name": "severity:low"
+              },
+              {
+                "name": "qa-pipeline/dispatched"
+              }
+            ]
+          },
+          "issueType": null,
+          "parent": null,
+          "subIssuesSummary": {
+            "total": 0,
+            "completed": 0
+          },
+          "closedByPullRequestsReferences": {
+            "nodes": [
+              {
+                "number": 4155,
+                "title": "perf: lazy-load the Playwright failure-analysis detail route out of the eager entry bundle",
+                "state": "MERGED",
+                "repository": {
+                  "nameWithOwner": "replayio/loop-qa"
+                }
+              }
+            ]
+          },
+          "timelineItems": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "Y3Vyc29yOnYyOpPPAAABoMAzeVABqzMxNDg5OTY5NDQ1"
+            },
+            "nodes": [
+              {
+                "__typename": "LabeledEvent",
+                "id": "LE_lADOSw4eCs8AAAABSKtTbc8AAAAHU1SOqw",
+                "createdAt": "2026-09-19T22:46:27Z",
+                "actor": {
+                  "login": "replay-qa",
+                  "__typename": "Bot"
+                },
+                "label": {
+                  "name": "qa"
+                }
+              },
+              {
+                "__typename": "LabeledEvent",
+                "id": "LE_lADOSw4eCs8AAAABSKtTbc8AAAAHU1SPGQ",
+                "createdAt": "2026-09-19T22:46:27Z",
+                "actor": {
+                  "login": "replay-qa",
+                  "__typename": "Bot"
+                },
+                "label": {
+                  "name": "severity:low"
+                }
+              },
+              {
+                "__typename": "LabeledEvent",
+                "id": "LE_lADOSw4eCs8AAAABSKtTbc8AAAAHU2Z7Gw",
+                "createdAt": "2026-09-19T23:32:41Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "label": {
+                  "name": "qa-pipeline/queued"
+                }
+              },
+              {
+                "__typename": "UnlabeledEvent",
+                "id": "UNLE_lADOSw4eCs8AAAABSKtTbc8AAAAHU2bkog",
+                "createdAt": "2026-09-19T23:33:49Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "label": {
+                  "name": "qa-pipeline/queued"
+                }
+              },
+              {
+                "__typename": "LabeledEvent",
+                "id": "LE_lADOSw4eCs8AAAABSKtTbc8AAAAHU2bmJA",
+                "createdAt": "2026-09-19T23:33:50Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "label": {
+                  "name": "qa-pipeline/dispatched"
+                }
+              },
+              {
+                "__typename": "CrossReferencedEvent",
+                "id": "CRE_kwDOSw4eCs8AAAAC6GKAIg",
+                "createdAt": "2026-09-19T23:39:01Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "willCloseTarget": false,
+                "isCrossRepository": false,
+                "source": {
+                  "__typename": "PullRequest",
+                  "number": 4155,
+                  "title": "perf: lazy-load the Playwright failure-analysis detail route out of the eager entry bundle",
+                  "state": "MERGED",
+                  "repository": {
+                    "nameWithOwner": "replayio/loop-qa"
+                  }
+                }
+              },
+              {
+                "__typename": "CrossReferencedEvent",
+                "id": "CRE_kwDOSw4eCs8AAAAC6HOonw",
+                "createdAt": "2026-09-20T00:07:57Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "willCloseTarget": false,
+                "isCrossRepository": false,
+                "source": {
+                  "__typename": "Issue",
+                  "number": 4024,
+                  "title": "[QA] 1963KB eager main bundle ships the recharts charting library and the experimental, opt-in Insights dashboard that most sessions never render — qa.replay.io/assets/index-luWYVsrO.js",
+                  "state": "CLOSED",
+                  "repository": {
+                    "nameWithOwner": "replayio/loop-qa"
+                  }
+                }
+              },
+              {
+                "__typename": "CrossReferencedEvent",
+                "id": "CRE_kwDOSw4eCs8AAAAC6nXcbg",
+                "createdAt": "2026-09-20T14:39:58Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "willCloseTarget": false,
+                "isCrossRepository": false,
+                "source": {
+                  "__typename": "PullRequest",
+                  "number": 4269,
+                  "title": "perf(app): defer the experimental Insights page out of the eager entry bundle",
+                  "state": "MERGED",
+                  "repository": {
+                    "nameWithOwner": "replayio/loop-qa"
+                  }
+                }
+              },
+              {
+                "__typename": "ClosedEvent",
+                "id": "CE_lADOSw4eCs8AAAABSKtTbc8AAAAHVPLNJQ",
+                "createdAt": "2026-09-20T19:03:14Z",
+                "actor": {
+                  "login": "bhackett1024",
+                  "__typename": "User"
+                },
+                "stateReason": "COMPLETED",
+                "closer": {
+                  "__typename": "PullRequest",
+                  "number": 4155,
+                  "title": "perf: lazy-load the Playwright failure-analysis detail route out of the eager entry bundle",
+                  "state": "MERGED",
+                  "repository": {
+                    "nameWithOwner": "replayio/loop-qa"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "stickies": []
+    },
+    "cost": 1,
+    "remaining": 4921,
+    "resetAt": "2026-11-27T05:31:35.000Z",
+    "gatewayErrors": 0
+  }
+}

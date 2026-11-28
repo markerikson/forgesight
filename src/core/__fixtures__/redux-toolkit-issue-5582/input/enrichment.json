@@ -1,0 +1,286 @@
+{
+  "subjectKey": "reduxjs/redux-toolkit#5582",
+  "subject": {
+    "nodeId": "I_kwDOB2ACAs8AAAABczsZTg",
+    "state": "CLOSED",
+    "author": "markerikson",
+    "headRef": null,
+    "baseRef": null,
+    "headSha": null,
+    "baseSha": null,
+    "updatedAt": "2026-11-26T02:35:02Z",
+    "raw": {
+      "id": "I_kwDOB2ACAs8AAAABczsZTg",
+      "number": 5582,
+      "title": "Docs: one page for when RTK Query fetches, refetches and removes data",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "author": {
+        "login": "markerikson",
+        "__typename": "User"
+      },
+      "body": "Part of #5487.\n\nRTK Query has about two dozen options that affect fetching, spread over createApi, endpoints, hooks, `initiate()` and `util.prefetch`, and each level combines differently. The docs describe them one option at a time across \"Cache Behavior\", \"Automated Re-fetching\", \"Polling\", \"Prefetching\" and \"Conditional Fetching\", so there's no place that explains the model.\n\nNearly every option answers one of four questions. The new page is organized around them:\n\n1. **A component or caller asks for data. Does RTK Query fetch, or use the cache?** Cached data is used until it's invalidated or you ask for a refetch. `refetchOnMountOrArgChange`, `forceRefetch`, `ifOlderThan`, `force`, `preferCacheValue`, the endpoint `forceRefetch()` callback, `subscribe` and `skip` all adjust this one decision.\n2. **What refetches data that's already cached?** Tag invalidation, `refetchOnFocus`, `refetchOnReconnect`, polling and `refetch()`. These are triggers, and they don't look at how old the data is.\n3. **How long is unused data kept?** `keepUnusedDataFor`, plus the cases that remove an entry early: invalidating or focusing with no subscribers, lazy `reset()`, `resetApiState` and `removeQueryResult`. This is a memory setting, not a freshness setting.\n4. **What happens when a request fails?** `retry()` and per-endpoint `extraOptions`.\n\nChecklist:\n\n- [ ] New page built around the four questions, with one table per question: option, where it can be set, default, and what wins when it's set at several levels.\n- [ ] Explain tag invalidation as two rules instead of the current 6×6 matrix: a tag with only a type invalidates every tag of that type, with or without an ID; a tag with a type and ID invalidates only that exact tag. Keep the matrix, collapsed, as a reference.\n- [ ] Say what invalidation does per entry: subscribed entries refetch, unsubscribed entries are removed, and with `'immediately'` an entry that's still loading isn't refetched.\n- [ ] Link the existing option pages to the new page instead of repeating the rules.\n- [ ] A short \"coming from TanStack Query\" note: RTK Query's default is close to `staleTime: Infinity` with tags doing the invalidation, and `keepUnusedDataFor` corresponds to `gcTime`.\n- [ ] Recipe for watching a query outside components: `initiate()` to hold a subscription, `select(arg)` with `store.subscribe` or a listener to read it.\n\nCorrections found while checking the docs against the code:\n\n- [ ] \"Cache Behavior\" says `refetchOnMountOrArgChange` can be set on an endpoint. It can't: it exists on createApi, the hooks, and as `forceRefetch` on `initiate()`.\n- [ ] The prefetch docs say `ifOlderThan` refetches when the age is greater than the value; the code uses greater than or equal.\n- [ ] The `setupListeners` JSDoc says it enables `refetchOnMount`; it enables `refetchOnFocus` and `refetchOnReconnect`.\n- [ ] `skipPollingIfUnfocused` also needs `setupListeners`. Without it, the focus flag is fixed when the store is created, so an app loaded in a background tab never polls.\n",
+      "createdAt": "2026-11-05T17:26:02Z",
+      "updatedAt": "2026-11-26T02:35:02Z",
+      "closedAt": "2026-11-26T02:35:02Z",
+      "assignees": {
+        "nodes": []
+      },
+      "labels": {
+        "nodes": [
+          {
+            "name": "Documentation"
+          },
+          {
+            "name": "RTK-Query"
+          },
+          {
+            "name": "ws-invalidation"
+          }
+        ]
+      },
+      "issueType": {
+        "name": "Task"
+      },
+      "parent": {
+        "number": 5487,
+        "title": "Tracking: RTKQ invalidation, freshness and polling"
+      },
+      "subIssuesSummary": {
+        "total": 0,
+        "completed": 0
+      },
+      "closedByPullRequestsReferences": {
+        "nodes": [
+          {
+            "number": 5649,
+            "title": "Add RTK Query \"Request Behavior\" docs page and reorganize cache docs",
+            "state": "MERGED",
+            "repository": {
+              "nameWithOwner": "reduxjs/redux-toolkit"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "MIE_lADOB2ACAs8AAAABczsZTs8AAAAINiO1QQ",
+      "typename": "MilestonedEvent",
+      "createdAt": "2026-11-05T17:26:02Z",
+      "raw": {
+        "__typename": "MilestonedEvent",
+        "id": "MIE_lADOB2ACAs8AAAABczsZTs8AAAAINiO1QQ",
+        "createdAt": "2026-11-05T17:26:02Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "milestoneTitle": "2.15"
+      }
+    },
+    {
+      "nodeId": "LE_lADOB2ACAs8AAAABczsZTs8AAAAINiPAgg",
+      "typename": "LabeledEvent",
+      "createdAt": "2026-11-05T17:26:04Z",
+      "raw": {
+        "__typename": "LabeledEvent",
+        "id": "LE_lADOB2ACAs8AAAABczsZTs8AAAAINiPAgg",
+        "createdAt": "2026-11-05T17:26:04Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "label": {
+          "name": "Documentation"
+        }
+      }
+    },
+    {
+      "nodeId": "ITAE_lADOB2ACAs8AAAABczsZTs8AAAAINiPBRQ",
+      "typename": "IssueTypeAddedEvent",
+      "createdAt": "2026-11-27T05:03:53.771Z",
+      "raw": {
+        "__typename": "IssueTypeAddedEvent",
+        "id": "ITAE_lADOB2ACAs8AAAABczsZTs8AAAAINiPBRQ"
+      }
+    },
+    {
+      "nodeId": "LE_lADOB2ACAs8AAAABczsZTs8AAAAINiPCPQ",
+      "typename": "LabeledEvent",
+      "createdAt": "2026-11-05T17:26:04Z",
+      "raw": {
+        "__typename": "LabeledEvent",
+        "id": "LE_lADOB2ACAs8AAAABczsZTs8AAAAINiPCPQ",
+        "createdAt": "2026-11-05T17:26:04Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "label": {
+          "name": "RTK-Query"
+        }
+      }
+    },
+    {
+      "nodeId": "LE_lADOB2ACAs8AAAABczsZTs8AAAAINiPDsQ",
+      "typename": "LabeledEvent",
+      "createdAt": "2026-11-05T17:26:05Z",
+      "raw": {
+        "__typename": "LabeledEvent",
+        "id": "LE_lADOB2ACAs8AAAABczsZTs8AAAAINiPDsQ",
+        "createdAt": "2026-11-05T17:26:05Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "label": {
+          "name": "ws-invalidation"
+        }
+      }
+    },
+    {
+      "nodeId": "PIAE_lADOB2ACAs8AAAABczsZTs8AAAAINiPJaw",
+      "typename": "ParentIssueAddedEvent",
+      "createdAt": "2026-11-05T17:26:05Z",
+      "raw": {
+        "__typename": "ParentIssueAddedEvent",
+        "id": "PIAE_lADOB2ACAs8AAAABczsZTs8AAAAINiPJaw",
+        "createdAt": "2026-11-05T17:26:05Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "parent": {
+          "number": 5487,
+          "title": "Tracking: RTKQ invalidation, freshness and polling"
+        }
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOB2ACAs8AAAAErgYeLQ",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-05T17:26:36Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOB2ACAs8AAAAErgYeLQ",
+        "createdAt": "2026-11-05T17:26:36Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "Issue",
+          "number": 5487,
+          "title": "Tracking: RTKQ invalidation, freshness and polling",
+          "state": "OPEN",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "IC_kwDOB2ACAs8AAAABjlxyZQ",
+      "typename": "IssueComment",
+      "createdAt": "2026-11-06T11:06:29Z",
+      "raw": {
+        "__typename": "IssueComment",
+        "id": "IC_kwDOB2ACAs8AAAABjlxyZQ",
+        "createdAt": "2026-11-06T11:06:29Z",
+        "updatedAt": "2026-11-06T11:06:29Z",
+        "lastEditedAt": null,
+        "author": {
+          "login": "MannXo",
+          "__typename": "User"
+        },
+        "body": "I'd like to take the four items under \"Corrections found while checking the docs against the code\" as one small PR, since they stand on their own and don't depend on the new page or the 2.15 behavior changes. Would that be useful, or would you rather keep them together with the page?\n",
+        "url": "https://github.com/reduxjs/redux-toolkit/issues/5582#issuecomment-6683390565"
+      }
+    },
+    {
+      "nodeId": "DEME_lADOB2ACAs8AAAABczsZTs8AAAAIg83fOw",
+      "typename": "DemilestonedEvent",
+      "createdAt": "2026-11-18T19:44:12Z",
+      "raw": {
+        "__typename": "DemilestonedEvent",
+        "id": "DEME_lADOB2ACAs8AAAABczsZTs8AAAAIg83fOw",
+        "createdAt": "2026-11-18T19:44:12Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "milestoneTitle": "2.15"
+      }
+    },
+    {
+      "nodeId": "MIE_lADOB2ACAs8AAAABczsZTs8AAAAIg83fxw",
+      "typename": "MilestonedEvent",
+      "createdAt": "2026-11-18T19:44:12Z",
+      "raw": {
+        "__typename": "MilestonedEvent",
+        "id": "MIE_lADOB2ACAs8AAAABczsZTs8AAAAIg83fxw",
+        "createdAt": "2026-11-18T19:44:12Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "milestoneTitle": "2.16"
+      }
+    },
+    {
+      "nodeId": "CRE_kwDOB2ACAs8AAAAFx4DtlQ",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-25T04:41:22Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOB2ACAs8AAAAFx4DtlQ",
+        "createdAt": "2026-11-25T04:41:22Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 5649,
+          "title": "Add RTK Query \"Request Behavior\" docs page and reorganize cache docs",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "CE_lADOB2ACAs8AAAABczsZTs8AAAAIsJXVPg",
+      "typename": "ClosedEvent",
+      "createdAt": "2026-11-26T02:35:03Z",
+      "raw": {
+        "__typename": "ClosedEvent",
+        "id": "CE_lADOB2ACAs8AAAABczsZTs8AAAAIsJXVPg",
+        "createdAt": "2026-11-26T02:35:03Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "stateReason": "COMPLETED",
+        "closer": {
+          "__typename": "PullRequest",
+          "number": 5649,
+          "title": "Add RTK Query \"Request Behavior\" docs page and reorganize cache docs",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-27T05:03:53.771Z"
+}

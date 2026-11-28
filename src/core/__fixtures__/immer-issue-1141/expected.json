@@ -1,0 +1,42 @@
+{
+  "section": "updates",
+  "reasons": [
+    "newActivity"
+  ],
+  "summaryLine": "draarivpatel-ui referenced this in immerjs/immer#1379",
+  "newMeaningfulCount": 1,
+  "hiddenStats": {
+    "pushes": 0,
+    "rebases": 0,
+    "merged": 0,
+    "closed": 0
+  },
+  "sortAt": "2026-11-26T00:24:40Z",
+  "links": [],
+  "linked": [
+    "closedBy pr immerjs/immer#1379 OPEN"
+  ],
+  "rounds": [
+    {
+      "start": null,
+      "isNew": true,
+      "hidden": 3,
+      "entries": [
+        "[1 label change]",
+        "comment markerikson IC_kwDOBuXBf86K1H4V",
+        "comment blixt IC_kwDOBuXBf86Ofy69",
+        "comment markerikson IC_kwDOBuXBf86OnP__",
+        "comment blixt IC_kwDOBuXBf86Ooieb",
+        "comment guybedford IC_kwDOBuXBf86Oybxb",
+        "comment markerikson IC_kwDOBuXBf86OydHa",
+        "[1 cross-reference]",
+        "comment tpluscode IC_kwDOBuXBf86VYc79",
+        "comment markerikson IC_kwDOBuXBf86Va6_2",
+        "comment tpluscode IC_kwDOBuXBf86WSDKL",
+        "[2 references from benallfree and markerikson]",
+        "comment ilyaigpetrov IC_kwDOBuXBf88AAAABpe4HEw",
+        "crossReference draarivpatel-ui (new) CRE_kwDOBuXBf88AAAAF1ZKEeA"
+      ]
+    }
+  ]
+}

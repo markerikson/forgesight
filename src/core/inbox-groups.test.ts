@@ -8,6 +8,7 @@ import {
   type InboxPayload,
   isGroup,
   isNewWorkstream,
+  reflowEntries,
   subjectWorkstream,
   type WorkstreamInput,
 } from "./inbox.ts";
@@ -464,5 +465,40 @@ describe("groupAuthors", () => {
 
   test("a group with no known authors has none", () => {
     expect(groupAuthors({ members: [], unlisted: [] })).toEqual({ top: [], others: 0 });
+  });
+});
+
+describe("new issues groups", () => {
+  const issue = (n: number, overrides: Partial<InboxRow> = {}) =>
+    row(`acme/lib#${n}`, "updates", {
+      repo: "acme/lib",
+      kind: "issue",
+      reasons: ["newIssue"],
+      sortAt: `2026-11-0${n}T00:00:00Z`,
+      ...overrides,
+    });
+
+  test("two or more new issues in a repo are grouped, newest first", () => {
+    const payload = build([], false, [...ROWS, issue(1), issue(3), issue(2)]);
+    const group = payload.rows.filter(isGroup).find((g) => g.newIssues);
+    expect(group?.id).toBe("new-issues:acme/lib");
+    expect(group?.members.map((m) => m.key)).toEqual(["acme/lib#3", "acme/lib#2", "acme/lib#1"]);
+    expect(group?.section).toBe("updates");
+    expect(payload.rows.some((r) => !isGroup(r) && r.repo === "acme/lib")).toBe(false);
+  });
+
+  test("a single new issue stays its own row", () => {
+    const payload = build([], false, [...ROWS, issue(1), issue(2, { reasons: ["newActivity"] })]);
+    expect(payload.rows.filter(isGroup)).toEqual([]);
+  });
+
+  test("the group splits back into rows when fewer than two new issues remain", () => {
+    const payload = build([], false, [...ROWS, issue(1), issue(2)]);
+    const group = payload.rows.find(isGroup);
+    if (!group) throw new Error("expected a new issues group");
+    const hidden = { ...group, members: group.members.map((m) => (m.number === 1 ? { ...m, section: "hidden" as const } : m)) };
+    const reflowed = reflowEntries(payload.rows.map((e) => (e === group ? hidden : e)));
+    expect(reflowed.filter(isGroup)).toEqual([]);
+    expect(reflowed.map(entryKey)).toContain("acme/lib#2");
   });
 });

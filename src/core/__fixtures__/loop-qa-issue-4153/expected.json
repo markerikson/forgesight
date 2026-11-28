@@ -1,0 +1,31 @@
+{
+  "section": "updates",
+  "reasons": [
+    "stateChange"
+  ],
+  "summaryLine": "fixed by #4155",
+  "newMeaningfulCount": 1,
+  "hiddenStats": {
+    "pushes": 0,
+    "rebases": 0,
+    "merged": 0,
+    "closed": 1
+  },
+  "sortAt": "2026-09-20T19:03:14Z",
+  "links": [],
+  "linked": [
+    "closedBy pr replayio/loop-qa#4155 MERGED"
+  ],
+  "rounds": [
+    {
+      "start": null,
+      "isNew": true,
+      "hidden": 0,
+      "entries": [
+        "[5 label changes] (new)",
+        "[bhackett1024 referenced this from 3 PRs and issues] (new)",
+        "closedByPr bhackett1024 (new) CE_lADOSw4eCs8AAAABSKtTbc8AAAAHVPLNJQ"
+      ]
+    }
+  ]
+}

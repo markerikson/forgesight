@@ -10,6 +10,7 @@ import type {
 import type { PushVerdict } from "../rebase/patch.ts";
 import type { StackContext } from "../workstreams.ts";
 import { deriveFindings } from "../findings/status.ts";
+import { linksFor } from "../links.ts";
 import { classify, isMe, isRestack } from "./classify.ts";
 import { threadOrder } from "./discussion.ts";
 import { quietActivity } from "./hidden.ts";
@@ -24,7 +25,8 @@ export { isRestack, restackText } from "./classify.ts";
 export { hiddenReason } from "./hidden.ts";
 export { describe } from "./rank.ts";
 export { subjectBody, toInboxRow, toViewRecord } from "./row.ts";
-export { typenameLabel } from "./text.ts";
+export { closeText, typenameLabel } from "./text.ts";
+export { linkName } from "../links.ts";
 
 /** Bump when derive output changes so every stored view is recomputed. */
 export const PIPELINE_VERSION = 5;
@@ -157,6 +159,8 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
   const rounds = shown.rounds;
   const enriched = subject.timelineSyncedUntil !== null || events.length > 0;
   const findings = findingsInScope(subject, events, me) ? subjectFindings(input, events) : undefined;
+  const repo = repoConfig(config, subject.repo);
+  const linked = linksFor({ subject, events, config: repo });
   const ranked = enriched
     ? {
         ...rank({
@@ -168,6 +172,8 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
           me,
           now,
           reviewRequestMaxAgeDays: config.ranking.reviewRequestMaxAgeDays,
+          linked,
+          subscribedIssueComments: repo.subscribedIssueComments,
           ...(findings ? { findings } : {}),
         }),
         newMeaningfulCount: shown.events.filter((e) => e.isNew && e.level === "show").length,
@@ -181,7 +187,8 @@ export function deriveSubjectView(input: DeriveInput): SubjectView {
     rounds,
     lastVisitAt: state.dismissedAt,
     body: subjectBody(subject.raw) ?? null,
-    links: buildLinks(subject, events),
+    links: buildLinks(events),
+    linked,
     section: r.section,
     reasons: r.reasons,
     score: r.score,

@@ -1,4 +1,5 @@
-import { ENRICH_PRIORITY } from "./enrich-plan.ts";
+import type { RepoMode } from "./config.ts";
+import { ENRICH_PRIORITY, RECENT_ISSUE_ENRICH_DAYS } from "./enrich-plan.ts";
 import { subjectKeyFor } from "./keys.ts";
 import type { SubjectKey, SubjectKind, ThreadRecord, ThreadUpsert } from "./types.ts";
 
@@ -105,6 +106,16 @@ export function initialDismissedAt(
 /** True when the thread was updated within 14 days of `at`. */
 export function isRecent(updatedAt: string, at: Date): boolean {
   return at.getTime() - Date.parse(updatedAt) <= RECENT_WINDOW_MS;
+}
+
+/**
+ * Whether a thread first seen during the first run gets queued for enrichment: updated within
+ * 14 days of `at`, or within RECENT_ISSUE_ENRICH_DAYS for issues in normal and full repos.
+ */
+export function queuesOnFirstRun(thread: Pick<ThreadInput, "subjectType" | "updatedAt">, at: Date, mode: RepoMode): boolean {
+  if (isRecent(thread.updatedAt, at)) return true;
+  if (thread.subjectType !== "Issue" || (mode !== "normal" && mode !== "full")) return false;
+  return at.getTime() - Date.parse(thread.updatedAt) <= RECENT_ISSUE_ENRICH_DAYS * DAY_MS;
 }
 
 export interface PollState {

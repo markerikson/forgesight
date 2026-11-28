@@ -52,6 +52,8 @@ export function hiddenReason(row: HiddenReasonInput): string | null {
   if (reasons.includes("closedByOthers")) {
     return row.merged ? "merged, no new comments" : "closed, no new comments";
   }
+  if (reasons.includes("closedUnplanned")) return "closed as not planned or duplicate";
   if (reasons.includes("announcement")) return "announcement you only follow";
+  if (reasons.includes("subscribedOnly")) return "new comments on an issue you only follow";
   return quietLine(row.quiet);
 }

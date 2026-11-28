@@ -84,6 +84,7 @@ export const defaultConfig = {
       batchSize: 10,
       view: "triage",
       trunks: ["master", "main"],
+      subscribedIssueComments: "hidden",
       workstreams: {
         forkMinSize: 5,
         // "[never merge]", "[base, never merge]", "CI vehicle (never merge)" ...

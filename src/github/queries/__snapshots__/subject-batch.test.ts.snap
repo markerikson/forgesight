@@ -16,7 +16,7 @@ fragment PrCore on PullRequest {
   baseRefName headRefName baseRefOid headRefOid mergedAt closedAt updatedAt reviewDecision
   reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } ... on Team { slug } ... on Bot { login } } } }
   latestReviews(first: 20) { nodes { id state author { login } submittedAt } }
-  closingIssuesReferences(first: 5) { nodes { number } }
+  closingIssuesReferences(first: 5) { nodes { number title state repository { nameWithOwner } } }
   commits(last: 1) { nodes { commit { oid statusCheckRollup { state contexts(first: 50) { nodes {
     __typename
     ... on CheckRun { name status conclusion detailsUrl }
@@ -38,7 +38,7 @@ fragment PrItems on PullRequestTimelineItems {
   ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename
   ... on PullRequest { number title state repository { nameWithOwner } }
   ... on Issue { number title state repository { nameWithOwner } } } }
-  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }
+  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number title state repository { nameWithOwner } } ... on Commit { oid } } }
   ... on ReopenedEvent { createdAt actor { login __typename } }
   ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
   ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
@@ -72,6 +72,7 @@ fragment IssueCore on Issue {
   issueType { name }
   parent { number title }
   subIssuesSummary { total completed }
+  closedByPullRequestsReferences(first: 5, includeClosedPrs: true) { nodes { number title state repository { nameWithOwner } } }
 }
 fragment IssueItems on IssueTimelineItems {
   __typename
@@ -87,7 +88,7 @@ fragment IssueItems on IssueTimelineItems {
   ... on DisconnectedEvent { createdAt actor { login __typename } isCrossRepository source { __typename
   ... on PullRequest { number title state repository { nameWithOwner } }
   ... on Issue { number title state repository { nameWithOwner } } } }
-  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number } ... on Commit { oid } } }
+  ... on ClosedEvent { createdAt actor { login __typename } stateReason closer { __typename ... on PullRequest { number title state repository { nameWithOwner } } ... on Commit { oid } } }
   ... on ReopenedEvent { createdAt actor { login __typename } }
   ... on AssignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }
   ... on UnassignedEvent { createdAt actor { login __typename } assignee { ... on Actor { login } } }

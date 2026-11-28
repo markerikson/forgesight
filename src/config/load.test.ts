@@ -43,6 +43,7 @@ describe("resolveConfig", () => {
       branchRules: [],
       view: "triage",
       trunks: ["master", "main"],
+      subscribedIssueComments: "hidden",
     });
     expect(config.repos["*"]?.workstreams).toMatchObject({
       forkMinSize: 5,

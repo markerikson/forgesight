@@ -1,0 +1,153 @@
+{
+  "subjectKey": "reduxjs/redux-toolkit#5594",
+  "subject": {
+    "nodeId": "I_kwDOB2ACAs8AAAABdGfMUg",
+    "state": "CLOSED",
+    "author": "wozhenbang2004",
+    "headRef": null,
+    "baseRef": null,
+    "headSha": null,
+    "baseSha": null,
+    "updatedAt": "2026-11-16T19:33:48Z",
+    "raw": {
+      "id": "I_kwDOB2ACAs8AAAABdGfMUg",
+      "number": 5594,
+      "title": "`fetchBaseQuery` ignores timeout when `FetchArgs` includes a signal",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "author": {
+        "login": "wozhenbang2004",
+        "__typename": "User"
+      },
+      "body": "### Description\n\nPassing an un-aborted `FetchArgs.signal` disables the timeout configured on `fetchBaseQuery` or the individual request. The same request without that signal correctly returns `TIMEOUT_ERROR`.\n\nReproduced with `@reduxjs/toolkit` 2.14.0 and Node 24.22.1. This example uses a controlled `fetchFn`, so it does not depend on a remote server:\n\n```js\nimport { fetchBaseQuery } from '@reduxjs/toolkit/query'\n\nconst apiController = new AbortController()\nconst api = {\n  signal: apiController.signal,\n  abort: (reason) => apiController.abort(reason),\n  dispatch: () => {},\n  getState: () => ({}),\n  endpoint: 'example',\n  type: 'query',\n}\nconst query = fetchBaseQuery({\n  timeout: 5,\n  fetchFn: (request) => new Promise((resolve, reject) => {\n    const timer = setTimeout(() => resolve(new Response('{}')), 40)\n    request.signal.addEventListener('abort', () => {\n      clearTimeout(timer)\n      reject(request.signal.reason)\n    }, { once: true })\n  }),\n})\nconst result = await query({\n  url: 'https://example.com',\n  signal: new AbortController().signal,\n}, api, {})\nconsole.log(result)\n```\n\nExpected: `error.status === 'TIMEOUT_ERROR'`.\nActual: the request completes successfully after the configured timeout. Removing the explicit `signal` makes the timeout work.\n\nThe request-level spread overrides the signal already composed with the timeout signal. Composing the timeout after applying request overrides keeps the configured deadline without changing which caller-provided signal takes precedence.\n",
+      "createdAt": "2026-11-06T17:57:45Z",
+      "updatedAt": "2026-11-16T19:33:48Z",
+      "closedAt": "2026-11-16T19:33:48Z",
+      "assignees": {
+        "nodes": []
+      },
+      "labels": {
+        "nodes": [
+          {
+            "name": "RTK-Query"
+          }
+        ]
+      },
+      "issueType": {
+        "name": "Bug"
+      },
+      "parent": null,
+      "subIssuesSummary": {
+        "total": 0,
+        "completed": 0
+      },
+      "closedByPullRequestsReferences": {
+        "nodes": [
+          {
+            "number": 5595,
+            "title": "fix(toolkit): `fetchBaseQuery` timeouts when a request provides a signal",
+            "state": "MERGED",
+            "repository": {
+              "nameWithOwner": "reduxjs/redux-toolkit"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "timelineItems": [
+    {
+      "nodeId": "CRE_kwDOB2ACAs8AAAAEvGi_tA",
+      "typename": "CrossReferencedEvent",
+      "createdAt": "2026-11-06T18:11:21Z",
+      "raw": {
+        "__typename": "CrossReferencedEvent",
+        "id": "CRE_kwDOB2ACAs8AAAAEvGi_tA",
+        "createdAt": "2026-11-06T18:11:21Z",
+        "actor": {
+          "login": "wozhenbang2004",
+          "__typename": "User"
+        },
+        "willCloseTarget": false,
+        "isCrossRepository": false,
+        "source": {
+          "__typename": "PullRequest",
+          "number": 5595,
+          "title": "fix(toolkit): `fetchBaseQuery` timeouts when a request provides a signal",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    },
+    {
+      "nodeId": "RTE_lADOB2ACAs8AAAABdGfMUs8AAAAIbL3ZYQ",
+      "typename": "RenamedTitleEvent",
+      "createdAt": "2026-11-15T10:31:31Z",
+      "raw": {
+        "__typename": "RenamedTitleEvent",
+        "id": "RTE_lADOB2ACAs8AAAABdGfMUs8AAAAIbL3ZYQ",
+        "createdAt": "2026-11-15T10:31:31Z",
+        "actor": {
+          "login": "aryaemami59",
+          "__typename": "User"
+        },
+        "previousTitle": "fetchBaseQuery ignores timeout when FetchArgs includes a signal",
+        "currentTitle": "`fetchBaseQuery` ignores timeout when `FetchArgs` includes a signal"
+      }
+    },
+    {
+      "nodeId": "LE_lADOB2ACAs8AAAABdGfMUs8AAAAIbL4swg",
+      "typename": "LabeledEvent",
+      "createdAt": "2026-11-15T10:32:04Z",
+      "raw": {
+        "__typename": "LabeledEvent",
+        "id": "LE_lADOB2ACAs8AAAABdGfMUs8AAAAIbL4swg",
+        "createdAt": "2026-11-15T10:32:04Z",
+        "actor": {
+          "login": "aryaemami59",
+          "__typename": "User"
+        },
+        "label": {
+          "name": "RTK-Query"
+        }
+      }
+    },
+    {
+      "nodeId": "ITAE_lADOB2ACAs8AAAABdGfMUs8AAAAIbL42gw",
+      "typename": "IssueTypeAddedEvent",
+      "createdAt": "2026-11-27T05:03:55.410Z",
+      "raw": {
+        "__typename": "IssueTypeAddedEvent",
+        "id": "ITAE_lADOB2ACAs8AAAABdGfMUs8AAAAIbL42gw"
+      }
+    },
+    {
+      "nodeId": "CE_lADOB2ACAs8AAAABdGfMUs8AAAAIdMCgdw",
+      "typename": "ClosedEvent",
+      "createdAt": "2026-11-16T19:33:48Z",
+      "raw": {
+        "__typename": "ClosedEvent",
+        "id": "CE_lADOB2ACAs8AAAABdGfMUs8AAAAIdMCgdw",
+        "createdAt": "2026-11-16T19:33:48Z",
+        "actor": {
+          "login": "markerikson",
+          "__typename": "User"
+        },
+        "stateReason": "COMPLETED",
+        "closer": {
+          "__typename": "PullRequest",
+          "number": 5595,
+          "title": "fix(toolkit): `fetchBaseQuery` timeouts when a request provides a signal",
+          "state": "MERGED",
+          "repository": {
+            "nameWithOwner": "reduxjs/redux-toolkit"
+          }
+        }
+      }
+    }
+  ],
+  "stickies": [],
+  "timelineSyncedUntil": "2026-11-27T05:03:55.410Z"
+}

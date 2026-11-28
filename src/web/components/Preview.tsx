@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { hiddenReason, type InboxRow, type SubjectDetail, type SubjectHeader } from "../../core/index.ts";
+import { isNewIssuesGroup } from "../../core/inbox.ts";
 import { useNow } from "../hooks/useNow.ts";
 import { REASON_LABELS, relativeTime } from "../format.ts";
 import { keepNewFlags } from "../new-flags.ts";
@@ -23,6 +24,7 @@ import { CiDot, DraftBadge, ReviewBadge, StateIcon } from "./Badges.tsx";
 import { Description } from "./Description.tsx";
 import { DiscussionMeta } from "./DiscussionMeta.tsx";
 import { CopyFindings, FindingsPanel } from "./FindingsPanel.tsx";
+import { LinkedSubjects } from "./LinkedSubjects.tsx";
 import { roundDomId, RoundView } from "./RoundView.tsx";
 import { anchorBelow } from "./SnoozeMenu.tsx";
 import { GitHubIcon, SubjectLink } from "./SubjectLink.tsx";
@@ -80,12 +82,13 @@ export function Preview() {
   const parentGroup = useAppSelector((state) => (row ? selectGroupOf(state).get(row.key) : undefined));
   const currentGroup = group ?? parentGroup ?? null;
   const currentGroupId = currentGroup?.id ?? null;
+  const storedGroupId = currentGroup && !isNewIssuesGroup(currentGroup) ? currentGroup.id : null;
   const openGroup = useRef<string | null>(null);
   useEffect(() => {
     const previous = openGroup.current;
-    openGroup.current = currentGroupId;
-    if (previous !== null && previous !== currentGroupId) dispatch(markWorkstreamSeen(previous));
-  }, [dispatch, currentGroupId]);
+    openGroup.current = storedGroupId;
+    if (previous !== null && previous !== storedGroupId) dispatch(markWorkstreamSeen(previous));
+  }, [dispatch, storedGroupId]);
 
   // An opened workstream keeps its place while the user reads it, even once reading its members
   // or marking it seen moves it out of this section.
@@ -247,6 +250,7 @@ function SubjectPane({ subject, row }: { subject: SubjectDetail; row: InboxRow }
         <Header header={subject.header} subject={subject} />
       </div>
       {subject.workstream && <StackBox workstream={subject.workstream} subjectKey={subject.key} />}
+      {subject.linked && <LinkedSubjects linked={subject.linked} repo={subject.header.repo} />}
       {subject.body && <Description key={subject.key} body={subject.body} />}
       {subject.findings && <FindingsPanel findings={subject.findings} open={subject.header.state === "OPEN"} />}
       {subject.rounds.length === 0 && (

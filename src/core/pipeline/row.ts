@@ -1,4 +1,5 @@
 import { findingIcons } from "../findings/status.ts";
+import { CLOSING_RELATIONS } from "../links.ts";
 import type { SubjectRecord, SubjectViewRecord, ThreadRecord } from "../types.ts";
 import { isMe } from "./classify.ts";
 import type {
@@ -133,46 +134,27 @@ export function buildHeader(
   };
 }
 
-function refUrl(repo: string, kind: "pr" | "issue", number: number): string {
-  return `https://github.com/${repo}/${kind === "pr" ? "pull" : "issues"}/${number}`;
-}
-
 /**
- * Links for the preview pane: URLs extracted by bot rules (even from hidden events), issues
- * this PR closes, and PRs or issues connected to this one.
+ * Links for the preview pane: URLs extracted by bot rules, even from hidden events. Linked PRs
+ * and issues are in `SubjectView.linked`.
  */
-export function buildLinks(subject: SubjectRecord, events: ViewEvent[]): ViewLink[] {
+export function buildLinks(events: ViewEvent[]): ViewLink[] {
   const links: ViewLink[] = [];
   const seen = new Set<string>();
-  const add = (label: string, url: string) => {
-    if (seen.has(url)) return;
+  for (const e of events) {
+    const url = e.extracted?.url;
+    if (!url || seen.has(url)) continue;
     seen.add(url);
-    links.push({ label, url });
-  };
-
-  for (const e of events) {
-    if (e.extracted?.url) add(e.ruleId ?? e.actor?.login ?? "link", e.extracted.url);
-  }
-  for (const n of nodes(obj(subject.raw)?.closingIssuesReferences)) {
-    if (typeof n.number === "number") add(`closes #${n.number}`, refUrl(subject.repo, "issue", n.number));
-  }
-  for (const e of events) {
-    const ref = e.data.ref;
-    if (!ref) continue;
-    const linked =
-      e.kind === "connected" ||
-      e.kind === "closedByPr" ||
-      e.kind === "markedDuplicate" ||
-      (e.kind === "crossReference" && e.data.willClose === true);
-    if (!linked || e.data.added === false) continue;
-    const name = ref.repo === subject.repo ? `#${ref.number}` : `${ref.repo}#${ref.number}`;
-    add(ref.title ? `${name} ${ref.title}` : name, refUrl(ref.repo, ref.kind, ref.number));
+    links.push({ label: e.ruleId ?? e.actor?.login ?? "link", url });
   }
   return links;
 }
 
 export function toInboxRow(view: SubjectView): InboxRow {
   const h = view.header;
+  const linked = (view.linked ?? []).filter(
+    (l) => CLOSING_RELATIONS.has(l.relation) && !(l.kind === "pr" && l.state === "CLOSED"),
+  );
   return {
     key: view.key,
     repo: h.repo,
@@ -198,6 +180,7 @@ export function toInboxRow(view: SubjectView): InboxRow {
     enrichError: h.enrichError,
     ...(view.quiet ? { quiet: view.quiet } : {}),
     findings: h.state === "OPEN" ? findingIcons(view.findings ?? []) : [],
+    ...(linked.length > 0 ? { linked } : {}),
   };
 }
 

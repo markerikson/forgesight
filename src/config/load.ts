@@ -104,6 +104,10 @@ function resolveRepo(entry: UserRepoConfig, base: Partial<RepoConfig>, key: stri
     trunks: required(entry.trunks ?? base.trunks, `repos["${key}"].trunks`),
     rebaseIgnore: entry.rebaseIgnore?.map(globToRegExp) ?? base.rebaseIgnore ?? [],
     workstreams: resolveWorkstreams(entry.workstreams, base.workstreams, key),
+    subscribedIssueComments: required(
+      entry.subscribedIssueComments ?? base.subscribedIssueComments,
+      `repos["${key}"].subscribedIssueComments`,
+    ),
   };
 }
 

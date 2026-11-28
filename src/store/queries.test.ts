@@ -123,8 +123,8 @@ describe("subjects", () => {
 
     const byKey = (q: ReturnType<typeof dirtyQueue>) => q.toSorted((a, b) => a.subjectKey.localeCompare(b.subjectKey));
     expect(byKey(dirtyQueue(db))).toEqual([
-      { subjectKey: "a/x#1", repo: "a/x", origin: "thread", priority: 0, dirtyAt: T1, threadUpdatedAt: T2 },
-      { subjectKey: "b/y#1", repo: "b/y", origin: "thread", priority: 3, dirtyAt: T3, threadUpdatedAt: null },
+      { subjectKey: "a/x#1", repo: "a/x", kind: "pr", state: null, origin: "thread", priority: 0, dirtyAt: T1, threadUpdatedAt: T2 },
+      { subjectKey: "b/y#1", repo: "b/y", kind: "pr", state: null, origin: "thread", priority: 3, dirtyAt: T3, threadUpdatedAt: null },
     ]);
     expect(dirtyQueue(db, 3).map((s) => s.subjectKey)).toEqual(["b/y#1"]);
     expect(subjectsByKeys(db, ["b/y#1", "a/x#1"]).map((s) => s.subjectKey)).toEqual(["b/y#1", "a/x#1"]);

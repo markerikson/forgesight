@@ -1,0 +1,9 @@
+{
+  "subjectKey": "replayio/loop-qa#4155",
+  "kind": "pr",
+  "mode": "normal",
+  "recordedAt": "2026-11-27T05:04:02.839Z",
+  "repoConfig": {
+    "branchRules": [{ "pattern": "^fix/qa-issue-(\\d+)$", "link": "issue" }]
+  }
+}
