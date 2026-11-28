@@ -233,6 +233,7 @@ export type RankReason =
   | "staleReviewRequest"
   | "announcement"
   | "subscribedOnly"
+  | "closedUnplanned"
   | "nothingNew";
 
 /** Counts the inbox sums into the Hidden line, e.g. "Since you last looked: 12 pushes, 40 rebases, 3 merged". */

@@ -93,7 +93,9 @@ export function linksFor({ subject, events, config }: LinksInput): LinkedSubject
     if (!ref) continue;
     switch (e.kind) {
       case "closedByPr":
-        add(ref, "closedBy");
+        // A PR that closed the subject was merged; closers stored before the
+        // fragment asked for state lack it.
+        add(ref.state === undefined ? { ...ref, state: "MERGED" } : ref, "closedBy");
         break;
       case "crossReference":
         if (e.data.willClose !== true) break;

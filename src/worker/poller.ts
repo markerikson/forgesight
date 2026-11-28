@@ -2,9 +2,9 @@ import { repoConfig } from "../core/config.ts";
 import { META } from "../core/meta-keys.ts";
 import {
   initialDismissedAt,
-  isRecent,
   planPoll,
   planSubjects,
+  queuesOnFirstRun,
   sinceFor,
   threadChanged,
   toThreadUpsert,
@@ -102,7 +102,7 @@ export function createPoller(): Poller {
       const firstRunAt = backfillDone(ctx) ? null : (metaDate(ctx, POLL_META.backfillStartedAt) ?? now);
       const { written, dirtied } = ingest(ctx, newestById(threads), {
         firstRunAt,
-        dirty: (t) => firstRunAt === null || isRecent(t.updatedAt, firstRunAt),
+        dirty: (t) => firstRunAt === null || queuesOnFirstRun(t, firstRunAt, repoConfig(config, t.repo).mode),
       });
       setMeta(db, POLL_META.etag, result.etag, nowIso);
       setMeta(db, POLL_META.lastPollStartedAt, nowIso, nowIso);
@@ -152,7 +152,7 @@ export function createPoller(): Poller {
       const page = next.value;
       const { written, dirtied } = ingest(ctx, page, {
         firstRunAt,
-        dirty: (t) => isRecent(t.updatedAt, firstRunAt),
+        dirty: (t) => queuesOnFirstRun(t, firstRunAt, repoConfig(config, t.repo).mode),
       });
       const oldest = page.reduce<string | undefined>(
         (min, t) => (min === undefined || t.updatedAt < min ? t.updatedAt : min),

@@ -38,7 +38,7 @@ export const ThreadRow = memo(function ThreadRow({
   const muted = isMuted(row);
   const byline = rowByline(row.author, row.summaryLine, row.latestActor);
   const hidden = hiddenReason(row);
-  const chips = (row.linked ?? []).filter((link) => !byline.summary.includes(linkName(link, row.repo)));
+  const chips = (row.linked ?? []).filter((link) => !namesLink(byline.summary, linkName(link, row.repo)));
   const act = (e: MouseEvent, fn: () => void) => {
     e.stopPropagation();
     fn();
@@ -117,6 +117,13 @@ export const ThreadRow = memo(function ThreadRow({
     </li>
   );
 });
+
+function namesLink(text: string, name: string): boolean {
+  for (let at = text.indexOf(name); at !== -1; at = text.indexOf(name, at + 1)) {
+    if (!/\d/.test(text.charAt(at + name.length))) return true;
+  }
+  return false;
+}
 
 export function rowDomId(key: string): string {
   return `row-${key.replace(/[^A-Za-z0-9_-]/g, "_")}`;

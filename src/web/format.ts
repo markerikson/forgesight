@@ -136,6 +136,7 @@ export const REASON_LABELS: Record<RankReason, string> = {
   staleReviewRequest: "old review request",
   announcement: "announcement",
   subscribedOnly: "subscribed only",
+  closedUnplanned: "closed as not planned",
   nothingNew: "nothing new",
 };
 

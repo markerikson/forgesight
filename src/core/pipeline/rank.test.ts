@@ -438,7 +438,7 @@ describe("rank", () => {
       const items = [...talk(), close({ stateReason: "NOT_PLANNED" })];
       const view = derive({ ...OLD_ISSUE, state: "CLOSED", items, subscribedIssueComments: "updates" });
       expect(view.section).toBe("hidden");
-      expect(view.reasons).toEqual(["closedByOthers"]);
+      expect(view.reasons).toEqual(["closedUnplanned"]);
       const involved = derive({ ...OLD_ISSUE, state: "CLOSED", items, reason: "comment" });
       expect(involved.section).toBe("updates");
       expect(involved.summaryLine).toBe("bob closed as not planned");

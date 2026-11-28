@@ -152,7 +152,7 @@ export function buildLinks(events: ViewEvent[]): ViewLink[] {
 
 export function toInboxRow(view: SubjectView): InboxRow {
   const h = view.header;
-  const linked = (view.linked ?? []).filter((l) => CLOSING_RELATIONS.has(l.relation));
+  const linked = (view.linked ?? []).filter((l) => CLOSING_RELATIONS.has(l.relation) && l.state !== "CLOSED");
   return {
     key: view.key,
     repo: h.repo,

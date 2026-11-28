@@ -74,6 +74,11 @@ describe("hiddenReason", () => {
     expect(hiddenReason(hidden({ reasons: ["announcement"] }))).toBe("announcement you only follow");
   });
 
+  test("issues I only follow: comments, and closes as not planned", () => {
+    expect(hiddenReason(hidden({ reasons: ["subscribedOnly"] }))).toBe("new comments on an issue you only follow");
+    expect(hiddenReason(hidden({ reasons: ["closedUnplanned"] }))).toBe("closed as not planned or duplicate");
+  });
+
   test("names the only kinds of quiet activity", () => {
     expect(hiddenReason(hidden({ quiet: { ...NONE, bots: 3 } }))).toBe("only bot activity");
     expect(hiddenReason(hidden({ quiet: { ...NONE, labels: 1 } }))).toBe("only label changes");

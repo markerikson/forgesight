@@ -203,9 +203,10 @@ function assignedToMe(subject: SubjectRecord, me: string | null): boolean {
   return nodes(obj(subject.raw)?.assignees).some((n) => isMe(n.login as string | undefined, me));
 }
 
-/** An issue someone else opened after I last dismissed it (or that I never dismissed). */
+/** An open issue someone else opened after I last dismissed it (or that I never dismissed). */
 function isNewIssue(subject: SubjectRecord, dismissedAt: string | null, me: string | null): boolean {
   if (isMe(subject.author ?? undefined, me)) return false;
+  if (subject.kind === "issue" && subject.state === "CLOSED") return false;
   const createdAt = obj(subject.raw)?.createdAt;
   if (typeof createdAt !== "string") return false;
   return dismissedAt === null || isAfter(createdAt, dismissedAt);
@@ -265,7 +266,7 @@ function tookPartIn(subject: SubjectRecord, threads: ThreadRecord[], events: Vie
 /** The PR that fixes an issue: a merged closing PR first, else an open one. */
 function closingPr(linked: readonly LinkedSubject[] | undefined): LinkedSubject | undefined {
   const closing = (linked ?? []).filter((l) => l.kind === "pr" && CLOSING_RELATIONS.has(l.relation));
-  return closing.find((l) => l.state === "MERGED") ?? closing.find((l) => l.state !== "CLOSED");
+  return closing.find((l) => l.state === "MERGED") ?? closing.find((l) => l.state === "OPEN");
 }
 
 /** An issue closed as not planned or as a duplicate, by someone other than me. */
@@ -354,7 +355,7 @@ export function rank(input: RankInput): Rank {
       add("announcement");
     } else if (isIssue && closedByOthers && !tookPart && closedUnplanned(subject, events, me)) {
       section = "hidden";
-      add("closedByOthers");
+      add("closedUnplanned");
     } else if (
       isIssue && !tookPart && human.length > 0 && !stateChanged && input.subscribedIssueComments !== "updates"
     ) {
@@ -363,7 +364,8 @@ export function rank(input: RankInput): Rank {
       } else {
         section = "hidden";
         add("subscribedOnly");
-      }    } else if (shown.length > 0) {
+      }
+    } else if (shown.length > 0) {
       add(shown.some((e) => STATE_KINDS.has(e.kind)) ? "stateChange" : "newActivity");
     } else if (!isPr && isNewIssue(subject, state.dismissedAt, me) && events.every((e) => e.kind !== "comment")) {
       add(isDiscussion ? "newDiscussion" : "newIssue");

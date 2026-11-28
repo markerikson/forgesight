@@ -1,7 +1,7 @@
 {
-  "section": "updates",
+  "section": "hidden",
   "reasons": [
-    "newIssue"
+    "nothingNew"
   ],
   "summaryLine": "fixed by #5651",
   "newMeaningfulCount": 0,
